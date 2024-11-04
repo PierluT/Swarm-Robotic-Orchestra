@@ -165,7 +165,7 @@ class Robot:
         for millisecond in range(int(milliseconds)):     
             self.phase += (2 * np.pi / self.T.total_seconds())
             # normalization
-            #self.phase %= (2 * np.pi)
+            self.phase %= (2 * np.pi)
             
             #print(" millisecondo: "+ str(millisecond)+ " fase aggiornata: "+ str(self.phase))
             if self.phase >= 2 * np.pi:
