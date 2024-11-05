@@ -8,6 +8,7 @@ from datetime import timedelta
 from classes.file_reader import File_Reader
 from classes.tempo import Note
 from classes.MIDIMessage import MIDIMessage
+from classes.dictionaries import colours
 
 file_reader_valuse = File_Reader()
 values_dictionary = file_reader_valuse.read_configuration_file()
@@ -22,7 +23,7 @@ class Robot:
         self.rectangleArea_heigth = values_dictionary['height_arena']
         self.radar_radius = values_dictionary['radar']
         self.N = values_dictionary['robot_number']
-        self.colour = (0,255,0)
+        self.colour = colours['green']
         self.velocity = float(values_dictionary['velocity'])
         self.vx = random.choice([-1, 1]) * self.velocity
         self.vy = random.choice([-1, 1]) * self.velocity
@@ -147,10 +148,12 @@ class Robot:
         self.vx = self.velocity * math.cos(angle_radians)
         self.vy = self.velocity * math.sin(angle_radians)
 
-
     # method to change color of the robot when interaction happens.
     def change_color(self):
-        self.colour = (0, 0, 255)
+        if self.crossed_zero_phase:
+            self.colour = colours['blue']
+        else:
+            self.colour = colours['green']
     
     def set_emitter_message(self):
         
@@ -160,30 +163,27 @@ class Robot:
         }
         self.forwarded_message.append(entry)
     
+    # to control if phase has crossed 2pi.
+    def is_in_circular_range(self):
+        return self.phase >= 0 and self.phase <= 0.09  
     
     # method to update internal robot phase.
     # What is the time gap between a call of update phase and another?
     def update_phase(self):
-        #milliseconds = self.T.total_seconds() * 1000    
-        milliseconds = 4000 
-        # by now remove 4 seconds and so the
-         
-            #step = (2 * np.pi / self.T.total_seconds())  
-            # phase += step 
+        #milliseconds = self.T.total_seconds() * 1000  
+        # step = (2 * np.pi / self.T.total_seconds())  
+        # phase += step 
         self.phase += (2 * np.pi / 4000)
-            # normalization only if I reach 2pi then I go to 0.
+        # normalization only if I reach 2pi then I go to 0.
         self.phase %= (2 * np.pi)
-            # put a flag to control if previously you were near 2pi.
-        current_time = time.time()
+        # put a flag to control if previously you were near 2pi.
+        if self.is_in_circular_range():
+            self.crossed_zero_phase = True
+        else:
+            self.crossed_zero_phase = False
+        
         # CONTROL THAT THE STEP IS ABOUT 1 MS.
-        print("r. numero: "+ str(self.number)+ " cureent time step: "+ str(current_time)+ " fase aggiornata: "+ str(self.phase))
-        if self.phase >= 2 * np.pi:
-            self.phase = 0
-            # I control phase, when is 0 the robot plays the note to control the kuramoto model.    
-        elif abs(self.phase) < 1e-10:
-            self.playing_flag = True
-            print(" suono 1  !!!!")
-    
+   
     def update_phase_kuramoto_model(self,recieved_phase):
         self.phase += self.K * np.sin(recieved_phase - self.phase)
         # normalization
@@ -204,7 +204,7 @@ class Robot:
         self.moveRobot()
         self.update_phase()
         self.message_listener()
-        #self.play_note()
+        self.change_color()
 """""
     def play_note(self):
         note = Note()
