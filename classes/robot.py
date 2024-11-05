@@ -158,6 +158,7 @@ class Robot:
         }
         self.forwarded_message.append(entry)
     
+    
     # method to update internal robot phase.
     def update_phase(self):
         #milliseconds = self.T.total_seconds() * 1000    
