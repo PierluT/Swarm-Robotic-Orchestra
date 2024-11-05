@@ -21,7 +21,7 @@ def main():
     # divides notes duration per measure.
     G.dividi_sequenza_ritmica_melodia(final_sequence)
     # bla
-    # HOW LONG IS IT?
+    # HOW LONG IS IT? could be around 4 seconds. This tempo should be reached by consensous because each robot could have different freq. clocks.
     while True:       
         arena.arena.fill(0)
         for n in supervisor.dictionary_of_robots:

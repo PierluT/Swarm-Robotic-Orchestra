@@ -142,7 +142,7 @@ class Supervisor:
         # current time for phases check
         current_time = time.time()
         # I print matrix every 4 seconds.
-        if current_time - self.last_check_time >= 2:
+        if current_time - self.last_check_time >= 0.5:
             # Update time from the last control. 
             self.last_check_time = current_time
             robot_phases = np.round(np.array([robot.phase for robot in self.dictionary_of_robots]),2)
@@ -164,6 +164,7 @@ class Supervisor:
         self.make_matrix_control(robot_to_parse)
         self.post_office(robot_to_parse)
         self.check_phases_convergence()
+
 """""
     def print_half_matrix(self):
         robot_indexes = []
