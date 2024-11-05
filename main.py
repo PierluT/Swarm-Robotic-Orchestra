@@ -20,7 +20,7 @@ def main():
     final_sequence, seqs = G.create_sequence(START_SEQUENCE)
     # divides notes duration per measure.
     G.dividi_sequenza_ritmica_melodia(final_sequence)
- 
+    # bla
     # HOW LONG IS IT?
     while True:       
         arena.arena.fill(0)
