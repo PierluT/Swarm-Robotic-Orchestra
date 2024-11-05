@@ -12,6 +12,7 @@ from classes.MIDIMessage import MIDIMessage
 file_reader_valuse = File_Reader()
 values_dictionary = file_reader_valuse.read_configuration_file()
 midi_sender = MIDIMessage()
+
 class Robot:
     
     def __init__(self,number):
@@ -39,6 +40,7 @@ class Robot:
         self.forwarded_message = []
         #self.comunication_interval = 0
         self.playing_flag = False
+        self.crossed_zero_phase = False
         self.rotation_time = values_dictionary['rotation_time']
         self.change_direction_counter = time.time() + self.rotation_time
         #self.status = set()
@@ -84,10 +86,10 @@ class Robot:
    
     def message_listener(self):
         if self.recieved_message and self.forwarded_message:
-            #print("r: "+str(self.number)+" ha ricevuto un messaggio")
+            #print("r: "+str(self.number)+" has recieved a message")
             #print(" | ".join(map(str, self.recieved_message)))
             #print()
-            #print("messaggio che manda r."+str(self.number))
+            #print("r. send this message: "+str(self.number))
             #print(" | ".join(map(str, self.forwarded_message)))
             #print()
             # Itera attraverso la lista per accedere ai valori della fase
@@ -160,21 +162,27 @@ class Robot:
     
     
     # method to update internal robot phase.
+    # What is the time gap between a call of update phase and another?
     def update_phase(self):
         #milliseconds = self.T.total_seconds() * 1000    
         milliseconds = 4000 
-        for millisecond in range(int(milliseconds)):     
-            self.phase += (2 * np.pi / self.T.total_seconds())
-            # normalization
-            self.phase %= (2 * np.pi)
-            
-            #print(" millisecondo: "+ str(millisecond)+ " fase aggiornata: "+ str(self.phase))
-            if self.phase >= 2 * np.pi:
-                self.phase = 0
+        # by now remove 4 seconds and so the
+         
+            #step = (2 * np.pi / self.T.total_seconds())  
+            # phase += step 
+        self.phase += (2 * np.pi / 4000)
+            # normalization only if I reach 2pi then I go to 0.
+        self.phase %= (2 * np.pi)
+            # put a flag to control if previously you were near 2pi.
+        current_time = time.time()
+        # CONTROL THAT THE STEP IS ABOUT 1 MS.
+        print("r. numero: "+ str(self.number)+ " cureent time step: "+ str(current_time)+ " fase aggiornata: "+ str(self.phase))
+        if self.phase >= 2 * np.pi:
+            self.phase = 0
             # I control phase, when is 0 the robot plays the note to control the kuramoto model.    
-            elif abs(self.phase) < 1e-10:
-                self.playing_flag = True
-                print(" suono 1  !!!!")
+        elif abs(self.phase) < 1e-10:
+            self.playing_flag = True
+            print(" suono 1  !!!!")
     
     def update_phase_kuramoto_model(self,recieved_phase):
         self.phase += self.K * np.sin(recieved_phase - self.phase)
@@ -196,7 +204,7 @@ class Robot:
         self.moveRobot()
         self.update_phase()
         self.message_listener()
-        self.play_note()
+        #self.play_note()
 """""
     def play_note(self):
         note = Note()
