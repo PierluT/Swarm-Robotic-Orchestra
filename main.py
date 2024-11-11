@@ -40,7 +40,7 @@ def main():
                 robot.playing_flag
             ])
                 robot.step()
-                supervisor.collision_and_message_control(robot)
+                #supervisor.collision_and_message_control(robot)
         time.sleep(1)
     
     print(f"File '{video_csv_file }' creato con successo.")
@@ -48,9 +48,8 @@ def main():
     # test Arena csv reader.
     arena = Arena()
     arena.load_robot_data(video_csv_file)
-    print("dati dei robot classe arena")
-    print(arena.robot_data)
-
+    print(" lista dell'arena raggruppate per robot ")
+    arena.group_robot_data_by_id()
 
 if __name__ == "__main__":
         
