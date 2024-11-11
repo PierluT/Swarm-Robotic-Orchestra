@@ -1,5 +1,6 @@
 import numpy as np
 import cv2
+import csv
 from classes.file_reader import File_Reader
 
 file_reader_valuse = File_Reader()
@@ -11,6 +12,7 @@ class Arena:
         self. width = values_dictionary['width_arena']
         self.height = values_dictionary['height_arena']
         self.arena = np.zeros((self.height, self.width, 3), np.uint8)
+        #self.robot_data = []
 
     def show_arena(self,window_name = "Robot Simulation"):
         cv2.imshow(window_name, self.arena)
@@ -19,6 +21,27 @@ class Arena:
         # Esci dal programma se viene premuto il tasto 'q'
             cv2.destroyAllWindows()
             exit()
+
+    def load_robot_data(self,filename):
+        robot_data = []
+        # read data from csv file
+        with open(filename, mode='r') as file:
+            reader = csv.reader(file, delimiter=';')
+            next(reader)  # Salta l'intestazione
+            for row in reader:
+                 millisecond, robot_number, x, y, phase, colour_str, _ = row
+                 colour_str = colour_str.strip().strip('()')  # Rimuove parentesi e spazi extra
+                 colour = tuple(map(int, colour_str.split(',')))
+                 robot_data.append({
+                    "millisecond": int(millisecond),
+                    "robot_number": int(robot_number),
+                    "x": float(x),
+                    "y": float(y),
+                    "phase": phase,
+                    "colour": colour
+                })
+        return robot_data
+
 
     def draw_robot(self,robot):
         #print(f"robot  numero: {robot.number}, Velocità X: {robot.vx}, Velocità Y: {robot.vy}")

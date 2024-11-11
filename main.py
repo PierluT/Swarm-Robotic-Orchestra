@@ -5,15 +5,13 @@ from classes.arena import Arena
 from classes.tempo import Grammar_Sequence, metronome_grammar,ex_i_grammar
             
 def main():
-    arena = Arena()
+    
     supervisor = Supervisor([])
     # method to create a complete dictionary of robots.
     supervisor.create_dictionary_of_robots()
-    supervisor.compute_initial_positions()
-    print(supervisor.dictionary_of_robots)
     # method to compute initial positions in order to avoid overlap.
-    # dictionary_of_positions = supervisor.compute_initial_positions()
-    
+    supervisor.compute_initial_positions()
+    #print(supervisor.dictionary_of_robots)
 
     # number of measures in the composition
     num_bars_per_composition = 4
@@ -46,8 +44,14 @@ def main():
         time.sleep(1)
     
     print(f"File '{video_csv_file }' creato con successo.")
-
+    
+    # test Arena csv reader.
+    arena = Arena()
+    arena.load_robot_data(video_csv_file)
+    print("dati dei robot classe arena")
+    print(arena.robot_data)
 
 
 if __name__ == "__main__":
+        
         main()
