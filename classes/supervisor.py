@@ -78,7 +78,9 @@ class Supervisor:
                     robot_to_check.y = y_position_to_check
                     valid_initial_positions.append(robot_to_check)
                     # Break in case valid position found.
-                    break 
+                    break
+
+        return valid_initial_positions 
     
     def compute_distance(self, robot1, robot2):
         distance = np.sqrt((robot1.x - robot2.x) ** 2 + (robot1.y - robot2.y) ** 2)

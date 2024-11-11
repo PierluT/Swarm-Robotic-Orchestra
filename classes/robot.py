@@ -59,7 +59,7 @@ class Robot:
         return state in self.status
 
     def __repr__(self):
-        return f"Robot(number={self.number}, coordinate x={self.x}, phase={self.phase.phi_i})"
+        return f"Robot(number = {self.number}, coordinate x = {self.x}, y = {self.y}, phase = {self.phase})"
     
     def compute_initial_x_position(self):
         possible_x_coordinate = random.randint(int(self.radar_radius + 10), int(self.rectangleArea_width - self.radar_radius - 10))
