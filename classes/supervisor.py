@@ -32,7 +32,7 @@ class Supervisor:
         self.clock_interval_dictionary = {}
         self.comuncation_clock_interval = values_dictionary['comunication_clock_interval']
         # to estimate phases convergence
-        self.target_precision = 0.1
+        self.target_precision = 0.01
         # time interval for phases check 
         self.last_check_time = time.time() 
  
@@ -101,8 +101,6 @@ class Supervisor:
             robot2.set_emitter_message()
             robot2.recieved_message = robot1.forwarded_message
             robot1.recieved_message = robot2.forwarded_message
-            robot1.message_listener()
-            robot2.message_listener()
             # celan robots buffers
             robot1.clean_buffers()
             robot2.clean_buffers()
@@ -144,10 +142,10 @@ class Supervisor:
         # current time for phases check
         current_time = time.time()
         # I print matrix every 4 seconds.
-        if current_time - self.last_check_time >= 5:
+        if current_time - self.last_check_time >= 0.5:
             # Update time from the last control. 
             self.last_check_time = current_time
-            robot_phases = np.round(np.array([robot.phase for robot in self.dictionary_of_robots]),2)
+            robot_phases = (np.array([robot.phase for robot in self.dictionary_of_robots]))
             # compute mean of phases and verify if the phases are near to that value.
             mean_phase = np.mean(robot_phases)
             phase_diff = np.abs(robot_phases - mean_phase)

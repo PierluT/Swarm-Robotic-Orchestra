@@ -1,2 +1,2 @@
 robot_number;width_arena;height_arena;velocity;radius;radar;threshold;rotation_time;comunication_clock_interval
-4;1800;800;1;20;30;400;2;0.10
+40;700;700;0.5;20;30;400;2;0.10
