@@ -57,7 +57,7 @@ class Arena:
             for robot in robots:
                 #print(robot)
                 self.draw_robot(robot)
-        self.show_arena("Robot Simulation")
+            self.show_arena("Robot Simulation")
 
     def draw_robot(self,robot):
         #print(f"robot  numero: {robot.number}, Velocità X: {robot.vx}, Velocità Y: {robot.vy}")
