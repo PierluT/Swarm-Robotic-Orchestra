@@ -13,7 +13,7 @@ class Arena:
         self. width = values_dictionary['width_arena']
         self.height = values_dictionary['height_arena']
         self.arena = np.zeros((self.height, self.width, 3), np.uint8)
-        self.robot_data = []
+        self.robot_data = defaultdict(list)
 
     def show_arena(self,window_name = "Robot Simulation"):
         cv2.imshow(window_name, self.arena)
@@ -24,58 +24,52 @@ class Arena:
             exit()
 
     def load_robot_data(self,filename):
-        
         self.robot_data.clear()
         # read data from csv file
         with open(filename, mode='r') as file:
             reader = csv.reader(file, delimiter=';')
             next(reader)  # Salta l'intestazione
             for row in reader:
-                 millisecond, robot_number, x, y, phase, colour_str, _ = row
-                 colour_str = colour_str.strip().strip('()')  # Rimuove parentesi e spazi extra
-                 colour = tuple(map(int, colour_str.split(',')))
-                 self.robot_data.append({
+                millisecond, robot_number, x, y, phase, colour_str, _ = row
+                colour_str = colour_str.strip().strip('()')  # Rimuove parentesi e spazi extra
+                colour = tuple(map(int, colour_str.split(',')))
+                robot_info = {
                     "millisecond": int(millisecond),
                     "robot_number": int(robot_number),
                     "x": float(x),
                     "y": float(y),
                     "phase": phase,
                     "colour": colour
-                })
-    
-    def group_robot_data_by_id(self):
-        grouped_robot_data = defaultdict(list)
-        for data in self.robot_data:
-            # group the data by the number of the robot.
-            grouped_robot_data[data['robot_number']].append(data)
-        
-        # Stampa i dati dei robot raggruppati
-        for robot_number, robots in grouped_robot_data.items():
-            print(f"Robot {robot_number}:")
+                }  
+                self.robot_data[int(millisecond)].append(robot_info)
+
+    def print_robot_data(self):
+        for millisecond, robots in self.robot_data.items():
+            print(f" Millisecond {millisecond}:")
             for robot in robots:
-                print(f"  Millisecond: {robot['millisecond']}, "
+                print(f"  Robot: {robot['robot_number']}, "
                     f"X: {robot['x']}, Y: {robot['y']}, "
                     f"Phase: {robot['phase']}, Colour: {robot['colour']}")
-
+    
+    def draw_all_robots(self):
+        self.arena.fill(0)
+        for millisecond,robots in self.robot_data.items():
+            for robot in robots:
+                #print(robot)
+                self.draw_robot(robot)
+        self.show_arena("Robot Simulation")
 
     def draw_robot(self,robot):
         #print(f"robot  numero: {robot.number}, Velocità X: {robot.vx}, Velocità Y: {robot.vy}")
-        cv2.circle(self.arena, (int(robot.x), int(robot.y)), robot.radius, robot.colour, -1)
+        cv2.circle(self.arena, (int(robot['x']), int(robot['y'])), values_dictionary['radius'], robot['colour'], -1)
         #cv2.circle(self.arena, (int(robot.x), int(robot.y)), robot.radar_radius, robot.colour)
-        start_point, end_point = robot.compute_robot_compass()
-        start_point = (int(start_point[0]), int(start_point[1]))
-        end_point = (int(end_point[0]), int(end_point[1]))
-        cv2.line(self.arena, start_point, end_point, (255, 255, 255), 2)  # Linea bianca per l'orientamento
+        #start_point, end_point = robot.compute_robot_compass()
+        #start_point = (int(start_point[0]), int(start_point[1]))
+        #end_point = (int(end_point[0]), int(end_point[1]))
+        #cv2.line(self.arena, start_point, end_point, (255, 255, 255), 2)  # Linea bianca per l'orientamento
 
         # add a label for the number of the robot
-        label_position = (int(robot.x) - 10, int(robot.y) - robot.radius - 10)  # Regola la posizione sopra il robot
-        cv2.putText(self.arena, str(robot.number), label_position, 
+        label_position = (int(robot['x']) - 10, int(robot['y']) - values_dictionary['radius'] - 10)  # Regola la posizione sopra il robot
+        cv2.putText(self.arena, str(robot['robot_number']), label_position, 
                     cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 2)  # Testo bianco con spessore 2
-        
-""""
-        # Aggiungi un'etichetta per la fase (theta) in radianti
-        phase_label = f" phi: {robot.phase:.2f} rad"  # Formatta theta con due decimali e aggiungi "rad"
-        phase_label_position = (int(robot.x) - 10, int(robot.y) - robot.radius - 30)  # Regola la posizione per theta
-        cv2.putText(self.arena, phase_label, phase_label_position, 
-            cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 2)  # Testo bianco con spessore 2
-"""
+   

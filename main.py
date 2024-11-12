@@ -49,7 +49,9 @@ def main():
     arena = Arena()
     arena.load_robot_data(video_csv_file)
     print(" lista dell'arena raggruppate per robot ")
-    arena.group_robot_data_by_id()
+    #print(dict(arena.robot_data))
+    #arena.print_robot_data()
+    arena.draw_all_robots()
 
 if __name__ == "__main__":
         
