@@ -156,12 +156,14 @@ class Robot:
     # What is the time gap between a call of update phase and another?
     
     def update_phase(self):
+        
         if self.recieved_message:
-            print("ho ricevuto un messaggio")
+            print("r. numero: "+str(self.number)+ " ha ricevuto un messaggio")
             for message in self.recieved_message:
                 phase_value = message['phase']
                 #print(f"Phase value: {phase_value}")
                 self.update_phase_kuramoto_model(phase_value)
+            self.clean_buffers()
         else:
             #milliseconds = self.T.total_seconds() * 1000  
             # step = (2 * np.pi / self.T.total_seconds())  

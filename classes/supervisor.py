@@ -101,9 +101,9 @@ class Supervisor:
             robot2.set_emitter_message()
             robot2.recieved_message = robot1.forwarded_message
             robot1.recieved_message = robot2.forwarded_message
-            # celan robots buffers
-            robot1.clean_buffers()
-            robot2.clean_buffers()
+            # clean robots buffers
+            #robot1.clean_buffers()
+            #robot2.clean_buffers()
             #update interval value
             self.clock_interval_dictionary[pair_key] = current_time
   
