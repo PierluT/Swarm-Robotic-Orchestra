@@ -44,7 +44,6 @@ class Robot:
         self.crossed_zero_phase = False
         self.rotation_time = values_dictionary['rotation_time']
         self.change_direction_counter = time.time() + self.rotation_time
-        #self.status = set()
 
     # Methods to manage robot status.
     def add_status(self, state):
@@ -59,7 +58,7 @@ class Robot:
         return state in self.status
 
     def __repr__(self):
-        return f"Robot(number={self.number}, coordinate x={self.x}, phase={self.phase.phi_i})"
+        return f"Robot(number = {self.number}, coordinate x = {self.x}, y = {self.y}, phase = {self.phase})"
     
     def compute_initial_x_position(self):
         possible_x_coordinate = random.randint(int(self.radar_radius + 10), int(self.rectangleArea_width - self.radar_radius - 10))
@@ -83,21 +82,7 @@ class Robot:
             end_x = int(self.x + direction_x)
             end_y = int(self.y + direction_y)
         
-        return (self.x, self.y), (end_x, end_y)
-   
-    def message_listener(self):
-        if self.recieved_message and self.forwarded_message:
-            #print("r: "+str(self.number)+" has recieved a message")
-            #print(" | ".join(map(str, self.recieved_message)))
-            #print()
-            #print("r. send this message: "+str(self.number))
-            #print(" | ".join(map(str, self.forwarded_message)))
-            #print()
-            # Itera attraverso la lista per accedere ai valori della fase
-            for message in self.recieved_message:
-                phase_value = message['phase']
-                #print(f"Phase value: {phase_value}")
-                self.update_phase_kuramoto_model(phase_value)
+        return (self.x, self.y), (end_x, end_y)        
 
     def clean_buffers(self):
         self.forwarded_message.clear()
@@ -165,18 +150,29 @@ class Robot:
     
     # to control if phase has crossed 2pi.
     def is_in_circular_range(self):
-        return self.phase >= 0 and self.phase <= 0.09  
+        return self.phase >= 0 and self.phase <= 0.05  
     
     # method to update internal robot phase.
     # What is the time gap between a call of update phase and another?
+    
     def update_phase(self):
-        #milliseconds = self.T.total_seconds() * 1000  
-        # step = (2 * np.pi / self.T.total_seconds())  
-        # phase += step 
-        self.phase += (2 * np.pi / 4000)
-        # normalization only if I reach 2pi then I go to 0.
-        self.phase %= (2 * np.pi)
-        # put a flag to control if previously you were near 2pi.
+        
+        if self.recieved_message:
+            print("r. numero: "+str(self.number)+ " ha ricevuto un messaggio")
+            for message in self.recieved_message:
+                phase_value = message['phase']
+                #print(f"Phase value: {phase_value}")
+                self.update_phase_kuramoto_model(phase_value)
+            self.clean_buffers()
+        else:
+            #milliseconds = self.T.total_seconds() * 1000  
+            # step = (2 * np.pi / self.T.total_seconds())  
+            # phase += step 
+            self.phase += (2 * np.pi / 4000)
+            # normalization only if I reach 2pi then I go to 0.
+            self.phase %= (2 * np.pi)
+            # put a flag to control if previously you were near 2pi.
+        
         if self.is_in_circular_range():
             self.crossed_zero_phase = True
         else:
@@ -191,7 +187,6 @@ class Robot:
     
     # method to play the note.
     def play_note(self):
-        
         if self.playing_flag:
             print(" suono!!!!")
             note_to_play = Note()
@@ -203,7 +198,6 @@ class Robot:
         # method to move itself.
         self.moveRobot()
         self.update_phase()
-        self.message_listener()
         self.change_color()
 """""
     def play_note(self):
