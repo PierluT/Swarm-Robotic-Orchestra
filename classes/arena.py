@@ -52,9 +52,11 @@ class Arena:
                     f"Phase: {robot['phase']}, Colour: {robot['colour']}")
     
     def draw_all_robots(self):
-        self.arena.fill(0)
+        
         for millisecond,robots in self.robot_data.items():
+            self.arena.fill(0)
             for robot in robots:
+                
                 #print(robot)
                 self.draw_robot(robot)
             self.show_arena("Robot Simulation")

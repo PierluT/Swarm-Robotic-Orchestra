@@ -28,8 +28,11 @@ def main():
     with open(video_csv_file , mode="w", newline="") as file:
         writer = csv.writer(file, delimiter=';')
         writer.writerow(["millisecond", "robot number", "x", "y", "phase", "colour", "is playing"])
-        for millisecond in range(0,4001,1000):    
+        for millisecond in range(0,4001,1):
+               
             for robot in supervisor.dictionary_of_robots:
+                robot.step() 
+                
                 writer.writerow([
                 millisecond, 
                 robot.number, 
@@ -39,9 +42,9 @@ def main():
                 robot.colour,
                 robot.playing_flag
             ])
-                robot.step()
+                
                 #supervisor.collision_and_message_control(robot)
-        time.sleep(1)
+        #time.sleep(1)
     
     print(f"File '{video_csv_file }' creato con successo.")
     
