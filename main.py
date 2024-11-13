@@ -49,12 +49,13 @@ def main():
     
 
     # test Arena csv reader.
-    arena = Arena()
+    #arena = Arena()
     # I read the csv and draw the sequence.
-    arena.load_robot_data(video_csv_file)
+    #arena.load_robot_data(video_csv_file)
     print(" lista dell'arena raggruppate per robot ")
-    arena.draw_all_robots()
+    #arena.draw_all_robots()
     midi_class.read_data_from_csv_and_write_music_data(video_csv_file)
+    midi_class.convert_csv_to_midi()
 
 if __name__ == "__main__":
         
