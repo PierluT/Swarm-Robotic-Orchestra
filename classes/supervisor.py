@@ -7,6 +7,7 @@ import time
 from classes.robot import Robot
 from classes.file_reader import File_Reader
 from classes.MIDIMessage import MIDIMessage
+from classes.tempo import Note
 
 file_reader_valuse = File_Reader()
 values_dictionary = file_reader_valuse.read_configuration_file()
@@ -160,10 +161,16 @@ class Supervisor:
             return converging
         return None  # Nessun controllo effettuato
     
+    def check_robot_has_to_play(self,robot):
+        if robot.playing_flag:
+            note_to_play = Note()
+            #midi_message.send_MIDI_Message(note_to_play)
+    
     def collision_and_message_control(self,robot_to_parse):
         self.make_matrix_control(robot_to_parse)
         self.post_office(robot_to_parse)
         self.check_phases_convergence()
+        self.check_robot_has_to_play(robot_to_parse)
 
 """""
     def print_half_matrix(self):

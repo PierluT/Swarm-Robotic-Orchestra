@@ -1,12 +1,9 @@
-import matplotlib
 import math
-import rtmidi
 import numpy as np
 import time
 import random
 from datetime import timedelta
 from classes.file_reader import File_Reader
-from classes.tempo import Note
 from classes.MIDIMessage import MIDIMessage
 from classes.dictionaries import colours
 
@@ -137,8 +134,10 @@ class Robot:
     def change_color(self):
         if self.crossed_zero_phase:
             self.colour = colours['blue']
+            self.playing_flag = True
         else:
             self.colour = colours['green']
+            self.playing_flag = False
     
     def set_emitter_message(self):
         
@@ -150,15 +149,14 @@ class Robot:
     
     # to control if phase has crossed 2pi.
     def is_in_circular_range(self):
-        return self.phase >= 0 and self.phase <= 0.05  
+        return self.phase >= 0 and self.phase <= 0.01
     
     # method to update internal robot phase.
     # What is the time gap between a call of update phase and another?
     
     def update_phase(self):
-        
         if self.recieved_message:
-            print("r. numero: "+str(self.number)+ " ha ricevuto un messaggio")
+            #print("r. numero: "+str(self.number)+ " ha ricevuto un messaggio")
             for message in self.recieved_message:
                 phase_value = message['phase']
                 #print(f"Phase value: {phase_value}")
@@ -178,20 +176,11 @@ class Robot:
         else:
             self.crossed_zero_phase = False
         
-        # CONTROL THAT THE STEP IS ABOUT 1 MS.
-   
+    # CONTROL THAT THE STEP IS ABOUT 1 MS.
     def update_phase_kuramoto_model(self,recieved_phase):
         self.phase += self.K * np.sin(recieved_phase - self.phase)
         # normalization
         self.phase %= (2 * np.pi)  
-    
-    # method to play the note.
-    def play_note(self):
-        if self.playing_flag:
-            print(" suono!!!!")
-            note_to_play = Note()
-            midi_sender.send_MIDI_Message(note_to_play)
-            self.playing_flag = False
 
     # robot updates itself in terms of position and phase.
     def step(self):
@@ -199,11 +188,16 @@ class Robot:
         self.moveRobot()
         self.update_phase()
         self.change_color()
-"""""
-    def play_note(self):
-        note = Note()
-"""
 
+"""""    
+    # method to play the note.
+    def play_note(self):
+        if self.playing_flag:
+            print(" suono!!!!")
+            note_to_play = Note()
+            midi_sender.send_MIDI_Message(note_to_play)
+            self.playing_flag = False
+"""
 
 
           
