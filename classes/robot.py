@@ -1,12 +1,9 @@
-import matplotlib
 import math
-import rtmidi
 import numpy as np
 import time
 import random
 from datetime import timedelta
 from classes.file_reader import File_Reader
-from classes.tempo import Note
 from classes.MIDIMessage import MIDIMessage
 from classes.dictionaries import colours
 
@@ -41,21 +38,11 @@ class Robot:
         self.forwarded_message = []
         #self.comunication_interval = 0
         self.playing_flag = False
+        self.triggered_playing_flag = False
         self.crossed_zero_phase = False
         self.rotation_time = values_dictionary['rotation_time']
         self.change_direction_counter = time.time() + self.rotation_time
-
-    # Methods to manage robot status.
-    def add_status(self, state):
-        self.status.add(state)
-        #print(f"Robot {self.number} entra nello stato: {state}")
-
-    def remove_status(self, state):
-        self.status.discard(state)
-        #print(f"Robot {self.number} esce dallo stato: {state}")
-
-    def has_status(self, state):
-        return state in self.status
+        self.playing_timer = time.time()
 
     def __repr__(self):
         return f"Robot(number = {self.number}, coordinate x = {self.x}, y = {self.y}, phase = {self.phase})"
@@ -139,6 +126,9 @@ class Robot:
             self.colour = colours['blue']
         else:
             self.colour = colours['green']
+
+
+
     
     def set_emitter_message(self):
         
@@ -150,15 +140,28 @@ class Robot:
     
     # to control if phase has crossed 2pi.
     def is_in_circular_range(self):
-        return self.phase >= 0 and self.phase <= 0.05  
+        return self.phase >= 0 and self.phase <= 0.01
+    
+    def control_playing_flag(self):
+        if 0 <= self.phase < 0.1:
+            # the first time that I enter means that I have to play.
+            if not self.triggered_playing_flag:
+                self.playing_flag = True
+                self.triggered_playing_flag = True
+            # Means that is not the first time that I enter in the condition, so I have to reset false.
+            else:
+                self.playing_flag = False
+        # Means that my phase doesn't allow me to play.
+        else:
+            self.triggered_playing_flag = False
+            self.playing_flag = False
     
     # method to update internal robot phase.
     # What is the time gap between a call of update phase and another?
     
     def update_phase(self):
-        
         if self.recieved_message:
-            print("r. numero: "+str(self.number)+ " ha ricevuto un messaggio")
+            #print("r. numero: "+str(self.number)+ " ha ricevuto un messaggio")
             for message in self.recieved_message:
                 phase_value = message['phase']
                 #print(f"Phase value: {phase_value}")
@@ -178,20 +181,14 @@ class Robot:
         else:
             self.crossed_zero_phase = False
         
-        # CONTROL THAT THE STEP IS ABOUT 1 MS.
-   
+        # method to control if I have the permission to play.
+        self.control_playing_flag()
+        
+    # CONTROL THAT THE STEP IS ABOUT 1 MS.
     def update_phase_kuramoto_model(self,recieved_phase):
         self.phase += self.K * np.sin(recieved_phase - self.phase)
         # normalization
         self.phase %= (2 * np.pi)  
-    
-    # method to play the note.
-    def play_note(self):
-        if self.playing_flag:
-            print(" suono!!!!")
-            note_to_play = Note()
-            midi_sender.send_MIDI_Message(note_to_play)
-            self.playing_flag = False
 
     # robot updates itself in terms of position and phase.
     def step(self):
@@ -199,10 +196,6 @@ class Robot:
         self.moveRobot()
         self.update_phase()
         self.change_color()
-"""""
-    def play_note(self):
-        note = Note()
-"""
 
 
 
