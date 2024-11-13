@@ -56,6 +56,7 @@ def main():
     #arena.draw_all_robots()
     midi_class.read_data_from_csv_and_write_music_data(video_csv_file)
     midi_class.convert_csv_to_midi()
+    #midi_class.read_midi_file()
 
 if __name__ == "__main__":
         

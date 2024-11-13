@@ -35,6 +35,7 @@ class MIDIMessage():
         midi.tracks.append(track)
 
         previous_time_us = 0
+        
         with open(self.music_csv_file, 'r') as f:
             reading_music_data = csv.DictReader(f, delimiter = ";")
             for row in reading_music_data:
@@ -45,24 +46,42 @@ class MIDIMessage():
                 note = int(row['note'])
                 duration_ms = int(row['dur'])
                 # time conversion from millisecond into microseconds.
-                #duration_us = duration_ms * 1000
+                duration_us = duration_ms * 1000
                 amplitude = int(row['amp']) * 127
                 bpm = int(row['bpm'])
+
+                # then I compute us for tick
+                ppq = 480
+                # time in us for ppq
+                tempo  = bpm2tempo(bpm)
+                microseconds_per_tick = tempo / ppq
+                # Compute numbers of tick in 1 second.
+                ticks_per_second = int(1_000_000 / microseconds_per_tick)  
+
                 # time that lasts from an event to another
                 delta_time_us = time_us - previous_time_us
                 # tick conversion
                 delta_time_ticks = int(delta_time_us / 1000)  
                 previous_time_us = time_us
 
-                # Crea l'evento note_on
-                track.append(Message('note_on', note = note, velocity = amplitude, time = delta_time_ticks))
+                # Create event note on
+                track.append(Message('note_on', note = note, velocity = 64, time = delta_time_ticks))
 
-                # Crea l'evento note_off dopo la durata specificata
-                note_off_ticks = int(duration_ms / 1000)
-                track.append(Message('note_off', note=note, velocity=0, time = note_off_ticks))
+                # Create event note off after specified time.
+                note_off_ticks = int(duration_us / 1000)
+                
+                track.append(Message('note_off', note=note, velocity=0, time = ticks_per_second ))
 
         # Salva il file MIDI
         midi.save(self.midi_file)
+    
+    def read_midi_file(self):
+        midifile = MidiFile(self.midi_file)
+        for i, track in enumerate(midifile.tracks):
+            print(f"Track {i}: {track.name}")
+            for msg in track:
+                # Stampa ogni messaggio
+                print(msg)
 
 
         
