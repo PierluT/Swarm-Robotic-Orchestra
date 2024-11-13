@@ -132,7 +132,7 @@ class Grammar_Sequence:
 
 class Note():
     def __init__(self):
-         self.midinote = 64
+         self.midinote = random.randint(60, 72)
          self.amp = 1
          self.dur = 0
          self.BPM = 60

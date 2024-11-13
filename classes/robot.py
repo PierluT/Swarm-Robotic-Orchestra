@@ -4,12 +4,10 @@ import time
 import random
 from datetime import timedelta
 from classes.file_reader import File_Reader
-from classes.MIDIMessage import MIDIMessage
 from classes.dictionaries import colours
 
 file_reader_valuse = File_Reader()
 values_dictionary = file_reader_valuse.read_configuration_file()
-midi_sender = MIDIMessage()
 
 class Robot:
     
@@ -32,7 +30,6 @@ class Robot:
         self.clock_frequency = 0.25
         self.K = 1
         self.T = timedelta(milliseconds = 4000)
-        #self.neighbours = []
         # buffers for incoming and emmiting messages. 
         self.recieved_message = []
         self.forwarded_message = []
@@ -127,9 +124,6 @@ class Robot:
         else:
             self.colour = colours['green']
 
-
-
-    
     def set_emitter_message(self):
         
         entry = {
@@ -140,7 +134,7 @@ class Robot:
     
     # to control if phase has crossed 2pi.
     def is_in_circular_range(self):
-        return self.phase >= 0 and self.phase <= 0.01
+        return self.phase >= 0 and self.phase <= 0.1
     
     def control_playing_flag(self):
         if 0 <= self.phase < 0.1:
