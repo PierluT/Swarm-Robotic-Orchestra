@@ -2,6 +2,7 @@ import ast
 import numpy as np
 import cv2
 import csv
+import time
 from classes.file_reader import File_Reader
 from collections import defaultdict
 
@@ -15,6 +16,7 @@ class Arena:
         self.height = values_dictionary['height_arena']
         self.arena = np.zeros((self.height, self.width, 3), np.uint8)
         self.robot_data = defaultdict(list)
+        self.draw_robots_time = []
 
     def show_arena(self,window_name = "Robot Simulation"):
         cv2.imshow(window_name, self.arena)
@@ -63,15 +65,26 @@ class Arena:
     
     def draw_all_robots(self):
         # here is more than a 1ms. Measure that to know how fatser you can draw.
-        # If you need 10 ms to drae then you have to recall function every 10 ms.
+        # If you need 10 ms to draw then you have to recall function every 10 ms.
         # the time of changing colour and phase cross must be the same.
         # how many pictures do you want per second? 2o frames /s should be enough.
         for millisecond,robots in self.robot_data.items():
             self.arena.fill(0)
-            for robot in robots:               
-                #print(robot)
+            
+            for robot in robots:
+                # I record the time before drawing a robot
+                start_time = time.time()           
                 self.draw_robot(robot)
+                #I record the time after I drew it. 
+                end_time = time.time()
+                draw_time = end_time - start_time
+                self.draw_robots_time.append(draw_time)
+
             self.show_arena("Robot Simulation")
+            # I print the average of time spent to draw each robot.
+            average_time = sum(self.draw_robots_time) / len(self.draw_robots_time)
+            print(f"Tempo medio per disegnare un robot: {average_time:.6f} secondi")
+            
 
     def draw_robot(self,robot):
         #print(f"robot  numero: {robot.number}, Velocità X: {robot.vx}, Velocità Y: {robot.vy}")

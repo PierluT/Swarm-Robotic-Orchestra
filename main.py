@@ -32,7 +32,7 @@ def main():
         writer = csv.writer(file, delimiter=';')
         writer.writerow(["ms", "robot number", "x", "y","compass", "phase", "colour", "is playing"])
         # the step depends on how much fast arena.draw() can draw.
-        for millisecond in range(0,8001,1):
+        for millisecond in range(0,1001,1):
                
             for robot in supervisor.dictionary_of_robots: 
                 supervisor.collision_and_message_control(robot)
@@ -56,6 +56,7 @@ def main():
     #arena.print_robot_data()
     arena.load_robot_data(video_csv_file)
     arena.draw_all_robots()
+    #arena.compute_average_draw_time()
     midi_class.midi_event(video_csv_file)
 
 if __name__ == "__main__":
