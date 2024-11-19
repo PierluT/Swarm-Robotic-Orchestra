@@ -1,3 +1,4 @@
+import ast
 import numpy as np
 import cv2
 import csv
@@ -30,14 +31,23 @@ class Arena:
             reader = csv.reader(file, delimiter=';')
             next(reader)  # Salta l'intestazione
             for row in reader:
-                millisecond, robot_number, x, y, phase, colour_str, _ = row
+                millisecond, robot_number, x, y,compass, phase, colour_str, _ = row
                 colour_str = colour_str.strip().strip('()')  # Rimuove parentesi e spazi extra
                 colour = tuple(map(int, colour_str.split(',')))
+                
+                # Parsing del compasso
+                if compass:
+                        # Rimuovi spazi inutili e utilizza ast.literal_eval
+                        compass_str_clean = compass.strip()
+                        compass = ast.literal_eval(compass_str_clean)
+                        start_point = tuple(map(float, compass[0]))
+                        end_point = tuple(map(float, compass[1]))
                 robot_info = {
                     "millisecond": int(millisecond),
                     "robot_number": int(robot_number),
                     "x": float(x),
                     "y": float(y),
+                    "compass": (start_point, end_point),
                     "phase": phase,
                     "colour": colour
                 }  
@@ -52,11 +62,13 @@ class Arena:
                     f"Phase: {robot['phase']}, Colour: {robot['colour']}")
     
     def draw_all_robots(self):
-        
+        # here is more than a 1ms. Measure that to know how fatser you can draw.
+        # If you need 10 ms to drae then you have to recall function every 10 ms.
+        # the time of changing colour and phase cross must be the same.
+        # how many pictures do you want per second? 2o frames /s should be enough.
         for millisecond,robots in self.robot_data.items():
             self.arena.fill(0)
-            for robot in robots:
-                
+            for robot in robots:               
                 #print(robot)
                 self.draw_robot(robot)
             self.show_arena("Robot Simulation")
@@ -65,11 +77,11 @@ class Arena:
         #print(f"robot  numero: {robot.number}, Velocità X: {robot.vx}, Velocità Y: {robot.vy}")
         cv2.circle(self.arena, (int(robot['x']), int(robot['y'])), values_dictionary['radius'], robot['colour'], -1)
         #cv2.circle(self.arena, (int(robot.x), int(robot.y)), robot.radar_radius, robot.colour)
-        #start_point, end_point = robot.compute_robot_compass()
-        #start_point = (int(start_point[0]), int(start_point[1]))
-        #end_point = (int(end_point[0]), int(end_point[1]))
-        #cv2.line(self.arena, start_point, end_point, (255, 255, 255), 2)  # Linea bianca per l'orientamento
-
+        start_point, end_point = robot['compass']
+        start_point = (int(start_point[0]), int(start_point[1]))
+        end_point = (int(end_point[0]), int(end_point[1]))
+        cv2.line(self.arena, start_point, end_point, (255, 255, 255), 2)  # Linea bianca per l'orientamento
+        
         # add a label for the number of the robot
         label_position = (int(robot['x']) - 10, int(robot['y']) - values_dictionary['radius'] - 10)  # Regola la posizione sopra il robot
         cv2.putText(self.arena, str(robot['robot_number']), label_position, 
