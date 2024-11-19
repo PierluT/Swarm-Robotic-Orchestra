@@ -28,6 +28,7 @@ class MIDIMessage():
                         note = Note()
                         writer.writerow([millisecond, robot_number, note.midinote, note.dur, note.amp, note.BPM])
                         #print("robot n.:"+str(robot_number)+" deve suonare a ms: "+str(millisecond))
+            
 
     def convert_csv_to_midi(self):
         midi = MidiFile()
@@ -50,10 +51,11 @@ class MIDIMessage():
                 amplitude = int(row['amp']) * 127
                 bpm = int(row['bpm'])
 
-                # then I compute us for tick
+                # Pulses per Quarter Note
                 ppq = 480
                 # time in us for ppq
                 tempo  = bpm2tempo(bpm)
+                # In MIDI tick is a length of time
                 microseconds_per_tick = tempo / ppq
                 # Compute numbers of tick in 1 second.
                 ticks_per_second = int(1_000_000 / microseconds_per_tick)  
@@ -61,19 +63,18 @@ class MIDIMessage():
                 # time that lasts from an event to another
                 delta_time_us = time_us - previous_time_us
                 # tick conversion
-                delta_time_ticks = int(delta_time_us / 1000)  
+                delta_time_ticks = (delta_time_us / 1000)  
                 previous_time_us = time_us
 
                 # Create event note on
-                track.append(Message('note_on', note = note, velocity = 64, time = delta_time_ticks))
-
-                # Create event note off after specified time.
-                note_off_ticks = int(duration_us / 1000)
+                track.append(Message('note_on', note = note, velocity = 127, time = time_us))
                 
-                track.append(Message('note_off', note=note, velocity=0, time = ticks_per_second ))
+                track.append(Message('note_off', note=note, velocity=0, time = time_us + duration_us ))
+            
+            # Salva il file MIDI
+            midi.save(self.midi_file)
 
-        # Salva il file MIDI
-        midi.save(self.midi_file)
+
     
     def read_midi_file(self):
         midifile = MidiFile(self.midi_file)
@@ -82,6 +83,11 @@ class MIDIMessage():
             for msg in track:
                 # Stampa ogni messaggio
                 print(msg)
+    
+    def midi_event(self,filename):
+        self.read_data_from_csv_and_write_music_data(filename)
+        self.convert_csv_to_midi()
+        self.read_midi_file()
 
 
         

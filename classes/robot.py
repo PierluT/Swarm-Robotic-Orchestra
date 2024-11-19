@@ -25,6 +25,8 @@ class Robot:
         # initial position for the robot
         self.x = 0
         self.y = 0
+        # value to show robot orientation.
+        self.compass = ((0, 0), (0, 0))
         # variables form module 1
         self.phase = np.random.uniform(0, 2 * np.pi)
         self.clock_frequency = 0.25
@@ -66,7 +68,7 @@ class Robot:
             end_x = int(self.x + direction_x)
             end_y = int(self.y + direction_y)
         
-        return (self.x, self.y), (end_x, end_y)        
+        self.compass = ((self.x, self.y), (end_x, end_y))        
 
     def clean_buffers(self):
         self.forwarded_message.clear()
@@ -152,7 +154,6 @@ class Robot:
     
     # method to update internal robot phase.
     # What is the time gap between a call of update phase and another?
-    
     def update_phase(self):
         if self.recieved_message:
             #print("r. numero: "+str(self.number)+ " ha ricevuto un messaggio")
@@ -161,14 +162,14 @@ class Robot:
                 #print(f"Phase value: {phase_value}")
                 self.update_phase_kuramoto_model(phase_value)
             self.clean_buffers()
-        else:
-            #milliseconds = self.T.total_seconds() * 1000  
-            # step = (2 * np.pi / self.T.total_seconds())  
-            # phase += step 
-            self.phase += (2 * np.pi / 4000)
-            # normalization only if I reach 2pi then I go to 0.
-            self.phase %= (2 * np.pi)
-            # put a flag to control if previously you were near 2pi.
+        
+        #milliseconds = self.T.total_seconds() * 1000  
+        # step = (2 * np.pi / self.T.total_seconds())  
+        # phase += step 
+        self.phase += (2 * np.pi / 4000)
+        # normalization only if I reach 2pi then I go to 0.
+        self.phase %= (2 * np.pi)
+        # put a flag to control if previously you were near 2pi.
         
         if self.is_in_circular_range():
             self.crossed_zero_phase = True
@@ -190,6 +191,7 @@ class Robot:
         self.moveRobot()
         self.update_phase()
         self.change_color()
+        self.compute_robot_compass()
 
 
 

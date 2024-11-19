@@ -125,7 +125,9 @@ class Supervisor:
             self.distances[initial_robot.number][robot_to_check.number] = distance_between_robots
 
             # collision control
-            if distance_between_robots < (2*self.collision_margin):
+            if distance_between_robots < (2*self.collision_margin) + 10:
+                #initial_robot.stop_and_rotate()
+                #robot_to_check.stop_and_rotate()
                 initial_robot.change_direction_x_axes()
                 robot_to_check.change_direction_y_axes()
     
@@ -164,12 +166,11 @@ class Supervisor:
     def check_robot_has_to_play(self,robot):
         if robot.playing_flag:
             note_to_play = Note()
-            #midi_message.send_MIDI_Message(note_to_play)
     
     def collision_and_message_control(self,robot_to_parse):
         self.make_matrix_control(robot_to_parse)
         self.post_office(robot_to_parse)
-        self.check_phases_convergence()
+        #self.check_phases_convergence()
         self.check_robot_has_to_play(robot_to_parse)
 
 """""

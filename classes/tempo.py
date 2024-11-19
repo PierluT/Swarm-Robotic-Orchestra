@@ -134,7 +134,7 @@ class Note():
     def __init__(self):
          self.midinote = random.randint(60, 72)
          self.amp = 1
-         self.dur = 0
+         self.dur = 1
          self.BPM = 60
          self.MIDI_Port_name = 'loopMIDI Port 1'
     
