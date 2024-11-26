@@ -87,7 +87,7 @@ class MIDIMessage():
     def midi_event(self,filename):
         self.read_data_from_csv_and_write_music_data(filename)
         self.convert_csv_to_midi()
-        self.read_midi_file()
+        #self.read_midi_file()
 
 
         

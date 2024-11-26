@@ -32,12 +32,11 @@ def main():
         writer = csv.writer(file, delimiter=';')
         writer.writerow(["ms", "robot number", "x", "y","compass", "phase", "colour", "is playing"])
         # the step depends on how much fast arena.draw() can draw.
-        for millisecond in range(0,1001,1):
-               
+        for millisecond in range(0,2000,1):             
             for robot in supervisor.dictionary_of_robots: 
-                supervisor.collision_and_message_control(robot)
                 robot.step()
-
+                supervisor.collision_and_message_control(robot)
+                # I write the infos. 
                 writer.writerow([
                 millisecond, 
                 robot.number, 
@@ -48,15 +47,16 @@ def main():
                 robot.colour,
                 robot.playing_flag
             ])
-    print(f"File '{video_csv_file }' creato con successo.")
-
+                
     # test Arena csv reader.
     arena = Arena()
     # I read the csv and draw the sequence.
-    #arena.print_robot_data()
+    # arena.print_robot_data()
+    start = time.perf_counter()
     arena.load_robot_data(video_csv_file)
     arena.draw_all_robots()
-    #arena.compute_average_draw_time()
+    end = time.perf_counter()
+    print(f"Tempo impiegato per visualizzazione finstra: {end - start} secondi")
     midi_class.midi_event(video_csv_file)
 
 if __name__ == "__main__":

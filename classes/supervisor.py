@@ -149,6 +149,7 @@ class Supervisor:
             # Update time from the last control. 
             self.last_check_time = current_time
             robot_phases = (np.array([robot.phase for robot in self.dictionary_of_robots]))
+            print(robot_phases)
             # compute mean of phases and verify if the phases are near to that value.
             mean_phase = np.mean(robot_phases)
             phase_diff = np.abs(robot_phases - mean_phase)
@@ -170,7 +171,7 @@ class Supervisor:
     def collision_and_message_control(self,robot_to_parse):
         self.make_matrix_control(robot_to_parse)
         self.post_office(robot_to_parse)
-        #self.check_phases_convergence()
+        self.check_phases_convergence()
         self.check_robot_has_to_play(robot_to_parse)
 
 """""
