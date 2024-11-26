@@ -1,6 +1,5 @@
-import time
-
 import csv
+import py_midicsv as pm
 from mido import Message, MidiFile, MidiTrack, bpm2tempo
 from classes.tempo import Note
 class MIDIMessage():
@@ -28,7 +27,6 @@ class MIDIMessage():
                         note = Note()
                         writer.writerow([millisecond, robot_number, note.midinote, note.dur, note.amp, note.BPM])
                         #print("robot n.:"+str(robot_number)+" deve suonare a ms: "+str(millisecond))
-            
 
     def convert_csv_to_midi(self):
         midi = MidiFile()
@@ -61,17 +59,15 @@ class MIDIMessage():
                 previous_time_us = time_us
 
                 # Durata della nota in tick
-                duration_ticks = int(duration_us / microseconds_per_tick)
+                duration_ticks = int(duration_us / ticks_per_second)
 
                 # Crea gli eventi MIDI
-                track.append(Message('note_on', note=note, velocity=amplitude, time=delta_time_ticks))
-                track.append(Message('note_off', note=note, velocity=amplitude, time=duration_ticks))
+                track.append(Message('note_on', note = note, velocity = amplitude, time = delta_time_ticks))
+                track.append(Message('note_off', note = note, velocity = 0, time = duration_ticks))
 
         # Salva il file MIDI
         midi.save(self.midi_file)
-
-
-    
+        
     def read_midi_file(self):
         midifile = MidiFile(self.midi_file)
         for i, track in enumerate(midifile.tracks):
@@ -79,7 +75,9 @@ class MIDIMessage():
             for msg in track:
                 # Stampa ogni messaggio
                 print(msg)
+
     
+
     def midi_event(self,filename):
         self.read_data_from_csv_and_write_music_data(filename)
         self.convert_csv_to_midi()

@@ -126,8 +126,8 @@ class Supervisor:
 
             # collision control
             if distance_between_robots < (2*self.collision_margin) + 10:
-                #initial_robot.stop_and_rotate()
-                #robot_to_check.stop_and_rotate()
+                initial_robot.set_status("collision")
+                robot_to_check.set_status("collision")
                 initial_robot.change_direction_x_axes()
                 robot_to_check.change_direction_y_axes()
     

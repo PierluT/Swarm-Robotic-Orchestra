@@ -42,9 +42,13 @@ class Robot:
         self.rotation_time = values_dictionary['rotation_time']
         self.change_direction_counter = time.time() + self.rotation_time
         self.playing_timer = time.time()
+        self.status = "moving"
 
     def __repr__(self):
-        return f"Robot(number = {self.number}, coordinate x = {self.x}, y = {self.y}, phase = {self.phase})"
+        return f"Robot(number = {self.number}, coordinate x = {self.x}, y = {self.y}, phase = {self.phase}, status = {self.status})"
+    
+    def set_status(self,status):
+        self.status = status
     
     def compute_initial_x_position(self):
         possible_x_coordinate = random.randint(int(self.radar_radius + 10), int(self.rectangleArea_width - self.radar_radius - 10))
@@ -76,12 +80,12 @@ class Robot:
     
     # manage differently the collision
     def change_direction_x_axes(self):
-        self.change_direction_counter = time.time() + self.rotation_time
         self.vx = -self.vx
+        self.status = "moving"
              
     def change_direction_y_axes(self):
-        self.change_direction_counter = time.time() + self.rotation_time
         self.vy = -self.vy
+        self.status = "moving"
     
     #return angle direction in rad.
     def get_angle(self):
@@ -92,10 +96,6 @@ class Robot:
         self.vy = -self.vy
 
     def moveRobot(self): 
-        if time.time() >= self.change_direction_counter:
-            self.stop_and_rotate()
-            self.change_direction_counter = time.time() + self.rotation_time
-
         self.x += self.vx
         self.y += self.vy
         
@@ -104,21 +104,11 @@ class Robot:
             self.change_direction_x_axes()
         if self.y - self.radar_radius <= 10 or self.y + self.radar_radius >= self.rectangleArea_heigth - 10 :
             self.change_direction_y_axes() 
+        
+        
     
     # INTRODUCE RANDOMNESS. 80% STOP FOR 2 SECONDS. 10% for 1 second. 
     
-    # introduce kind of probabilites.
-    def stop_and_rotate(self):
-        # print("r. "+str(self.number)+ "si ferma e ruota")
-        # to stop the robot
-        # self.vx, self.vy = 0, 0
-        #random rotation angle
-        angle_degrees = random.uniform(0,360)
-        angle_radians = math.radians(angle_degrees)
-        # new velocity components
-        self.vx = self.velocity * math.cos(angle_radians)
-        self.vy = self.velocity * math.sin(angle_radians)
-
     # method to change color of the robot when interaction happens.
     def change_color(self):
         if self.crossed_zero_phase:
@@ -127,7 +117,6 @@ class Robot:
             self.colour = colours['green']
 
     def set_emitter_message(self):
-        
         entry = {
             "robot number": self.number,
             "phase": float(self.phase)
@@ -184,6 +173,10 @@ class Robot:
         self.phase += self.K * np.sin(recieved_phase - self.phase)
         # normalization
         self.phase %= (2 * np.pi)  
+    
+    def control_status(self):
+        if self.status != "moving":
+            print("r.numero: "+ str(self.number)+ " in collision")
 
     # robot updates itself in terms of position and phase.
     def step(self):
@@ -192,6 +185,7 @@ class Robot:
         self.update_phase()
         self.change_color()
         self.compute_robot_compass()
+        self.control_status()
 
 
 
