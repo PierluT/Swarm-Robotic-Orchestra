@@ -1,5 +1,5 @@
 import time
-import mido
+
 import csv
 from mido import Message, MidiFile, MidiTrack, bpm2tempo
 from classes.tempo import Note
@@ -36,43 +36,39 @@ class MIDIMessage():
         midi.tracks.append(track)
 
         previous_time_us = 0
-        
+
         with open(self.music_csv_file, 'r') as f:
-            reading_music_data = csv.DictReader(f, delimiter = ";")
+            reading_music_data = csv.DictReader(f, delimiter=";")
             for row in reading_music_data:
-                #print(row)
+                # Leggi i valori dal CSV
                 time_ms = int(row['ms'])
-                # time conversion from millisecond into microseconds.
-                time_us = time_ms * 1000
+                time_us = time_ms * 1000  # Conversione millisecondi in microsecondi
                 note = int(row['note'])
                 duration_ms = int(row['dur'])
-                # time conversion from millisecond into microseconds.
-                duration_us = duration_ms * 1000
-                amplitude = int(row['amp']) * 127
+                duration_us = duration_ms * 1000  # Conversione millisecondi in microsecondi
+                amplitude = int(float(row['amp']) * 127)  # Amplitude scalata a valori MIDI (0-127)
                 bpm = int(row['bpm'])
 
-                # Pulses per Quarter Note
-                ppq = 480
-                # time in us for ppq
-                tempo  = bpm2tempo(bpm)
-                # In MIDI tick is a length of time
-                microseconds_per_tick = tempo / ppq
-                # Compute numbers of tick in 1 second.
-                ticks_per_second = int(1_000_000 / microseconds_per_tick)  
+                # Calcolo del tempo MIDI
+                ppq = 480  # Pulses per Quarter Note
+                tempo = bpm2tempo(bpm)  # Tempo in microsecondi per quarter note
+                microseconds_per_tick = tempo / ppq  # Microsecondi per tick
+                ticks_per_second = int(1_000_000 / microseconds_per_tick)
 
-                # time that lasts from an event to another
+                # Delta time in tick (tra questo evento e il precedente)
                 delta_time_us = time_us - previous_time_us
-                # tick conversion
-                delta_time_ticks = (delta_time_us / 1000)  
+                delta_time_ticks = int(delta_time_us / microseconds_per_tick)
                 previous_time_us = time_us
 
-                # Create event note on
-                track.append(Message('note_on', note = note, velocity = 127, time = time_us))
-                
-                track.append(Message('note_off', note=note, velocity=0, time = time_us + duration_us ))
-            
-            # Salva il file MIDI
-            midi.save(self.midi_file)
+                # Durata della nota in tick
+                duration_ticks = int(duration_us / microseconds_per_tick)
+
+                # Crea gli eventi MIDI
+                track.append(Message('note_on', note=note, velocity=amplitude, time=delta_time_ticks))
+                track.append(Message('note_off', note=note, velocity=amplitude, time=duration_ticks))
+
+        # Salva il file MIDI
+        midi.save(self.midi_file)
 
 
     
@@ -87,7 +83,7 @@ class MIDIMessage():
     def midi_event(self,filename):
         self.read_data_from_csv_and_write_music_data(filename)
         self.convert_csv_to_midi()
-        #self.read_midi_file()
+        self.read_midi_file()
 
 
         

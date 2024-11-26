@@ -63,6 +63,7 @@ class Arena:
                     f"X: {robot['x']}, Y: {robot['y']}, "
                     f"Phase: {robot['phase']}, Colour: {robot['colour']}")
     
+    
     def draw_all_robots(self):  
         for millisecond,robots in self.robot_data.items():
             self.ms_counter+=1

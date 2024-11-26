@@ -32,7 +32,7 @@ def main():
         writer = csv.writer(file, delimiter=';')
         writer.writerow(["ms", "robot number", "x", "y","compass", "phase", "colour", "is playing"])
         # the step depends on how much fast arena.draw() can draw.
-        for millisecond in range(0,2000,1):             
+        for millisecond in range(0,20000,1):             
             for robot in supervisor.dictionary_of_robots: 
                 robot.step()
                 supervisor.collision_and_message_control(robot)

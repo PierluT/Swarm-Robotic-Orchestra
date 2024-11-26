@@ -171,7 +171,7 @@ class Supervisor:
     def collision_and_message_control(self,robot_to_parse):
         self.make_matrix_control(robot_to_parse)
         self.post_office(robot_to_parse)
-        self.check_phases_convergence()
+        #self.check_phases_convergence()
         self.check_robot_has_to_play(robot_to_parse)
 
 """""
