@@ -1,0 +1,4 @@
+[console_scripts]
+csvmidipy=py_midicsv.cli:csvmidi
+midicsvpy=py_midicsv.cli:midicsv
+

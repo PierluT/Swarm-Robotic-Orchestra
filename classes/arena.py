@@ -2,6 +2,7 @@ import ast
 import numpy as np
 import cv2
 import csv
+import time
 from classes.file_reader import File_Reader
 from collections import defaultdict
 
@@ -15,6 +16,8 @@ class Arena:
         self.height = values_dictionary['height_arena']
         self.arena = np.zeros((self.height, self.width, 3), np.uint8)
         self.robot_data = defaultdict(list)
+        self.draw_robots_time = []
+        self.ms_counter = 0
 
     def show_arena(self,window_name = "Robot Simulation"):
         cv2.imshow(window_name, self.arena)
@@ -34,7 +37,6 @@ class Arena:
                 millisecond, robot_number, x, y,compass, phase, colour_str, _ = row
                 colour_str = colour_str.strip().strip('()')  # Rimuove parentesi e spazi extra
                 colour = tuple(map(int, colour_str.split(',')))
-                
                 # Parsing del compasso
                 if compass:
                         # Rimuovi spazi inutili e utilizza ast.literal_eval
@@ -61,17 +63,29 @@ class Arena:
                     f"X: {robot['x']}, Y: {robot['y']}, "
                     f"Phase: {robot['phase']}, Colour: {robot['colour']}")
     
-    def draw_all_robots(self):
-        # here is more than a 1ms. Measure that to know how fatser you can draw.
-        # If you need 10 ms to drae then you have to recall function every 10 ms.
-        # the time of changing colour and phase cross must be the same.
-        # how many pictures do you want per second? 2o frames /s should be enough.
+    
+    def draw_all_robots(self):  
         for millisecond,robots in self.robot_data.items():
+            self.ms_counter+=1
             self.arena.fill(0)
-            for robot in robots:               
-                #print(robot)
-                self.draw_robot(robot)
+            start_time = time.perf_counter()
+            if self.ms_counter % 20 == 0:
+                for robot in robots:
+                    self.draw_robot(robot)
+            else:
+                for robot in robots:
+                    self.draw_robot(robot)
+            #I record the time after I drew them. 
             self.show_arena("Robot Simulation")
+            end_time = time.perf_counter()
+            draw_time = end_time - start_time
+            self.draw_robots_time.append(draw_time)
+            # I print the average of time spent to draw each robot.
+            #print(f"Tempo per disegnare un frame: {draw_time*1000:.6f} ms")
+        average_time = sum(self.draw_robots_time) / len(self.draw_robots_time)
+        print(f" Tempo medio per disegnare un frame: {average_time*1000:.6f} ms" )
+
+
 
     def draw_robot(self,robot):
         #print(f"robot  numero: {robot.number}, Velocità X: {robot.vx}, Velocità Y: {robot.vy}")

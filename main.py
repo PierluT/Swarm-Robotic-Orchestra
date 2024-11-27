@@ -20,10 +20,8 @@ def main():
     G = Grammar_Sequence(ex_i_grammar) 
     final_sequence, seqs = G.create_sequence(START_SEQUENCE)
     # divides notes duration per measure.
-    G.dividi_sequenza_ritmica_melodia(final_sequence)
-    
+    G.dividi_sequenza_ritmica_melodia(final_sequence)   
     midi_class = MIDIMessage()
-    
     # I create a new csv file.
     video_csv_file  = "video_maker.csv"
 
@@ -32,12 +30,11 @@ def main():
         writer = csv.writer(file, delimiter=';')
         writer.writerow(["ms", "robot number", "x", "y","compass", "phase", "colour", "is playing"])
         # the step depends on how much fast arena.draw() can draw.
-        for millisecond in range(0,8001,1):
-               
+        for millisecond in range(0,9000,1):             
             for robot in supervisor.dictionary_of_robots: 
-                supervisor.collision_and_message_control(robot)
                 robot.step()
-
+                supervisor.collision_and_message_control(robot)
+                # I write the infos. 
                 writer.writerow([
                 millisecond, 
                 robot.number, 
@@ -48,16 +45,19 @@ def main():
                 robot.colour,
                 robot.playing_flag
             ])
-    print(f"File '{video_csv_file }' creato con successo.")
-
+                
     # test Arena csv reader.
     arena = Arena()
     # I read the csv and draw the sequence.
-    #arena.print_robot_data()
+    # arena.print_robot_data()
+    start = time.perf_counter()
     arena.load_robot_data(video_csv_file)
     arena.draw_all_robots()
+    end = time.perf_counter()
+    print(f"Tempo impiegato per visualizzazione finstra: {end - start} secondi")
     midi_class.midi_event(video_csv_file)
-
+    for r in supervisor.dictionary_of_robots:
+         print(r.status)
 if __name__ == "__main__":
         
         main()

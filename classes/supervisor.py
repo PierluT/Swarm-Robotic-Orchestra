@@ -126,8 +126,8 @@ class Supervisor:
 
             # collision control
             if distance_between_robots < (2*self.collision_margin) + 10:
-                #initial_robot.stop_and_rotate()
-                #robot_to_check.stop_and_rotate()
+                initial_robot.set_status("collision")
+                robot_to_check.set_status("collision")
                 initial_robot.change_direction_x_axes()
                 robot_to_check.change_direction_y_axes()
     
@@ -149,6 +149,7 @@ class Supervisor:
             # Update time from the last control. 
             self.last_check_time = current_time
             robot_phases = (np.array([robot.phase for robot in self.dictionary_of_robots]))
+            print(robot_phases)
             # compute mean of phases and verify if the phases are near to that value.
             mean_phase = np.mean(robot_phases)
             phase_diff = np.abs(robot_phases - mean_phase)
