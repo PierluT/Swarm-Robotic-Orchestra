@@ -39,16 +39,10 @@ class Robot:
         self.playing_flag = False
         self.triggered_playing_flag = False
         self.crossed_zero_phase = False
-        self.rotation_time = values_dictionary['rotation_time']
-        self.change_direction_counter = time.time() + self.rotation_time
         self.playing_timer = time.time()
-        self.status = "moving"
 
     def __repr__(self):
-        return f"Robot(number = {self.number}, coordinate x = {self.x}, y = {self.y}, phase = {self.phase}, status = {self.status})"
-    
-    def set_status(self,status):
-        self.status = status
+        return f"Robot(number = {self.number}, coordinate x = {self.x}, y = {self.y}, phase = {self.phase})"
     
     def compute_initial_x_position(self):
         possible_x_coordinate = random.randint(int(self.radar_radius + 10), int(self.rectangleArea_width - self.radar_radius - 10))
@@ -81,11 +75,9 @@ class Robot:
     # manage differently the collision
     def change_direction_x_axes(self):
         self.vx = -self.vx
-        self.status = "moving"
-             
+                  
     def change_direction_y_axes(self):
-        self.vy = -self.vy
-        self.status = "moving"
+        self.vy = -self.vy 
     
     #return angle direction in rad.
     def get_angle(self):
@@ -104,6 +96,10 @@ class Robot:
             self.change_direction_x_axes()
         if self.y - self.radar_radius <= 10 or self.y + self.radar_radius >= self.rectangleArea_heigth - 10 :
             self.change_direction_y_axes() 
+    
+    def stopRobot(self):
+        self.x = 0
+        self.y = 0
         
         
     
@@ -174,10 +170,6 @@ class Robot:
         # normalization
         self.phase %= (2 * np.pi)  
     
-    def control_status(self):
-        if self.status != "moving":
-            print("r.numero: "+ str(self.number)+ " in collision")
-
     # robot updates itself in terms of position and phase.
     def step(self):
         # method to move itself.
@@ -185,7 +177,6 @@ class Robot:
         self.update_phase()
         self.change_color()
         self.compute_robot_compass()
-        self.control_status()
 
 
 

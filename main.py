@@ -56,8 +56,7 @@ def main():
     end = time.perf_counter()
     print(f"Tempo impiegato per visualizzazione finstra: {end - start} secondi")
     midi_class.midi_event(video_csv_file)
-    for r in supervisor.dictionary_of_robots:
-         print(r.status)
+
 if __name__ == "__main__":
         
         main()
