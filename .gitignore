@@ -1,0 +1,5 @@
+# Ignora la cartella delle immagini
+png
+
+# Ignora la cartella della libreria Python
+robotic-orchestra-venv/

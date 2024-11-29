@@ -2,6 +2,7 @@ import math
 import numpy as np
 import time
 import random
+import threading
 from datetime import timedelta
 from classes.file_reader import File_Reader
 from classes.dictionaries import colours
@@ -39,10 +40,35 @@ class Robot:
         self.playing_flag = False
         self.triggered_playing_flag = False
         self.crossed_zero_phase = False
-        self.playing_timer = time.time()
+        self.last_direction_change_time = time.time()
+        # moving status
+        self.moving_status = ""
+        self.stop_counter = 0
+        self.moving_counter = 0
 
     def __repr__(self):
         return f"Robot(number = {self.number}, coordinate x = {self.x}, y = {self.y}, phase = {self.phase})"
+    
+    def set_moving_status(self,status):
+        self.moving_status = status
+    
+    def moving_status_selection(self):
+        rnd = random.random()
+        # %50 to move
+        if rnd < 0.5:
+            action = "move"
+            
+        # %75 to stop
+        elif rnd < 0.45:
+            action = "stop"
+            # Reset the counter when robot stops.
+            self.pause_counter = 0
+        # 
+        else:
+            action = "rotate"
+        
+        self.set_moving_status(action)
+        return action
     
     def compute_initial_x_position(self):
         possible_x_coordinate = random.randint(int(self.radar_radius + 10), int(self.rectangleArea_width - self.radar_radius - 10))
@@ -83,27 +109,55 @@ class Robot:
     def get_angle(self):
         return math.atan2(self.vx,self.vy)
     
-    def change_direction(self):
-        self.vx = -self.vx
-        self.vy = -self.vy
-
-    def moveRobot(self): 
+    def control_robot_movement_from_status(self):
+        if self.moving_status == "move":
+            if self.moving_counter < 50:
+                self.x += self.vx
+                self.y += self.vy
+                self.moving_counter += 1
+        elif self.moving_status == "stop":
+            if self.pause_counter < 20:  
+               self.x += 0
+               self.y += 0
+               self.pause_counter += 1
+               
+            
+        elif self.moving_status == "rotate":
+            self.change_direction()
+            #print(" rotation")
+        
+        # to check boundary collisions.
+        if self.x - self.radar_radius <= 10 or self.x + self.radar_radius >= self.rectangleArea_width - 10:
+            self.change_direction_x_axes()
+        if self.y - self.radar_radius <= 10 or self.y + self.radar_radius >= self.rectangleArea_heigth - 10:
+            self.change_direction_y_axes()
+    
+    def moveRobot(self):
+        # Aggiorna la posizione
         self.x += self.vx
         self.y += self.vy
-        
-        # verify collision in x and y coordinates
-        if self.x - self.radar_radius <= 10 or self.x + self.radar_radius  >= self.rectangleArea_width - 10 :
+        # Controlla se sono trascorsi 3 secondi dal cambio direzione
+        current_time = time.time()
+        if current_time - self.last_direction_change_time >= 1:
+            self.change_direction()
+            self.last_direction_change_time = current_time  # Aggiorna il tempo del cambio di direzione
+            print(f"Robot {self.number} ha cambiato direzione a {current_time}",flush=True)
+
+        # Controlla i bordi per il rimbalzo
+        if self.x - self.radar_radius <= 10 or self.x + self.radar_radius >= self.rectangleArea_width - 10:
             self.change_direction_x_axes()
-        if self.y - self.radar_radius <= 10 or self.y + self.radar_radius >= self.rectangleArea_heigth - 10 :
-            self.change_direction_y_axes() 
-    
-    def stopRobot(self):
-        self.x = 0
-        self.y = 0
-        
-        
-    
-    # INTRODUCE RANDOMNESS. 80% STOP FOR 2 SECONDS. 10% for 1 second. 
+        if self.y - self.radar_radius <= 10 or self.y + self.radar_radius >= self.rectangleArea_heigth - 10:
+            self.change_direction_y_axes()
+            
+    def change_direction(self):
+        # Cambia direzione con un angolo casuale
+        angle = random.uniform(0, 2 * math.pi)  # Angolo casuale in radianti
+        speed = math.sqrt(self.vx**2 + self.vy**2)  # Mantieni la velocità costante
+        self.vx = speed * math.cos(angle)  # Nuova componente X
+        self.vy = speed * math.sin(angle)  # Nuova componente Y
+        self.x += self.vx
+        self.y += self.vy
+        print(f"Nuova direzione: vx={self.vx:.2f}, vy={self.vy:.2f}")
     
     # method to change color of the robot when interaction happens.
     def change_color(self):
@@ -148,7 +202,6 @@ class Robot:
                 self.update_phase_kuramoto_model(phase_value)
             self.clean_buffers()
         
-        #milliseconds = self.T.total_seconds() * 1000  
         # step = (2 * np.pi / self.T.total_seconds())  
         # phase += step 
         self.phase += (2 * np.pi / 4000)
@@ -172,6 +225,8 @@ class Robot:
     
     # robot updates itself in terms of position and phase.
     def step(self):
+        self.moving_status_selection()
+        #self.control_robot_movement_from_status()
         # method to move itself.
         self.moveRobot()
         self.update_phase()

@@ -1,6 +1,8 @@
 import ast
 import numpy as np
 import cv2
+import os
+import pygame
 import csv
 import time
 from classes.file_reader import File_Reader
@@ -12,12 +14,14 @@ values_dictionary = file_reader_valuse.read_configuration_file()
 class Arena:
 
     def __init__(self):
+        pygame.init()
         self. width = values_dictionary['width_arena']
         self.height = values_dictionary['height_arena']
         self.arena = np.zeros((self.height, self.width, 3), np.uint8)
         self.robot_data = defaultdict(list)
         self.draw_robots_time = []
-        self.ms_counter = 0
+        self.frame_counter = 0
+        self.png_folder = os.path.abspath("C:/Users/pierl/Desktop/MMI/tesi/robotic-orchestra/png")
 
     def show_arena(self,window_name = "Robot Simulation"):
         cv2.imshow(window_name, self.arena)
@@ -26,7 +30,13 @@ class Arena:
         # Esci dal programma se viene premuto il tasto 'q'
             cv2.destroyAllWindows()
             exit()
-
+    
+    def save_arena_as_png(self,millisecond):
+         filename = os.path.join(self.png_folder, f"arena_frame_{millisecond:04d}.png")
+         cv2.imwrite(filename, self.arena)
+         print(f"Frame salvato: {filename}")
+         self.frame_counter += 1
+    
     def load_robot_data(self,filename):
         self.robot_data.clear()
         # read data from csv file
@@ -34,7 +44,7 @@ class Arena:
             reader = csv.reader(file, delimiter=';')
             next(reader)  # Salta l'intestazione
             for row in reader:
-                millisecond, robot_number, x, y,compass, phase, colour_str, _ = row
+                millisecond, robot_number, x, y,compass, phase, colour_str,status, _ = row
                 colour_str = colour_str.strip().strip('()')  # Rimuove parentesi e spazi extra
                 colour = tuple(map(int, colour_str.split(',')))
                 # Parsing del compasso
@@ -66,15 +76,16 @@ class Arena:
     
     def draw_all_robots(self):  
         for millisecond,robots in self.robot_data.items():
-            self.ms_counter+=1
             self.arena.fill(0)
             start_time = time.perf_counter()
-            if self.ms_counter % 20 == 0:
-                for robot in robots:
+            
+            for robot in robots:
                     self.draw_robot(robot)
-            else:
-                for robot in robots:
-                    self.draw_robot(robot)
+            
+            # save img each 25 ms.
+            if int(millisecond) % 25 == 0:
+                self.save_arena_as_png(millisecond)
+            
             #I record the time after I drew them. 
             self.show_arena("Robot Simulation")
             end_time = time.perf_counter()

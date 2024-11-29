@@ -1,5 +1,6 @@
 import csv
 import time
+
 from classes.supervisor import Supervisor
 from classes.arena import Arena
 from classes.tempo import Grammar_Sequence, metronome_grammar,ex_i_grammar
@@ -25,12 +26,21 @@ def main():
     # I create a new csv file.
     video_csv_file  = "video_maker.csv"
 
+    # 1) create folder and insert png files.
+    # 2) take csv to create midi. make sure that durations are the same. Once
+    # you have it convert midi into audio file ( quindi non usi più daws). there are libraries that to the same thing of ableton.
+    # pygame o anche mido.
+    # create video 0 png + music make sure that is synchronized.
+    # midi file and then convert into an instrument.
+    # make sure that kuramoto model corresponds to 4 seconds.
+    # kuramoto model has to be equal at 4 seconds. So midi file will be of the same timing.
+    
     # Scrivi i dati in un file CSV
     with open(video_csv_file , mode="w", newline="") as file:
         writer = csv.writer(file, delimiter=';')
-        writer.writerow(["ms", "robot number", "x", "y","compass", "phase", "colour", "is playing"])
+        writer.writerow(["ms", "robot number", "x", "y","compass", "phase", "colour", "status", "is playing"])
         # the step depends on how much fast arena.draw() can draw.
-        for millisecond in range(0,9000,1):             
+        for millisecond in range(0,1000,1):             
             for robot in supervisor.dictionary_of_robots: 
                 robot.step()
                 supervisor.collision_and_message_control(robot)
@@ -43,6 +53,7 @@ def main():
                 robot.compass, 
                 robot.phase, 
                 robot.colour,
+                robot.moving_status,
                 robot.playing_flag
             ])
                 
