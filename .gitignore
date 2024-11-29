@@ -3,3 +3,6 @@ png
 
 # Ignora la cartella della libreria Python
 robotic-orchestra-venv/
+
+# Escludi tutti i file video AVI
+*.avi

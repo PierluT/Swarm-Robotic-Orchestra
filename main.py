@@ -40,7 +40,7 @@ def main():
         writer = csv.writer(file, delimiter=';')
         writer.writerow(["ms", "robot number", "x", "y","compass", "phase", "colour", "status", "is playing"])
         # the step depends on how much fast arena.draw() can draw.
-        for millisecond in range(0,1000,1):             
+        for millisecond in range(0,10000,1):             
             for robot in supervisor.dictionary_of_robots: 
                 robot.step()
                 supervisor.collision_and_message_control(robot)
@@ -67,6 +67,7 @@ def main():
     end = time.perf_counter()
     print(f"Tempo impiegato per visualizzazione finstra: {end - start} secondi")
     midi_class.midi_event(video_csv_file)
+    arena.create_video_from_images('C:/Users/pierl/Desktop/MMI/tesi/robotic-orchestra/png', 'my_simulation_video.avi', frame_rate=30)
 
 if __name__ == "__main__":
         
