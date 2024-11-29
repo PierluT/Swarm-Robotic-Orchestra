@@ -92,7 +92,6 @@ class Supervisor:
         pair_key = tuple(sorted((robot1.number, robot2.number)))
         current_time = time.time()
         # ADD A MAXIMUM OF ROBOTS TO REACH.
-        
         # for the first time iteraction.
         if pair_key not in self.clock_interval_dictionary:
             self.clock_interval_dictionary[pair_key] = 0
@@ -102,9 +101,6 @@ class Supervisor:
             robot2.set_emitter_message()
             robot2.recieved_message = robot1.forwarded_message
             robot1.recieved_message = robot2.forwarded_message
-            # clean robots buffers
-            #robot1.clean_buffers()
-            #robot2.clean_buffers()
             #update interval value
             self.clock_interval_dictionary[pair_key] = current_time
   
@@ -126,8 +122,6 @@ class Supervisor:
 
             # collision control
             if distance_between_robots < (2*self.collision_margin) + 10:
-                initial_robot.set_status("collision")
-                robot_to_check.set_status("collision")
                 initial_robot.change_direction_x_axes()
                 robot_to_check.change_direction_y_axes()
     
