@@ -96,8 +96,35 @@ class Arena:
         average_time = sum(self.draw_robots_time) / len(self.draw_robots_time)
         print(f" Tempo medio per disegnare un frame: {average_time*1000:.6f} ms" )
 
+    def create_video_from_images(self,png_folder, output_video= 'output_video.avi', frame_rate=30 ):
+        # Leggi la lista delle immagini nella cartella e ordinale
+        images = sorted([img for img in os.listdir(png_folder) if img.endswith(".png")])
+        # Leggi la prima immagine per ottenere le dimensioni
+        first_image = cv2.imread(os.path.join(png_folder, images[0]))
+        height, width, _ = first_image.shape
 
+        # Crea l'oggetto VideoWriter
+        fourcc = cv2.VideoWriter_fourcc(*'XVID')  # Codec per AVI
+        video = cv2.VideoWriter(output_video, fourcc, frame_rate, (width, height))
 
+        # Aggiungi le immagini al video
+        for image in images:
+            img_path = os.path.join(png_folder, image)
+            img = cv2.imread(img_path)
+            if img is not None:
+                video.write(img)
+            else:
+                print(f"Impossibile leggere l'immagine {image}. Skipping...")
+
+        # Rilascia l'oggetto VideoWriter
+        video.release()
+
+        # Libera le risorse di OpenCV
+        cv2.destroyAllWindows()
+
+        print(f"Video salvato come {output_video}")
+    
+    
     def draw_robot(self,robot):
         #print(f"robot  numero: {robot.number}, Velocità X: {robot.vx}, Velocità Y: {robot.vy}")
         cv2.circle(self.arena, (int(robot['x']), int(robot['y'])), values_dictionary['radius'], robot['colour'], -1)
