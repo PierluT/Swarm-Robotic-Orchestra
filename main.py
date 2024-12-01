@@ -65,10 +65,16 @@ def main():
     arena.load_robot_data(video_csv_file)
     arena.draw_all_robots()
     end = time.perf_counter()
-    print(f"Tempo impiegato per visualizzazione finstra: {end - start} secondi")
+    print(f"Tempo impiegato per visualizzazione finestra: {end - start} secondi")
     midi_class.midi_event(video_csv_file)
     arena.create_video_from_images('C:/Users/pierl/Desktop/MMI/tesi/robotic-orchestra/png', 'my_simulation_video.avi', frame_rate=30)
+
+    
 
 if __name__ == "__main__":
         
         main()
+"""""
+for n in supervisor.dictionary_of_robots:
+         n.print_update_phase_timing()
+"""
