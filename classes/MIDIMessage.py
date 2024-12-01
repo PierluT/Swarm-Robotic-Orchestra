@@ -9,20 +9,20 @@ class MIDIMessage():
     def __init__(self):
         self.MIDI_Port_name = 'loopMIDI Port 1'
         self.music_csv_file = "music_data.csv"
-        #self.midi_file = 'final_output.midi'
         self.audio_file = 'final_output.wav'
-        #self.soundfont_path = "C:/Users/pierl/Desktop/MMI/tesi/robotic-orchestra/FluidR3_GM/FluidR3_GM.sf2"
 
     def read_data_from_csv_and_write_music_data(self, filename):
         with open(filename, mode= 'r') as file:
             reader = csv.DictReader(file,delimiter = ";")
             next(reader)
             
+            rows = list(reader)
+            
             with open(self.music_csv_file, mode = "w", newline = "") as output_file:
                 writer = csv.writer(output_file, delimiter=";")
                 writer.writerow(["ms", "musician", "note", "dur", "amp", "bpm"])
 
-                for row in reader:
+                for row in rows:
                     millisecond = row["ms"]  # "ms"
                     robot_number = row["robot number"]  # "robot number"
                     playing_flag = row["is playing"]
@@ -31,6 +31,12 @@ class MIDIMessage():
                         note = Note()
                         writer.writerow([millisecond, robot_number, note.midinote, note.dur, note.amp, note.BPM])
                         #print("robot n.:"+str(robot_number)+" deve suonare a ms: "+str(millisecond))
+    
+                # Determina l'ultimo millisecondo presente nel CSV
+                last_millisecond = max(int(row["ms"]) for row in rows if row["ms"].isdigit())
+
+                # Scrivi l'ultima riga con l'ultimo millisecondo
+                writer.writerow([last_millisecond, "", "", "", "", ""])
     
     # convert a MIDI note into frequency.
     def midi_to_freq(self,midi_note):
