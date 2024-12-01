@@ -2,7 +2,7 @@ import math
 import numpy as np
 import time
 import random
-import threading
+import datetime
 from datetime import timedelta
 from classes.file_reader import File_Reader
 from classes.dictionaries import colours
@@ -32,7 +32,10 @@ class Robot:
         self.phase = np.random.uniform(0, 2 * np.pi)
         self.clock_frequency = 0.25
         self.K = 1
-        self.T = timedelta(milliseconds = 4000)
+        self.T = datetime.timedelta(seconds=4)
+        # time of the last update
+        self.last_update_phase_time = time.perf_counter()
+        self.update_phase_time = []
         # buffers for incoming and emmiting messages. 
         self.recieved_message = []
         self.forwarded_message = []
@@ -45,6 +48,7 @@ class Robot:
         self.moving_status = ""
         self.stop_counter = 0
         self.moving_counter = 0
+        self.update_phase_time = []
 
     def __repr__(self):
         return f"Robot(number = {self.number}, coordinate x = {self.x}, y = {self.y}, phase = {self.phase})"
@@ -141,7 +145,7 @@ class Robot:
         if current_time - self.last_direction_change_time >= 1:
             self.change_direction()
             self.last_direction_change_time = current_time  # Aggiorna il tempo del cambio di direzione
-            print(f"Robot {self.number} ha cambiato direzione a {current_time}",flush=True)
+            #print(f"Robot {self.number} ha cambiato direzione a {current_time}",flush=True)
 
         # Controlla i bordi per il rimbalzo
         if self.x - self.radar_radius <= 10 or self.x + self.radar_radius >= self.rectangleArea_width - 10:
@@ -157,7 +161,7 @@ class Robot:
         self.vy = speed * math.sin(angle)  # Nuova componente Y
         self.x += self.vx
         self.y += self.vy
-        print(f"Nuova direzione: vx={self.vx:.2f}, vy={self.vy:.2f}")
+        #print(f"Nuova direzione: vx={self.vx:.2f}, vy={self.vy:.2f}")
     
     # method to change color of the robot when interaction happens.
     def change_color(self):
@@ -194,6 +198,7 @@ class Robot:
     # method to update internal robot phase.
     # What is the time gap between a call of update phase and another?
     def update_phase(self):
+        start_time = time.perf_counter()
         if self.recieved_message:
             #print("r. numero: "+str(self.number)+ " ha ricevuto un messaggio")
             for message in self.recieved_message:
@@ -207,8 +212,11 @@ class Robot:
         self.phase += (2 * np.pi / 4000)
         # normalization only if I reach 2pi then I go to 0.
         self.phase %= (2 * np.pi)
-        # put a flag to control if previously you were near 2pi.
         
+        end_time = time.perf_counter()
+        update_phase_time = end_time - start_time
+        self.update_phase_time.append(update_phase_time)
+        # put a flag to control if previously you were near 2pi.
         if self.is_in_circular_range():
             self.crossed_zero_phase = True
         else:
@@ -223,6 +231,10 @@ class Robot:
         # normalization
         self.phase %= (2 * np.pi)  
     
+    def print_update_phase_timing(self):
+        average_time = sum(self.update_phase_time) / len(self.update_phase_time)
+        print(f"robot n.: {self.number:.6f}, Tempo medio di un iterazione per aggiornare la fase: {average_time*1000:.6f}" )
+
     # robot updates itself in terms of position and phase.
     def step(self):
         self.moving_status_selection()
@@ -233,7 +245,49 @@ class Robot:
         self.change_color()
         self.compute_robot_compass()
 
+"""""
+def update_phase(self):
+        start_time = time.perf_counter()
+        if self.recieved_message:
+            #print("r. numero: "+str(self.number)+ " ha ricevuto un messaggio")
+            for message in self.recieved_message:
+                phase_value = message['phase']
+                #print(f"Phase value: {phase_value}")
+                self.update_phase_kuramoto_model(phase_value)
+            self.clean_buffers()
+        
+        # step = (2 * np.pi / self.T.total_seconds())  
+        # phase += step 
+        self.phase += (2 * np.pi / 4000)
+        # normalization only if I reach 2pi then I go to 0.
+        self.phase %= (2 * np.pi)
+        
+        end_time = time.perf_counter()
+        update_phase_time = end_time - start_time
+        self.update_phase_time.append(update_phase_time)
 
+
+
+
+        current_time = time.perf_counter()
+        elapsed_time = current_time - self.last_update_phase_time
+        self.last_update_phase_time = current_time
+        if self.recieved_message:
+            #print("r. numero: "+str(self.number)+ " ha ricevuto un messaggio")
+            for message in self.recieved_message:
+                phase_value = message['phase']
+                #print(f"Phase value: {phase_value}")
+                self.update_phase_kuramoto_model(phase_value)
+            self.clean_buffers()
+        
+        # Salva il tempo di aggiornamento per analisi
+        self.update_phase_time.append(elapsed_time)
+        # step = (2 * np.pi / self.T.total_seconds())  
+        # phase += step 
+        self.phase += (2 * np.pi / self.T.total_seconds()) * elapsed_time
+        # normalization only if I reach 2pi then I go to 0.
+        self.phase %= (2 * np.pi)
+"""
 
           
 

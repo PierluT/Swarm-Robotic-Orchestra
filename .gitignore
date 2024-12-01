@@ -6,3 +6,6 @@ robotic-orchestra-venv/
 
 # Escludi tutti i file video AVI
 *.avi
+
+# Escludi i file audio
+*.wav

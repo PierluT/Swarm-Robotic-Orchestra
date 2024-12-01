@@ -1,5 +1,7 @@
 import csv
-import py_midicsv as pm
+import numpy as np
+from scipy.io.wavfile import write
+#import fluidsynth
 from mido import Message, MidiFile, MidiTrack, bpm2tempo
 from classes.tempo import Note
 class MIDIMessage():
@@ -7,7 +9,9 @@ class MIDIMessage():
     def __init__(self):
         self.MIDI_Port_name = 'loopMIDI Port 1'
         self.music_csv_file = "music_data.csv"
-        self.midi_file = 'final_output.midi'
+        #self.midi_file = 'final_output.midi'
+        self.audio_file = 'final_output.wav'
+        #self.soundfont_path = "C:/Users/pierl/Desktop/MMI/tesi/robotic-orchestra/FluidR3_GM/FluidR3_GM.sf2"
 
     def read_data_from_csv_and_write_music_data(self, filename):
         with open(filename, mode= 'r') as file:
@@ -27,6 +31,55 @@ class MIDIMessage():
                         note = Note()
                         writer.writerow([millisecond, robot_number, note.midinote, note.dur, note.amp, note.BPM])
                         #print("robot n.:"+str(robot_number)+" deve suonare a ms: "+str(millisecond))
+    
+    # convert a MIDI note into frequency.
+    def midi_to_freq(self,midi_note):
+        return 440.0 * (2 ** ((midi_note - 69) / 12.0))
+    
+    # to generate a sinusoidal wave.
+    def generate_wave(self,freq,duration, amplitude, sample_rate = 44100):
+        t = np.linspace(0, duration, int(sample_rate * duration), endpoint= False)
+        wave = amplitude * np.sin(2* np.pi * freq * t)
+        return wave
+    
+    def generate_audio_from_csv(self):
+        """Genera un file audio dal file CSV con note suonate nella sequenza corretta e per la loro durata specifica."""
+        sample_rate = 44100  # Sample rate in Hz
+        audio_data = []
+
+        # Leggi i dati dal file CSV
+        with open(self.music_csv_file, 'r') as f:
+            lines = f.readlines()
+            for line in lines[1:]:  # Salta la prima riga (intestazione)
+                parts = line.strip().split(';')
+                try:
+                    ms, robot_id, midi_note, duration, amplitude, _ = map(int, parts)
+                    freq = self.midi_to_freq(midi_note)
+
+                    # Durata della nota in secondi (durata specificata nel CSV)
+                    duration_seconds = duration  # Ad esempio, 1 secondo
+                    wave = self.generate_wave(freq, duration_seconds, amplitude / 127.0, sample_rate)
+
+                    # Calcola la posizione temporale in campioni
+                    start_sample = int(ms / 1000.0 * sample_rate)  # Converti ms a campioni
+
+                    # Aggiungi la wave alla posizione corretta nel file audio
+                    end_sample = start_sample + len(wave)
+                    if len(audio_data) < end_sample:
+                        audio_data.extend([0] * (end_sample - len(audio_data)))  # Aggiungi silenzio se necessario
+
+                    # Sovrapponi la wave al file audio esistente
+                    audio_data[start_sample:end_sample] += wave
+
+                except ValueError as e:
+                    print(f"Errore durante l'elaborazione della riga: {line.strip()} - {e}")
+
+        # Converti l'audio in formato int16 per la scrittura nel file
+        audio = np.int16(np.array(audio_data) / np.max(np.abs(audio_data)) * 32767)  # Normalizza
+
+        # Scrivi il file audio
+        write(self.audio_file, sample_rate, audio)
+        print(f"Audio file generated: {self.audio_file}")
 
     def convert_csv_to_midi(self):
         midi = MidiFile()
@@ -78,10 +131,23 @@ class MIDIMessage():
 
     
 
+        
+
     def midi_event(self,filename):
         self.read_data_from_csv_and_write_music_data(filename)
-        self.convert_csv_to_midi()
-        self.read_midi_file()
+        self.generate_audio_from_csv()
+        #self.convert_csv_to_midi()
+        #self.convert_midi_to_audio()
+        #self.read_midi_file()
 
+"""""
+def convert_midi_to_audio(self):
 
+        fs = fluidsynth.Synth()
+        fs.start()
+        sfid = fs.sfload(self.soundfont_path)
+        fs.program_select(0, sfid, 0, 0)
+        fs.midi_to_audio(self.midi_file, self.audio_file)
+        print(f"File audio salvato come {self.audio_file}")
+"""
         

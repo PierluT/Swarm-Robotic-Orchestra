@@ -34,7 +34,6 @@ class Arena:
     def save_arena_as_png(self,millisecond):
          filename = os.path.join(self.png_folder, f"arena_frame_{millisecond:04d}.png")
          cv2.imwrite(filename, self.arena)
-         print(f"Frame salvato: {filename}")
          self.frame_counter += 1
     
     def load_robot_data(self,filename):
@@ -82,15 +81,16 @@ class Arena:
             for robot in robots:
                     self.draw_robot(robot)
             
-            # save img each 25 ms.
-            if int(millisecond) % 25 == 0:
-                self.save_arena_as_png(millisecond)
-            
+           
             #I record the time after I drew them. 
             self.show_arena("Robot Simulation")
             end_time = time.perf_counter()
             draw_time = end_time - start_time
             self.draw_robots_time.append(draw_time)
+             # save img each 25 ms.
+            if int(millisecond) % 25 == 0:
+                self.save_arena_as_png(millisecond)
+            
             # I print the average of time spent to draw each robot.
             #print(f"Tempo per disegnare un frame: {draw_time*1000:.6f} ms")
         average_time = sum(self.draw_robots_time) / len(self.draw_robots_time)
