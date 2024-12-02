@@ -9,3 +9,6 @@ robotic-orchestra-venv/
 
 # Escludi i file audio
 *.wav
+
+# Escludi file csv
+*.csv
