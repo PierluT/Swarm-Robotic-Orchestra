@@ -64,11 +64,12 @@ def main():
     # arena.print_robot_data()
     start = time.perf_counter()
     arena.load_robot_data(video_csv_file)
-    arena.draw_all_robots()
-    end = time.perf_counter()
-    print(f"Tempo impiegato per visualizzazione finestra: {end - start} secondi")
     midi_class.midi_event(video_csv_file)
-    arena.create_video_from_images('C:/Users/pierl/Desktop/MMI/tesi/robotic-orchestra/png', 'my_simulation_video.avi', frame_rate=30)
+    #arena.draw_all_robots()
+    end = time.perf_counter()
+    #print(f"Tempo impiegato per visualizzazione finestra: {end - start} secondi")
+    
+    #arena.create_video_from_images('C:/Users/pierl/Desktop/MMI/tesi/robotic-orchestra/png', 'my_simulation_video.avi', frame_rate=30)
 
 if __name__ == "__main__":
         
