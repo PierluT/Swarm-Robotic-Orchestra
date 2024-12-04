@@ -7,7 +7,8 @@ from classes.tempo import Grammar_Sequence, metronome_grammar,ex_i_grammar
 from classes.MIDIMessage import MIDIMessage
             
 def main():
-    
+
+    # PROVA 100 DIVISO 30 DIVISO 20
     supervisor = Supervisor([])
     # method to create a complete dictionary of robots.
     supervisor.create_dictionary_of_robots()
@@ -40,7 +41,7 @@ def main():
         writer = csv.writer(file, delimiter=';')
         writer.writerow(["ms", "robot number", "x", "y","compass", "phase", "colour", "status", "is playing"])
         # the step depends on how much fast arena.draw() can draw.
-        for millisecond in range(0,10000,1):             
+        for millisecond in range(0,54001,1):             
             for robot in supervisor.dictionary_of_robots: 
                 robot.step()
                 supervisor.collision_and_message_control(robot)
@@ -69,12 +70,6 @@ def main():
     midi_class.midi_event(video_csv_file)
     arena.create_video_from_images('C:/Users/pierl/Desktop/MMI/tesi/robotic-orchestra/png', 'my_simulation_video.avi', frame_rate=30)
 
-    
-
 if __name__ == "__main__":
         
         main()
-"""""
-for n in supervisor.dictionary_of_robots:
-         n.print_update_phase_timing()
-"""
