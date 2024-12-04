@@ -1,6 +1,7 @@
 import ast
 import numpy as np
 import cv2
+import ffmpeg
 import os
 import pygame
 import csv
@@ -72,29 +73,62 @@ class Arena:
                     f"X: {robot['x']}, Y: {robot['y']}, "
                     f"Phase: {robot['phase']}, Colour: {robot['colour']}")
     
-    
     def draw_all_robots(self):  
         for millisecond,robots in self.robot_data.items():
             self.arena.fill(0)
-            start_time = time.perf_counter()
-            
+            start_time = time.perf_counter()            
             for robot in robots:
                     self.draw_robot(robot)
-            
-           
             #I record the time after I drew them. 
             self.show_arena("Robot Simulation")
             end_time = time.perf_counter()
             draw_time = end_time - start_time
             self.draw_robots_time.append(draw_time)
-             # save img each 25 ms.
-            if int(millisecond) % 25 == 0:
+            # save img each 25 ms.
+            if int(millisecond) % 30 == 0:
                 self.save_arena_as_png(millisecond)
             
             # I print the average of time spent to draw each robot.
             #print(f"Tempo per disegnare un frame: {draw_time*1000:.6f} ms")
         average_time = sum(self.draw_robots_time) / len(self.draw_robots_time)
         print(f" Tempo medio per disegnare un frame: {average_time*1000:.6f} ms" )
+
+    # create video with ffmpeg
+    def create_video(self, output_file, frame_rate=30):
+        """
+        Crea un video a partire dai file PNG nella cartella.
+        :param output_file: Nome del file video di output (includi il percorso completo se necessario).
+        :param frame_rate: Frame rate del video (default: 30 fps).
+        :return: None
+        """
+        # Recupera i file PNG presenti nella cartella
+        png_files = [os.path.join(self.png_folder, f) for f in os.listdir(self.png_folder) if f.endswith('.png')]
+
+        if not png_files:
+            raise FileNotFoundError(f"Nessun file PNG trovato nella cartella: {self.png_folder}")
+
+        # Crea un file temporaneo con la lista dei file PNG
+        list_file = os.path.join(self.png_folder, "file_list.txt")
+        with open(list_file, "w") as f:
+            for png in png_files:
+                f.write(f"file '{png}'\n")
+
+        try:
+            # Usa ffmpeg per creare il video
+            (
+                ffmpeg
+                .input(list_file, format='concat', safe=0)
+                .output(output_file, pix_fmt='yuv420p', vcodec='libx264', framerate=frame_rate)
+                .run(overwrite_output=True)
+            )
+            print(f"Video creato con successo: {output_file}")
+        except ffmpeg.Error as e:
+            print(f"Errore durante la creazione del video: {e.stderr.decode()}")
+        finally:
+            # Rimuovi il file temporaneo
+            if os.path.exists(list_file):
+                os.remove(list_file)
+
 
     def create_video_from_images(self,png_folder, output_video= 'output_video.avi', frame_rate=30 ):
         # Leggi la lista delle immagini nella cartella e ordinale

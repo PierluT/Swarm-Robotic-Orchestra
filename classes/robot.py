@@ -123,8 +123,7 @@ class Robot:
             if self.pause_counter < 20:  
                self.x += 0
                self.y += 0
-               self.pause_counter += 1
-               
+               self.pause_counter += 1   
             
         elif self.moving_status == "rotate":
             self.change_direction()
@@ -187,6 +186,7 @@ class Robot:
             if not self.triggered_playing_flag:
                 self.playing_flag = True
                 self.triggered_playing_flag = True
+                #print("robot num."+ str(self.number)+ " crossed phase")
             # Means that is not the first time that I enter in the condition, so I have to reset false.
             else:
                 self.playing_flag = False
