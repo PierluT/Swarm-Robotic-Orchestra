@@ -48,55 +48,95 @@ class MIDIMessage():
         return wave
     
     def generate_audio_from_csv(self):
-        """Genera un file audio dal file CSV con note suonate nella sequenza corretta e per la loro durata specifica."""
+        """Genera un file audio dal file CSV con note e metronomo scandito ogni secondo."""
         sample_rate = 44100  # Sample rate in Hz
         audio_data = []
 
         # Leggi i dati dal file CSV
         with open(self.music_csv_file, 'r') as f:
             lines = f.readlines()
-            max_ms = 0  # Per tracciare il massimo valore di millisecondi
+
+            # Variabili per tenere traccia della durata totale
+            total_duration_samples = 0
 
             for line in lines[1:]:  # Salta la prima riga (intestazione)
                 parts = line.strip().split(';')
                 try:
                     # Controlla se la riga contiene un valore di millisecondi valido
                     ms = int(parts[0]) if parts[0].isdigit() else 0
-                    max_ms = max(max_ms, ms)  # Aggiorna il massimo valore di millisecondi
 
                     # Prosegui solo se ci sono informazioni valide per generare una nota
-                    if len(parts) > 2 and parts[2].isdigit():
-                        midi_note, duration, amplitude = map(int, (parts[2], parts[3], parts[4]))
+                    if len(parts) > 5 and parts[2].isdigit():
+                        midi_note, duration, amplitude, bpm = map(int, (parts[2], parts[3], parts[4], parts[5]))
                         freq = self.midi_to_freq(midi_note)
 
                         # Durata della nota in secondi (durata specificata nel CSV)
-                        duration_seconds = duration  # Ad esempio, 1 secondo
+                        duration_seconds = duration  # Durata in secondi
                         wave = self.generate_wave(freq, duration_seconds, amplitude / 127.0, sample_rate)
 
                         # Calcola la posizione temporale in campioni
                         start_sample = int(ms / 1000.0 * sample_rate)  # Converti ms a campioni
+                        end_sample = start_sample + len(wave)
+
+                        # Aggiorna la durata totale in campioni
+                        total_duration_samples = max(total_duration_samples, end_sample)
 
                         # Aggiungi la wave alla posizione corretta nel file audio
-                        end_sample = start_sample + len(wave)
                         if len(audio_data) < end_sample:
                             audio_data.extend([0] * (end_sample - len(audio_data)))  # Aggiungi silenzio se necessario
 
                         # Sovrapponi la wave al file audio esistente
-                        audio_data[start_sample:end_sample] += wave
+                        for i in range(len(wave)):
+                            if start_sample + i < len(audio_data):
+                                audio_data[start_sample + i] += wave[i]
 
                 except ValueError as e:
                     print(f"Errore durante l'elaborazione della riga: {line.strip()} - {e}")
 
-        # Converti l'audio in formato int16 per la scrittura nel file
-        audio = np.int16(np.array(audio_data) / np.max(np.abs(audio_data)) * 32767)  # Normalizza
+        # Aggiungi il metronomo ogni secondo
+        click_duration = 0.05  # Durata del click in secondi
+        metronome_click = self.generate_metronome_click(sample_rate, click_duration, 1000, 0.2)
+        metronome_interval_samples = sample_rate  # 1 secondo in campioni
+
+        for start_sample in range(0, total_duration_samples, metronome_interval_samples):
+            end_sample = start_sample + len(metronome_click)
+            if len(audio_data) < end_sample:
+                audio_data.extend([0] * (end_sample - len(audio_data)))  # Aggiungi silenzio se necessario
+            for i in range(len(metronome_click)):
+                if start_sample + i < len(audio_data):
+                    audio_data[start_sample + i] += metronome_click[i] * 0.1  # Volume ridotto del metronomo
+
+        # Normalizzazione dell'audio
+        audio_data = np.array(audio_data, dtype=float)
+        audio_data = audio_data / np.max(np.abs(audio_data)) * 32767  # Normalizza
 
         # Scrivi il file audio
+        audio = np.int16(audio_data)  # Converte l'audio normalizzato in int16
         write(self.audio_file, sample_rate, audio)
         print(f"Audio file generated: {self.audio_file}")
+
+
+    def generate_metronome_click(self, sample_rate, click_duration=0.05, frequency=1000, amplitude=0.1):
+        """Genera un click breve per il metronomo."""
+        t = np.linspace(0, click_duration, int(sample_rate * click_duration), endpoint=False)
+        click = amplitude * np.sin(2 * np.pi * frequency * t)
+        return click
+
 
     def midi_event(self,filename):
         self.read_data_from_csv_and_write_music_data(filename)
         self.generate_audio_from_csv()
 
+"""""
+        # Aggiungi il metronomo
+        beat_interval = 60.0 / bpm  # Intervallo di un battito in secondi
+        total_duration_seconds = max_ms / 1000.0  # Durata totale dell'audio in secondi
+        metronome_samples = int(sample_rate * beat_interval)
 
-        
+        for beat in range(0, int(total_duration_seconds / beat_interval)):
+            start_sample = beat * metronome_samples
+            end_sample = start_sample + len(metronome_click)
+            if len(audio_data) < end_sample:
+                audio_data.extend([0] * (end_sample - len(audio_data)))  # Aggiungi silenzio se necessario
+            audio_data[start_sample:end_sample] += metronome_click
+"""        
