@@ -8,7 +8,6 @@ from classes.MIDIMessage import MIDIMessage
             
 def main():
 
-    # PROVA 100 DIVISO 30 DIVISO 20
     supervisor = Supervisor([])
     # method to create a complete dictionary of robots.
     supervisor.create_dictionary_of_robots()
@@ -26,25 +25,18 @@ def main():
     midi_class = MIDIMessage()
     # I create a new csv file.
     video_csv_file  = "video_maker.csv"
-
-    # 1) create folder and insert png files.
-    # 2) take csv to create midi. make sure that durations are the same. Once
-    # you have it convert midi into audio file ( quindi non usi più daws). there are libraries that to the same thing of ableton.
-    # pygame o anche mido.
-    # create video 0 png + music make sure that is synchronized.
-    # midi file and then convert into an instrument.
-    # make sure that kuramoto model corresponds to 4 seconds.
-    # kuramoto model has to be equal at 4 seconds. So midi file will be of the same timing.
     
     # Scrivi i dati in un file CSV
     with open(video_csv_file , mode="w", newline="") as file:
         writer = csv.writer(file, delimiter=';')
         writer.writerow(["ms", "robot number", "x", "y","compass", "phase", "colour", "status", "is playing"])
+        total_time = 0
+        step_count = 0
         # the step depends on how much fast arena.draw() can draw.
-        for millisecond in range(0,54001,1):             
+        for millisecond in range(0,54000,30):             
             for robot in supervisor.dictionary_of_robots: 
-                robot.step()
                 supervisor.collision_and_message_control(robot)
+                robot.step()
                 # I write the infos. 
                 writer.writerow([
                 millisecond, 
@@ -56,20 +48,19 @@ def main():
                 robot.colour,
                 robot.moving_status,
                 robot.playing_flag
-            ])
-                
+            ])       
     # test Arena csv reader.
     arena = Arena()
     # I read the csv and draw the sequence.
-    # arena.print_robot_data()
-    start = time.perf_counter()
+    #arena.print_robot_data()
+    #start = time.perf_counter()
     arena.load_robot_data(video_csv_file)
-    midi_class.midi_event(video_csv_file)
-    #arena.draw_all_robots()
-    end = time.perf_counter()
-    #print(f"Tempo impiegato per visualizzazione finestra: {end - start} secondi")
     
-    #arena.create_video_from_images('C:/Users/pierl/Desktop/MMI/tesi/robotic-orchestra/png', 'my_simulation_video.avi', frame_rate=30)
+    arena.draw_all_robots()
+    #end = time.perf_counter()
+    #print(f"Tempo impiegato per visualizzazione finestra: {end - start} secondi")
+    #midi_class.midi_event(video_csv_file)
+    arena.create_video(output_path= "video_simulation.mp4", fps = 30)
 
 if __name__ == "__main__":
         

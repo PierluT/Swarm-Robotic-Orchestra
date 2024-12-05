@@ -239,9 +239,9 @@ class Robot:
     def step(self):
         self.moving_status_selection()
         #self.control_robot_movement_from_status()
-        # method to move itself.
         self.moveRobot()
-        self.update_phase()
+        for _ in range(30):
+            self.update_phase()
         self.change_color()
         self.compute_robot_compass()
 

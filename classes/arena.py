@@ -1,7 +1,7 @@
 import ast
 import numpy as np
 import cv2
-import ffmpeg
+import subprocess
 import os
 import pygame
 import csv
@@ -15,14 +15,13 @@ values_dictionary = file_reader_valuse.read_configuration_file()
 class Arena:
 
     def __init__(self):
-        pygame.init()
-        self. width = values_dictionary['width_arena']
+        self.width = values_dictionary['width_arena']
         self.height = values_dictionary['height_arena']
         self.arena = np.zeros((self.height, self.width, 3), np.uint8)
         self.robot_data = defaultdict(list)
         self.draw_robots_time = []
         self.frame_counter = 0
-        self.png_folder = os.path.abspath("C:/Users/pierl/Desktop/MMI/tesi/robotic-orchestra/png")
+        self.png_folder = os.path.abspath("C://Users//pierl//Desktop//MMI//tesi//robotic-orchestra//png")
 
     def show_arena(self,window_name = "Robot Simulation"):
         cv2.imshow(window_name, self.arena)
@@ -32,10 +31,12 @@ class Arena:
             cv2.destroyAllWindows()
             exit()
     
-    def save_arena_as_png(self,millisecond):
-         filename = os.path.join(self.png_folder, f"arena_frame_{millisecond:04d}.png")
-         cv2.imwrite(filename, self.arena)
-         self.frame_counter += 1
+    def save_arena_as_png(self):
+        """Salva un frame dell'arena come PNG con nomi compatibili con FFmpeg."""
+        filename = os.path.join(self.png_folder, f"frame{self.frame_counter:04d}.png")
+        cv2.imwrite(filename, self.arena)
+        #print(f"Salvato frame: {filename}")
+        self.frame_counter += 1
     
     def load_robot_data(self,filename):
         self.robot_data.clear()
@@ -65,6 +66,25 @@ class Arena:
                 }  
                 self.robot_data[int(millisecond)].append(robot_info)
 
+    def create_video(self, output_path="video.mp4", fps=30):
+        """Crea un video dai file PNG usando FFmpeg."""
+        try:
+            # Comando FFmpeg per creare il video
+            command = [
+                "ffmpeg",
+                "-y",  # Sovrascrivi il file di output se esiste
+                "-framerate", str(fps),  # Frame per secondo
+                "-i", os.path.join(self.png_folder, "frame%04d.png"),  # Pattern per i frame
+                "-pix_fmt", "yuv420p",  # Formato pixel compatibile con i player
+                output_path
+            ]
+
+            # Esegui FFmpeg
+            subprocess.run(command, check=True)
+            print(f"Video creato con successo: {output_path}")
+        except subprocess.CalledProcessError as e:
+            print(f"Errore durante la creazione del video: {e}")
+    
     def print_robot_data(self):
         for millisecond, robots in self.robot_data.items():
             print(f" Millisecond {millisecond}:")
@@ -84,79 +104,14 @@ class Arena:
             end_time = time.perf_counter()
             draw_time = end_time - start_time
             self.draw_robots_time.append(draw_time)
-            # save img each 25 ms.
-            if int(millisecond) % 30 == 0:
-                self.save_arena_as_png(millisecond)
+            #if int(millisecond) % 30 == 0:
+            self.save_arena_as_png()
             
             # I print the average of time spent to draw each robot.
             #print(f"Tempo per disegnare un frame: {draw_time*1000:.6f} ms")
         average_time = sum(self.draw_robots_time) / len(self.draw_robots_time)
         print(f" Tempo medio per disegnare un frame: {average_time*1000:.6f} ms" )
 
-    # create video with ffmpeg
-    def create_video(self, output_file, frame_rate=30):
-        """
-        Crea un video a partire dai file PNG nella cartella.
-        :param output_file: Nome del file video di output (includi il percorso completo se necessario).
-        :param frame_rate: Frame rate del video (default: 30 fps).
-        :return: None
-        """
-        # Recupera i file PNG presenti nella cartella
-        png_files = [os.path.join(self.png_folder, f) for f in os.listdir(self.png_folder) if f.endswith('.png')]
-
-        if not png_files:
-            raise FileNotFoundError(f"Nessun file PNG trovato nella cartella: {self.png_folder}")
-
-        # Crea un file temporaneo con la lista dei file PNG
-        list_file = os.path.join(self.png_folder, "file_list.txt")
-        with open(list_file, "w") as f:
-            for png in png_files:
-                f.write(f"file '{png}'\n")
-
-        try:
-            # Usa ffmpeg per creare il video
-            (
-                ffmpeg
-                .input(list_file, format='concat', safe=0)
-                .output(output_file, pix_fmt='yuv420p', vcodec='libx264', framerate=frame_rate)
-                .run(overwrite_output=True)
-            )
-            print(f"Video creato con successo: {output_file}")
-        except ffmpeg.Error as e:
-            print(f"Errore durante la creazione del video: {e.stderr.decode()}")
-        finally:
-            # Rimuovi il file temporaneo
-            if os.path.exists(list_file):
-                os.remove(list_file)
-
-
-    def create_video_from_images(self,png_folder, output_video= 'output_video.avi', frame_rate=30 ):
-        # Leggi la lista delle immagini nella cartella e ordinale
-        images = sorted([img for img in os.listdir(png_folder) if img.endswith(".png")])
-        # Leggi la prima immagine per ottenere le dimensioni
-        first_image = cv2.imread(os.path.join(png_folder, images[0]))
-        height, width, _ = first_image.shape
-
-        # Crea l'oggetto VideoWriter
-        fourcc = cv2.VideoWriter_fourcc(*'XVID')  # Codec per AVI
-        video = cv2.VideoWriter(output_video, fourcc, frame_rate, (width, height))
-
-        # Aggiungi le immagini al video
-        for image in images:
-            img_path = os.path.join(png_folder, image)
-            img = cv2.imread(img_path)
-            if img is not None:
-                video.write(img)
-            else:
-                print(f"Impossibile leggere l'immagine {image}. Skipping...")
-
-        # Rilascia l'oggetto VideoWriter
-        video.release()
-
-        # Libera le risorse di OpenCV
-        cv2.destroyAllWindows()
-
-        print(f"Video salvato come {output_video}")
     
     
     def draw_robot(self,robot):

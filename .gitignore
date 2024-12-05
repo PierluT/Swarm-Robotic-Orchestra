@@ -5,7 +5,7 @@ png
 *robotic-orchestra-venv/
 
 # Escludi tutti i file video AVI
-*.avi
+*.mp4
 
 # Escludi i file audio
 *.wav
