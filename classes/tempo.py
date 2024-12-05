@@ -1,6 +1,4 @@
 import random
-import time
-import mido
 
 default_note_duration = {
     "m": 4, # semibreve
@@ -15,9 +13,6 @@ metronome_grammar = {
 ex_i_grammar={
     "S":["M", "SM"],
     "M": [["q","q","q","q"]],
-    #"M": [["H","H"], ["Q", "H", "Q"]],    
-    #"H": ["h", ["Q","Q"] , ["o", "q", "o"]],
-    #"Q": [["q"], ["o","o"]]
 }
 
 def random_element_in_list(list_of_elements):
@@ -143,4 +138,4 @@ class Note():
                                 "midinote: %d"%self.midinote, 
                                 "duration: %s beats"%str(self.dur),
                                 "amplitude: %.1f"%self.amp])
-                                #"BPM: %d"%self.BPM 
+                                

@@ -59,7 +59,7 @@ class MIDIMessage():
             # Variabili per tenere traccia della durata totale
             total_duration_samples = 0
 
-            for line in lines[1:]:  # Salta la prima riga (intestazione)
+            for line in lines[1:]:  
                 parts = line.strip().split(';')
                 try:
                     # Controlla se la riga contiene un valore di millisecondi valido
@@ -94,9 +94,9 @@ class MIDIMessage():
                     print(f"Errore durante l'elaborazione della riga: {line.strip()} - {e}")
 
         # Aggiungi il metronomo ogni secondo
-        click_duration = 0.05  # Durata del click in secondi
+        click_duration = 0.05  
         metronome_click = self.generate_metronome_click(sample_rate, click_duration, 1000, 0.2)
-        metronome_interval_samples = sample_rate  # 1 secondo in campioni
+        metronome_interval_samples = sample_rate 
 
         for start_sample in range(0, total_duration_samples, metronome_interval_samples):
             end_sample = start_sample + len(metronome_click)
