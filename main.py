@@ -29,7 +29,7 @@ def main():
     # Scrivi i dati in un file CSV
     with open(video_csv_file , mode="w", newline="") as file:
         writer = csv.writer(file, delimiter=';')
-        writer.writerow(["ms", "robot number", "x", "y","compass", "phase", "colour", "status", "is playing"])
+        writer.writerow(["ms", "robot number", "x", "y","compass", "phase", "colour", "status"])
         global_time = 0
         # the step depends on how much fast arena.draw() can draw.
         for millisecond in range(0,54000,supervisor.time_step):             
@@ -46,14 +46,16 @@ def main():
                 robot.phase, 
                 robot.colour,
                 robot.moving_status,
-                robot.playing_flag
             ])
             global_time += supervisor.time_step  
     # test Arena csv reader.
     arena = Arena()
     arena.load_robot_data(video_csv_file)
     arena.draw_all_robots()
-    #arena.create_video(output_path= "video_simulation.mp4", fps = 30)
+    arena.create_video(output_path= "video_simulation.mp4", fps = 30)
+    supervisor.build_conductor_spartito()
+    midi_class.write_csv(supervisor.conductor_spartito)
+    midi_class.generate_audio_from_csv()
 
 if __name__ == "__main__":
         

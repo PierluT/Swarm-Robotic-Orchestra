@@ -5,6 +5,7 @@ import random
 import datetime
 from classes.file_reader import File_Reader
 from classes.dictionaries import colours
+from classes.tempo import Note
 
 file_reader_valuse = File_Reader()
 values_dictionary = file_reader_valuse.read_configuration_file()
@@ -48,6 +49,7 @@ class Robot:
         self.stop_counter = 0
         self.moving_counter = 0
         self.update_phase_time = []
+        self.my_spartito = []
 
     def __repr__(self):
         return f"Robot(number = {self.number}, coordinate x = {self.x}, y = {self.y}, phase = {self.phase})"
@@ -175,17 +177,33 @@ class Robot:
         }
         self.forwarded_message.append(entry)
     
+    # method to write robot music sheet.
+    def add_note_to_spartito(self,ms,note_obj):
+        spartito_entry = {
+            "ms": ms,
+            "musician": self.number,
+            "note": note_obj.midinote,
+            "dur": note_obj.dur,
+            "amp": note_obj.amp,
+            "bpm": note_obj.bpm
+        }
+        self.my_spartito.append(spartito_entry)
+    
     # to control if phase has crossed 2pi.
     def is_in_circular_range(self):
-        return self.phase >= 0 and self.phase <= 0.1
+        return 0 <= self.phase < 0.1
     
-    def control_playing_flag(self):
+    def control_playing_flag(self,current_ms):
         if 0 <= self.phase < 0.1:
             # the first time that I enter means that I have to play.
             if not self.triggered_playing_flag:
                 self.playing_flag = True
                 self.triggered_playing_flag = True
-                #print("robot num."+ str(self.number)+ " crossed phase")
+                self.colour = colours['blue']
+                #print("robot n.: "+ str(self.number)+ " plays at ms: "+str(current_ms))
+                note = Note()
+                self.add_note_to_spartito(current_ms,note)
+            
             # Means that is not the first time that I enter in the condition, so I have to reset false.
             else:
                 self.playing_flag = False
@@ -193,6 +211,7 @@ class Robot:
         else:
             self.triggered_playing_flag = False
             self.playing_flag = False
+            self.colour = colours['green']
     
     # method to update internal robot phase.
     def update_phase(self,global_time,counter):
@@ -206,44 +225,36 @@ class Robot:
                 self.update_phase_kuramoto_model(phase_value)
             self.clean_buffers()
         
-        # step = (2 * np.pi / self.T.total_seconds())  
-        # phase += step 
         self.phase += (2 * np.pi / 4000)
         # normalization only if I reach 2pi then I go to 0.
         self.phase %= (2 * np.pi)
         
-        # put a flag to control if previously you were near 2pi.
-        if self.is_in_circular_range():
-            self.crossed_zero_phase = True
-        else:
-            self.crossed_zero_phase = False
 
-        #print("ms attuale. "+str(current_ms))
         # method to control if I have the permission to play.
-        self.control_playing_flag()
+        self.control_playing_flag(current_ms)
         
     # CONTROL THAT THE STEP IS ABOUT 1 MS.
     def update_phase_kuramoto_model(self,recieved_phase):
         self.phase += self.K * np.sin(recieved_phase - self.phase)
         # normalization
         self.phase %= (2 * np.pi)  
-    
-    def print_update_phase_timing(self):
-        average_time = sum(self.update_phase_time) / len(self.update_phase_time)
-        print(f"robot n.: {self.number:.6f}, Tempo medio di un iterazione per aggiornare la fase: {average_time*1000:.6f}" )
 
     # robot updates itself in terms of position and phase.
     def step(self,millisecond):
         self.moving_status_selection()
-        #self.control_robot_movement_from_status()
         self.moveRobot()
         for i in range(self.time_step):
             self.update_phase(millisecond,i)
-        self.change_color()
+        #self.change_color()
         self.compute_robot_compass()
 
 
-
-          
+"""""
+        # put a flag to control if previously you were near 2pi.
+        if self.is_in_circular_range():
+            self.crossed_zero_phase = True
+        else:
+            self.crossed_zero_phase = False
+"""          
 
         

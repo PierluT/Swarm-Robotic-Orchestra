@@ -45,7 +45,7 @@ class Arena:
             reader = csv.reader(file, delimiter=';')
             next(reader)  # Salta l'intestazione
             for row in reader:
-                millisecond, robot_number, x, y,compass, phase, colour_str,status, _ = row
+                millisecond, robot_number, x, y,compass, phase, colour_str,status= row
                 colour_str = colour_str.strip().strip('()')  # Rimuove parentesi e spazi extra
                 colour = tuple(map(int, colour_str.split(',')))
                 # Parsing del compasso

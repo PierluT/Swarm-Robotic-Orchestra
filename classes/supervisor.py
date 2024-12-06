@@ -1,17 +1,13 @@
 import math
 import numpy as np
-import random
-import cv2
-import threading
+import csv
 import time
 from classes.robot import Robot
 from classes.file_reader import File_Reader
-from classes.MIDIMessage import MIDIMessage
 from classes.tempo import Note
 
 file_reader_valuse = File_Reader()
 values_dictionary = file_reader_valuse.read_configuration_file()
-midi_message = MIDIMessage()
 
 class Supervisor:
     
@@ -33,6 +29,7 @@ class Supervisor:
         self.clock_interval_dictionary = {}
         self.comuncation_clock_interval = values_dictionary['comunication_clock_interval']
         self.time_step = values_dictionary['time_step']
+        self.conductor_spartito = []
         # to estimate phases convergence
         self.target_precision = 0.01
         # time interval for phases check 
@@ -159,15 +156,34 @@ class Supervisor:
             return converging
         return None  # Nessun controllo effettuato
     
-    def check_robot_has_to_play(self,robot):
-        if robot.playing_flag:
-            note_to_play = Note()
     
     def collision_and_message_control(self,robot_to_parse):
         self.make_matrix_control(robot_to_parse)
         self.post_office(robot_to_parse)
         #self.check_phases_convergence()
-        self.check_robot_has_to_play(robot_to_parse)
+    
+    def nearest_timestep(self,ms):
+        """Arrotonda il valore di ms al multiplo di time_step più vicino."""
+        return round(ms / self.time_step) * self.time_step
+        
+    # unifies spartito of all robots and sort them form a crhonological point of view.
+    def build_conductor_spartito(self):
+        self.conductor_spartito = []
+        
+        for robot in self.dictionary_of_robots:
+            
+            adjusted_spartito = [
+            
+            {**entry, "ms": self.nearest_timestep(entry["ms"])}
+            for entry in robot.my_spartito
+        ]
+            # Estendi il conductor_spartito con la versione aggiornata dello spartito
+            self.conductor_spartito.extend(adjusted_spartito)
+        # Ordinare i dati per "ms"
+        self.conductor_spartito.sort(key=lambda x: x["ms"])
+        
+        #print(self.conductor_spartito)
+    
 
 """""
     def print_half_matrix(self):

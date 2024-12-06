@@ -1,41 +1,21 @@
 import csv
 import numpy as np
 from scipy.io.wavfile import write
-from moviepy import AudioFileClip,VideoFileClip
-from classes.tempo import Note
+
 class MIDIMessage():
+    
     
     def __init__(self):
         self.MIDI_Port_name = 'loopMIDI Port 1'
         self.music_csv_file = "music_data.csv"
         self.audio_file = 'final_output.wav'
 
-    def read_data_from_csv_and_write_music_data(self, filename):
-        with open(filename, mode= 'r') as file:
-            reader = csv.DictReader(file,delimiter = ";")
-            next(reader)
-            
-            rows = list(reader)
-            
-            with open(self.music_csv_file, mode = "w", newline = "") as output_file:
-                writer = csv.writer(output_file, delimiter=";")
-                writer.writerow(["ms", "musician", "note", "dur", "amp", "bpm"])
+    def write_csv(self,conductor_spartito):
+        with open(self.music_csv_file, mode="w", newline="") as file:
+            writer = csv.DictWriter(file, fieldnames=["ms", "musician", "note", "dur", "amp", "bpm"])
+            writer.writeheader()  # Scrive l'intestazione del CSV
+            writer.writerows(conductor_spartito)  # Scrive tutte le righe
 
-                for row in rows:
-                    millisecond = row["ms"]  # "ms"
-                    robot_number = row["robot number"]  # "robot number"
-                    playing_flag = row["is playing"]
-                    
-                    if playing_flag == "True":
-                        note = Note()
-                        writer.writerow([millisecond, robot_number, note.midinote, note.dur, note.amp, note.BPM])
-                        #print("robot n.:"+str(robot_number)+" deve suonare a ms: "+str(millisecond))
-    
-                # Determina l'ultimo millisecondo presente nel CSV
-                last_millisecond = max(int(row["ms"]) for row in rows if row["ms"].isdigit())
-
-                # Scrivi l'ultima riga con l'ultimo millisecondo
-                writer.writerow([last_millisecond, "", "", "", "", ""])
     
     # convert a MIDI note into frequency.
     def midi_to_freq(self,midi_note):
@@ -60,7 +40,7 @@ class MIDIMessage():
             total_duration_samples = 0
 
             for line in lines[1:]:  
-                parts = line.strip().split(';')
+                parts = line.strip().split(',')
                 try:
                     # Controlla se la riga contiene un valore di millisecondi valido
                     ms = int(parts[0]) if parts[0].isdigit() else 0
@@ -139,4 +119,33 @@ class MIDIMessage():
             if len(audio_data) < end_sample:
                 audio_data.extend([0] * (end_sample - len(audio_data)))  # Aggiungi silenzio se necessario
             audio_data[start_sample:end_sample] += metronome_click
+
+
+
+    def read_data_from_csv_and_write_music_data(self, filename):
+        with open(filename, mode= 'r') as file:
+            reader = csv.DictReader(file,delimiter = ";")
+            next(reader)
+            
+            rows = list(reader)
+            
+            with open(self.music_csv_file, mode = "w", newline = "") as output_file:
+                writer = csv.writer(output_file, delimiter=";")
+                writer.writerow(["ms", "musician", "note", "dur", "amp", "bpm"])
+
+                for row in rows:
+                    millisecond = row["ms"]  # "ms"
+                    robot_number = row["robot number"]  # "robot number"
+                    playing_flag = row["is playing"]
+                    
+                    if playing_flag == "True":
+                        note = Note()
+                        writer.writerow([millisecond, robot_number, note.midinote, note.dur, note.amp, note.BPM])
+                        #print("robot n.:"+str(robot_number)+" deve suonare a ms: "+str(millisecond))
+    
+                # Determina l'ultimo millisecondo presente nel CSV
+                last_millisecond = max(int(row["ms"]) for row in rows if row["ms"].isdigit())
+
+                # Scrivi l'ultima riga con l'ultimo millisecondo
+                writer.writerow([last_millisecond, "", "", "", "", ""])
 """        
