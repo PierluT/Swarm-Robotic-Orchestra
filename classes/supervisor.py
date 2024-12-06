@@ -32,6 +32,7 @@ class Supervisor:
         # to have clock for comunications already happened and avoid infite message exchange.
         self.clock_interval_dictionary = {}
         self.comuncation_clock_interval = values_dictionary['comunication_clock_interval']
+        self.time_step = values_dictionary['time_step']
         # to estimate phases convergence
         self.target_precision = 0.01
         # time interval for phases check 
