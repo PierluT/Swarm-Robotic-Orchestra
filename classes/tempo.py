@@ -24,6 +24,49 @@ class Grammar_Sequence:
         self.grammar_keys=list(grammar.keys())
         self.N=len(self.grammar_keys)
         self.sequence=[]
+        # patterns on wich I can create scales.
+        self.scale_patterns = {
+            "Major": [2, 2, 1, 2, 2, 2, 1],
+            #"Minore Naturale": [2, 1, 2, 2, 1, 2, 2],
+            #"Minore Armonica": [2, 1, 2, 2, 1, 3, 1],
+            #"Pentatonica Maggiore": [2, 2, 3, 2, 3],
+            #"Pentatonica Minore": [3, 2, 2, 3, 2]
+        }
+        # notes from wich I create scales.
+        self.root_notes = {
+            "Do": 60,
+            "Re": 62,
+            "Mi": 64,
+            "Fa": 65,
+            "Sol": 67,
+            "La": 69,
+            "Si": 71
+        }
+        # complete dictionary of the scales.
+        self.midi_scales = {}
+    
+    def generate_scale(self, root_note, intervals):
+        """
+        Genera una scala musicale data una nota radice (MIDI) e una sequenza di intervalli.
+        
+        :param root_note: Numero MIDI della nota di partenza.
+        :param intervals: Lista di intervalli (in semitoni) della scala.
+        :return: Lista di note MIDI nella scala.
+        """
+        scale = [root_note]
+        for interval in intervals:
+            scale.append(scale[-1] + interval)
+        return scale
+
+    def generate_midi_scales(self):
+        """
+        Genera un dizionario con tutte le scale MIDI basate sui pattern e le note radice.
+        """
+        for root_name, root_midi in self.root_notes.items():
+            for scale_name, intervals in self.scale_patterns.items():
+                scale_key = f"{scale_name} di {root_name}"
+                self.midi_scales[scale_key] = self.generate_scale(root_midi, intervals)
+
     
     def replace(self, index, convert_to):
         """Replace symbol in index with symbol(s) in convert_to
@@ -124,6 +167,7 @@ class Grammar_Sequence:
         print(sequenza_divisa)
 
         return sequenza_divisa
+
 
 class Note():
     def __init__(self):
