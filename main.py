@@ -18,6 +18,9 @@ def main():
     num_bars_per_composition = 4
     START_SEQUENCE=["M",]*num_bars_per_composition
     G = Grammar_Sequence(ex_i_grammar) 
+    G.generate_midi_scales()
+    for scale, notes in G.midi_scales.items():
+        print(f"{scale}: {notes}")
     final_sequence, seqs = G.create_sequence(START_SEQUENCE)
     # divides notes duration per measure.
     G.dividi_sequenza_ritmica_melodia(final_sequence)   
@@ -51,10 +54,10 @@ def main():
     arena = Arena()
     arena.load_robot_data(video_csv_file)
     arena.draw_all_robots()
-    arena.create_video(output_path= "video_simulation.mp4", fps = 33)
-    supervisor.build_conductor_spartito()
-    midi_class.write_csv(supervisor.conductor_spartito)
-    midi_class.generate_audio_from_csv()
+    #arena.create_video(output_path= "video_simulation.mp4", fps = 33)
+    #supervisor.build_conductor_spartito()
+    #midi_class.write_csv(supervisor.conductor_spartito)
+    #midi_class.generate_audio_from_csv()
 
 if __name__ == "__main__":
         

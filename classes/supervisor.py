@@ -1,10 +1,8 @@
 import math
 import numpy as np
-import csv
 import time
 from classes.robot import Robot
 from classes.file_reader import File_Reader
-from classes.tempo import Note
 
 file_reader_valuse = File_Reader()
 values_dictionary = file_reader_valuse.read_configuration_file()
