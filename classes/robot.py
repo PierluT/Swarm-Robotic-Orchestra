@@ -42,7 +42,7 @@ class Robot:
         self.time_step = values_dictionary['time_step']
         self.playing_flag = False
         self.triggered_playing_flag = False
-        self.crossed_zero_phase = False
+        #self.crossed_zero_phase = False
         self.last_direction_change_time = time.time()
         # moving status
         self.moving_status = ""
@@ -163,13 +163,6 @@ class Robot:
         self.y += self.vy
         #print(f"Nuova direzione: vx={self.vx:.2f}, vy={self.vy:.2f}")
     
-    # method to change color of the robot when interaction happens.
-    def change_color(self):
-        if self.crossed_zero_phase:
-            self.colour = colours['blue']
-        else:
-            self.colour = colours['green']
-
     def set_emitter_message(self):
         entry = {
             "robot number": self.number,
@@ -189,12 +182,9 @@ class Robot:
         }
         self.my_spartito.append(spartito_entry)
     
-    # to control if phase has crossed 2pi.
-    def is_in_circular_range(self):
-        return 0 <= self.phase < 0.1
     
     def control_playing_flag(self,current_ms):
-        if 0 <= self.phase < 0.1:
+        if 0 <= self.phase < 1:
             # the first time that I enter means that I have to play.
             if not self.triggered_playing_flag:
                 self.playing_flag = True
@@ -207,6 +197,7 @@ class Robot:
             # Means that is not the first time that I enter in the condition, so I have to reset false.
             else:
                 self.playing_flag = False
+                self.colour = colours['blue']
         # Means that my phase doesn't allow me to play.
         else:
             self.triggered_playing_flag = False
