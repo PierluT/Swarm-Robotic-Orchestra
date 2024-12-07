@@ -66,7 +66,7 @@ class Arena:
                 }  
                 self.robot_data[int(millisecond)].append(robot_info)
 
-    def create_video(self, output_path="video.mp4", fps=30):
+    def create_video(self, output_path="video.mp4", fps=33):
         """Crea un video dai file PNG usando FFmpeg."""
         try:
             # Comando FFmpeg per creare il video

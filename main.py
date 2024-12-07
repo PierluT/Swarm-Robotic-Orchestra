@@ -1,5 +1,4 @@
 import csv
-import time
 
 from classes.supervisor import Supervisor
 from classes.arena import Arena
@@ -32,7 +31,7 @@ def main():
         writer.writerow(["ms", "robot number", "x", "y","compass", "phase", "colour", "status"])
         global_time = 0
         # the step depends on how much fast arena.draw() can draw.
-        for millisecond in range(0,54000,supervisor.time_step):             
+        for millisecond in range(0,60000,supervisor.time_step):             
             for robot in supervisor.dictionary_of_robots: 
                 supervisor.collision_and_message_control(robot)
                 robot.step(global_time)
@@ -52,7 +51,7 @@ def main():
     arena = Arena()
     arena.load_robot_data(video_csv_file)
     arena.draw_all_robots()
-    arena.create_video(output_path= "video_simulation.mp4", fps = 30)
+    arena.create_video(output_path= "video_simulation.mp4", fps = 33)
     supervisor.build_conductor_spartito()
     midi_class.write_csv(supervisor.conductor_spartito)
     midi_class.generate_audio_from_csv()
