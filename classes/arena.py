@@ -3,7 +3,6 @@ import numpy as np
 import cv2
 import subprocess
 import os
-import pygame
 import csv
 import time
 from classes.file_reader import File_Reader
@@ -67,24 +66,23 @@ class Arena:
                 self.robot_data[int(millisecond)].append(robot_info)
 
     def create_video(self, output_path="video.mp4", fps=33):
-        """Crea un video dai file PNG usando FFmpeg."""
+        """Creation of the video from png's."""
         try:
-            # Comando FFmpeg per creare il video
             command = [
                 "ffmpeg",
                 "-y",  # Sovrascrivi il file di output se esiste
-                "-framerate", str(fps),  # Frame per secondo
+                "-framerate", str(fps),  
                 "-i", os.path.join(self.png_folder, "frame%04d.png"),  # Pattern per i frame
-                "-pix_fmt", "yuv420p",  # Formato pixel compatibile con i player
+                "-pix_fmt", "yuv420p", 
                 output_path
             ]
 
-            # Esegui FFmpeg
             subprocess.run(command, check=True)
             print(f"Video creato con successo: {output_path}")
         except subprocess.CalledProcessError as e:
             print(f"Errore durante la creazione del video: {e}")
     
+    # method to print robot data that have to bechecked.
     def print_robot_data(self):
         for millisecond, robots in self.robot_data.items():
             print(f" Millisecond {millisecond}:")
@@ -99,16 +97,16 @@ class Arena:
             start_time = time.perf_counter()            
             for robot in robots:
                     self.draw_robot(robot)
-            #I record the time after I drew them. 
+            # I record the time after I drew them. 
             self.show_arena("Robot Simulation")
             end_time = time.perf_counter()
             draw_time = end_time - start_time
             self.draw_robots_time.append(draw_time)
-            #if int(millisecond) % 30 == 0:
+            # if int(millisecond) % 30 == 0:
             self.save_arena_as_png()
             
             # I print the average of time spent to draw each robot.
-            #print(f"Tempo per disegnare un frame: {draw_time*1000:.6f} ms")
+            # print(f"Tempo per disegnare un frame: {draw_time*1000:.6f} ms")
         average_time = sum(self.draw_robots_time) / len(self.draw_robots_time)
         print(f" Tempo medio per disegnare un frame: {average_time*1000:.6f} ms" )
 

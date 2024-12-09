@@ -33,22 +33,22 @@ class Robot:
         self.clock_frequency = 0.25
         self.K = 1
         self.T = datetime.timedelta(seconds=4)
-        # time of the last update
-        self.last_update_phase_time = time.perf_counter()
-        self.update_phase_time = []
         # buffers for incoming and emmiting messages. 
         self.recieved_message = []
         self.forwarded_message = []
+        # buffers for notes
+        self.recieved_note = []
+        self.forwarded_note = []
+        # time step for phase communication.
         self.time_step = values_dictionary['time_step']
+        # flags for controlling the moment to play.
         self.playing_flag = False
         self.triggered_playing_flag = False
-        #self.crossed_zero_phase = False
         self.last_direction_change_time = time.time()
         # moving status
         self.moving_status = ""
         self.stop_counter = 0
         self.moving_counter = 0
-        self.update_phase_time = []
         self.my_spartito = []
 
     def __repr__(self):
@@ -102,6 +102,10 @@ class Robot:
     def clean_buffers(self):
         self.forwarded_message.clear()
         self.recieved_message.clear()
+    
+    def clean_music_buffer(self):
+        self.forwarded_note.clear()
+        self.recieved_note.clear()
     
     # manage differently the collision
     def change_direction_x_axes(self):
@@ -161,17 +165,45 @@ class Robot:
         self.vy = speed * math.sin(angle)  # Nuova componente Y
         self.x += self.vx
         self.y += self.vy
-        #print(f"Nuova direzione: vx={self.vx:.2f}, vy={self.vy:.2f}")
     
+    # method to set the message to send for kuramoto model
     def set_emitter_message(self):
+        
         entry = {
             "robot number": self.number,
             "phase": float(self.phase)
         }
         self.forwarded_message.append(entry)
     
+    # metod to set the message to send for harmonic consensous.
+    def set_musical_message(self, note):
+        
+        self.clean_music_buffer()
+        entry = {
+            "robot number": self.number,
+            "note": note
+        }
+        self.forwarded_note.append(entry)
+
+    def print_musical_buffers(self):
+    # Stampa delle forwarded notes
+        print("r: " + str(self.number) + " forwarded note: ")
+        for entry in self.forwarded_note:
+            print(f"\tRobot number: {entry['robot number']}, Note details: {entry['note'].midinote}")
+
+        # Stampa delle recieved notes
+        print("r: " + str(self.number) + " recieved note: ")
+        for entry in self.recieved_note:
+            print(f"\tRobot number: {entry['robot number']}, Note details: {entry['note'].midinote}")
+
+        print()
+
+    
     # method to write robot music sheet.
     def add_note_to_spartito(self,ms,note_obj):
+        # I set the buffer with the note I have to send
+        self.set_musical_message(note_obj)
+        
         spartito_entry = {
             "ms": ms,
             "musician": self.number,
@@ -180,9 +212,10 @@ class Robot:
             "amp": note_obj.amp,
             "bpm": note_obj.bpm
         }
+
         self.my_spartito.append(spartito_entry)
     
-    
+    # method to control that robot enters only the forst time in the playing status.
     def control_playing_flag(self,current_ms):
         if 0 <= self.phase < 1:
             # the first time that I enter means that I have to play.
@@ -190,7 +223,7 @@ class Robot:
                 self.playing_flag = True
                 self.triggered_playing_flag = True
                 self.colour = colours['blue']
-                #print("robot n.: "+ str(self.number)+ " plays at ms: "+str(current_ms))
+                
                 note = Note()
                 self.add_note_to_spartito(current_ms,note)
             
@@ -224,7 +257,7 @@ class Robot:
         # method to control if I have the permission to play.
         self.control_playing_flag(current_ms)
         
-    # CONTROL THAT THE STEP IS ABOUT 1 MS.
+    # method for kuramoto model
     def update_phase_kuramoto_model(self,recieved_phase):
         self.phase += self.K * np.sin(recieved_phase - self.phase)
         # normalization
@@ -238,14 +271,6 @@ class Robot:
             self.update_phase(millisecond,i)
         #self.change_color()
         self.compute_robot_compass()
-
-
-"""""
-        # put a flag to control if previously you were near 2pi.
-        if self.is_in_circular_range():
-            self.crossed_zero_phase = True
-        else:
-            self.crossed_zero_phase = False
-"""          
+        
 
         
