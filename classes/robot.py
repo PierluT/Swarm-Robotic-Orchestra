@@ -177,32 +177,29 @@ class Robot:
     
     # metod to set the message to send for harmonic consensous.
     def set_musical_message(self, note):
-        
         self.clean_music_buffer()
         entry = {
             "robot number": self.number,
             "note": note
         }
         self.forwarded_note.append(entry)
+        self.print_musical_buffers()
 
     def print_musical_buffers(self):
-    # Stampa delle forwarded notes
-        print("r: " + str(self.number) + " forwarded note: ")
-        for entry in self.forwarded_note:
-            print(f"\tRobot number: {entry['robot number']}, Note details: {entry['note'].midinote}")
+        # Controllo e stampa delle forwarded notes
+        if self.forwarded_note:  # Controlla se il buffer non è vuoto
+            print("r: " + str(self.number) + " forwarded note: ")
+            for entry in self.forwarded_note:
+                print(f"\tRobot number: {entry['robot number']}, Note details: {entry['note'].midinote}")
 
-        # Stampa delle recieved notes
-        print("r: " + str(self.number) + " recieved note: ")
-        for entry in self.recieved_note:
-            print(f"\tRobot number: {entry['robot number']}, Note details: {entry['note'].midinote}")
+        # Controllo e stampa delle recieved notes
+        if self.recieved_note:  # Controlla se il buffer non è vuoto
+            print("r: " + str(self.number) + " recieved note: ")
+            for entry in self.recieved_note:
+                print(f"\tRobot number: {entry['robot number']}, Note details: {entry['note'].midinote}")
 
-        print()
-
-    
     # method to write robot music sheet.
     def add_note_to_spartito(self,ms,note_obj):
-        # I set the buffer with the note I have to send
-        self.set_musical_message(note_obj)
         
         spartito_entry = {
             "ms": ms,
@@ -223,9 +220,11 @@ class Robot:
                 self.playing_flag = True
                 self.triggered_playing_flag = True
                 self.colour = colours['blue']
-                
                 note = Note()
+                # I set the buffer with the note I have to send
+                self.set_musical_message(note)
                 self.add_note_to_spartito(current_ms,note)
+                
             
             # Means that is not the first time that I enter in the condition, so I have to reset false.
             else:
