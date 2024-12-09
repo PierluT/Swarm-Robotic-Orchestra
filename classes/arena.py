@@ -65,7 +65,7 @@ class Arena:
                 }  
                 self.robot_data[int(millisecond)].append(robot_info)
 
-    def create_video(self, output_path="video.mp4", fps=33):
+    def create_video(self, output_path="video.mp4", fps=25):
         """Creation of the video from png's."""
         try:
             command = [
