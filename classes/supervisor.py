@@ -21,12 +21,21 @@ class Supervisor:
         self.threshold = values_dictionary['threshold']
         # value for collision
         self.collision_margin = values_dictionary['radar']
+        # value for note message exchange.
+        self.note_threshold = values_dictionary['note_threshold']
         # dictionary of distance bewteen a robot and each others.
         self.distances = [[0 for _ in range(self.number_of_robots)] for _ in range(self.number_of_robots)]
         # to have clock for comunications already happened and avoid infite message exchange.
         self.clock_interval_dictionary = {}
+        # to have clock for notes comunications already happened and avoid infite message exchange.
+        self.clock_interval_notes_dictionary = {}
+        # value to control that phase message exchanges doesn't happens cpuntinously.
         self.comuncation_clock_interval = values_dictionary['comunication_clock_interval']
+        # value to relate phase update and robot steps.
         self.time_step = values_dictionary['time_step']
+        # value to control that notes message exchanges doesn't happen cpuntinously. 
+        self.note_communication_interval = values_dictionary['note_communication_interval']
+        # final music sheet that will be converted into audio file.
         self.conductor_spartito = []
         # to estimate phases convergence
         self.target_precision = 0.01
@@ -79,13 +88,15 @@ class Supervisor:
 
         return valid_initial_positions 
     
+    # method to compute distances between robots
     def compute_distance(self, robot1, robot2):
         distance = np.sqrt((robot1.x - robot2.x) ** 2 + (robot1.y - robot2.y) ** 2)
         return round(distance)
-
+    
+    # method to handle phase communication
     def handle_communication(self,robot1, robot2):
         # I create a unique key to control the message exchange between a pair of robots.
-        pair_key = tuple(sorted((robot1.number, robot2.number)))
+        pair_key = tuple(sorted((robot1.number, robot2.number)))      
         current_time = time.time()
         # ADD A MAXIMUM OF ROBOTS TO REACH.
         # for the first time iteraction.
@@ -99,12 +110,33 @@ class Supervisor:
             robot1.recieved_message = robot2.forwarded_message
             #update interval value
             self.clock_interval_dictionary[pair_key] = current_time
-  
+    
+    # method to handle musical communications between robots
+    def handle_note_communication(self, robot1, robot2):
+        # I create the tuple to insert in the dictionary
+        pair_key_notes = tuple(sorted((robot1.number, robot2.number)))
+        current_time = time.time()
+        # insert the tuple in the dictionary if it doesn't already exist.
+        if pair_key_notes not in self.clock_interval_notes_dictionary:
+            self.clock_interval_notes_dictionary[pair_key_notes] = 0
+        # If the 0.10 seconds interval is finished.
+        if current_time - self.clock_interval_notes_dictionary[pair_key_notes] >= float(self.note_communication_interval):
+            robot2.recieved_note = robot1.forwarded_note
+            robot1.recieved_note = robot2.forwarded_note
+            #update interval value
+            self.clock_interval_notes_dictionary[pair_key_notes] = current_time
+            robot2.print_musical_buffers()
+            robot1.print_musical_buffers()
+
+
+ 
+    # method to print distances between robots.
     def print_distances_dictionary(self):
         for pair, distance in self.distances.items():
             print(f"{pair} : {distance}")
         print()
 
+    # method to check
     def make_matrix_control(self,initial_robot):  
         # Compute distances between robot in input and all the others
         for j in range(len(self.dictionary_of_robots)):
@@ -125,12 +157,23 @@ class Supervisor:
     def post_office(self,initial_robot):
         for j in range(initial_robot.number +1, len(self.distances)):
             distance_to_check = self.distances[initial_robot.number][j]
+            
+            # block to handle phase communication between robots.
             if distance_to_check <= self.threshold:              
                 robot1_chat = self.dictionary_of_robots[initial_robot.number]
                 robot2_chat = self.dictionary_of_robots[j]
                 #print("robot numero: "+ str(robot1_chat.number)+ " robot numero: "+ str(robot2_chat.number)+ " threshold")
                 self.handle_communication(robot1_chat, robot2_chat)
-  
+            
+            # block to handle note communications between robots.
+            elif distance_to_check <= self.note_threshold and initial_robot.playing_flag:
+                
+                robot1_note_chat = self.dictionary_of_robots[initial_robot.number]
+                robot2_note_chat = self.dictionary_of_robots[j]
+                print("robot: "+ str(robot1_note_chat.number)+ " robot: "+ str(robot2_note_chat.number)+ " music threshold")
+                self.handle_note_communication(robot1_note_chat,robot2_note_chat)
+    
+    # method to check periodically if phases are converging or not.
     def check_phases_convergence(self):
         # current time for phases check
         current_time = time.time()
@@ -161,13 +204,12 @@ class Supervisor:
         #self.check_phases_convergence()
     
     def nearest_timestep(self,ms):
-        """Arrotonda il valore di ms al multiplo di time_step più vicino."""
+        """Round value to the nearest ms considering the step interval."""
         return round(ms / self.time_step) * self.time_step
         
     # unifies spartito of all robots and sort them form a crhonological point of view.
     def build_conductor_spartito(self):
         self.conductor_spartito = []
-        
         for robot in self.dictionary_of_robots:
             
             adjusted_spartito = [
@@ -175,9 +217,9 @@ class Supervisor:
             {**entry, "ms": self.nearest_timestep(entry["ms"])}
             for entry in robot.my_spartito
         ]
-            # Estendi il conductor_spartito con la versione aggiornata dello spartito
+            # Extend the full spartito with the player ones.
             self.conductor_spartito.extend(adjusted_spartito)
-        # Ordinare i dati per "ms"
+        # I sort the final music sheet considering ms.
         self.conductor_spartito.sort(key=lambda x: x["ms"])
         
         #print(self.conductor_spartito)
