@@ -49,6 +49,7 @@ class Robot:
         self.moving_status = ""
         self.stop_counter = 0
         self.moving_counter = 0
+        self.note = ""
         self.my_spartito = []
 
     def __repr__(self):
@@ -176,27 +177,28 @@ class Robot:
         self.forwarded_message.append(entry)
     
     # metod to set the message to send for harmonic consensous.
-    def set_musical_message(self, note):
-        self.clean_music_buffer()
+    def set_musical_message(self):
+        
         entry = {
             "robot number": self.number,
-            "note": note
+            "note": self.note
         }
         self.forwarded_note.append(entry)
-        self.print_musical_buffers()
-
+    
+    # method to print note messages. 
     def print_musical_buffers(self):
-        # Controllo e stampa delle forwarded notes
-        if self.forwarded_note:  # Controlla se il buffer non è vuoto
+
+        # Controllo e stampa delle recieved notes
+        if self.forwarded_note :  # Controlla se il buffer non è vuoto
             print("r: " + str(self.number) + " forwarded note: ")
             for entry in self.forwarded_note:
-                print(f"\tRobot number: {entry['robot number']}, Note details: {entry['note'].midinote}")
+                print(f"\t Note details: {entry['note'].midinote}")
 
         # Controllo e stampa delle recieved notes
         if self.recieved_note:  # Controlla se il buffer non è vuoto
             print("r: " + str(self.number) + " recieved note: ")
             for entry in self.recieved_note:
-                print(f"\tRobot number: {entry['robot number']}, Note details: {entry['note'].midinote}")
+                print(f"\t Note details: {entry['note'].midinote}")
 
     # method to write robot music sheet.
     def add_note_to_spartito(self,ms,note_obj):
@@ -221,8 +223,10 @@ class Robot:
                 self.triggered_playing_flag = True
                 self.colour = colours['blue']
                 note = Note()
+                self.note = note
+                #print("propria nota: "+str(self.note))
                 # I set the buffer with the note I have to send
-                self.set_musical_message(note)
+                self.set_musical_message()
                 self.add_note_to_spartito(current_ms,note)
                 
             
@@ -230,6 +234,7 @@ class Robot:
             else:
                 self.playing_flag = False
                 self.colour = colours['blue']
+                
         # Means that my phase doesn't allow me to play.
         else:
             self.triggered_playing_flag = False
