@@ -157,8 +157,8 @@ class Supervisor:
 
     
     # method to send and receive messages.
-    def post_office(self,initial_robot,ms,i):
-        global_ms = ms + i
+    def post_office(self,initial_robot,ms):
+        
         for j in range(initial_robot.number +1, len(self.distances)):
             distance_to_check = self.distances[initial_robot.number][j]
             
@@ -169,12 +169,7 @@ class Supervisor:
                 #print("robot numero: "+ str(robot1_chat.number)+ " robot numero: "+ str(robot2_chat.number)+ " threshold")
                 self.handle_communication(robot1_chat, robot2_chat)
             
-            if distance_to_check <= self.note_threshold and initial_robot.note:
-                
-                robot1_note = self.dictionary_of_robots[initial_robot.number]
-                robot2_note = self.dictionary_of_robots[j]
-                #print("robot numero: "+ str(robot1_note.number)+ " robot numero: "+ str(robot2_note.number)+ " threshold at ms: "+str(global_ms))
-                self.handle_music_communication(robot1_note,robot2_note)
+            
                 
             
     
@@ -205,8 +200,8 @@ class Supervisor:
     
     def collision_and_message_control(self,robot_to_parse, ms):
         self.make_matrix_control(robot_to_parse)
-        for i in range(self.time_step):
-            self.post_office(robot_to_parse,ms,i)
+        #for i in range(self.time_step):
+        self.post_office(robot_to_parse,ms)
         #self.check_phases_convergence()
     
     def nearest_timestep(self,ms):
@@ -252,13 +247,12 @@ class Supervisor:
                     print("     ", end=' ')  # Spazio vuoto per la parte inferiore
             print()  # Nuova riga dopo ogni riga della matrice 
 
-            # block to handle note communications between robots.
-            elif distance_to_check <= self.note_threshold and initial_robot.playing_flag:
-                print(" qua "+ initial_robot.playing_flag)
-                robot1_note_chat = self.dictionary_of_robots[initial_robot.number]
-                robot2_note_chat = self.dictionary_of_robots[j]
-                print("robot: "+ str(robot1_note_chat.number)+ " robot: "+ str(robot2_note_chat.number)+ " mt at ms: "+str(ms))
-                self.handle_note_communication(robot1_note_chat,robot2_note_chat) 
+            if distance_to_check <= self.note_threshold and initial_robot.note:
+                
+                robot1_note = self.dictionary_of_robots[initial_robot.number]
+                robot2_note = self.dictionary_of_robots[j]
+                #print("robot numero: "+ str(robot1_note.number)+ " robot numero: "+ str(robot2_note.number)+ " threshold at ms: "+str(global_ms))
+                self.handle_music_communication(robot1_note,robot2_note)
 
 """
 
