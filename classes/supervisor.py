@@ -169,6 +169,13 @@ class Supervisor:
                 #print("robot numero: "+ str(robot1_chat.number)+ " robot numero: "+ str(robot2_chat.number)+ " threshold")
                 self.handle_communication(robot1_chat, robot2_chat)
             
+            if distance_to_check <= self.note_threshold and initial_robot.note:
+                
+                robot1_note = self.dictionary_of_robots[initial_robot.number]
+                robot2_note = self.dictionary_of_robots[j]
+                #print("robot numero: "+ str(robot1_note.number)+ " robot numero: "+ str(robot2_note.number)+ " threshold at ms: "+str(global_ms))
+                self.handle_music_communication(robot1_note,robot2_note)
+            
             
                 
             

@@ -57,8 +57,11 @@ def main():
     arena.draw_all_robots()
     supervisor.build_conductor_spartito()
     midi_class.write_csv(supervisor.conductor_spartito)
-    midi_class.generate_audio_from_csv()
-    arena.create_video(output_path= "video_simulation.mp4", fps = 25)
+    #midi_class.generate_audio_from_csv()
+    #arena.create_video(output_path= "video_simulation.mp4", fps = 25)
+
+    for robot in supervisor.dictionary_of_robots:
+         robot.print_musical_buffers()
 
 if __name__ == "__main__":
         

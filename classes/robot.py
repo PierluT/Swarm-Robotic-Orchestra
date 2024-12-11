@@ -169,7 +169,6 @@ class Robot:
     
     # method to set the message to send for kuramoto model
     def set_emitter_message(self):
-        
         entry = {
             "robot number": self.number,
             "phase": float(self.phase)
@@ -178,7 +177,6 @@ class Robot:
     
     # metod to set the message to send for harmonic consensous.
     def set_musical_message(self):
-        
         entry = {
             "robot number": self.number,
             "note": self.note
@@ -187,13 +185,11 @@ class Robot:
     
     # method to print note messages. 
     def print_musical_buffers(self):
-
         # Controllo e stampa delle recieved notes
         if self.forwarded_note :  # Controlla se il buffer non è vuoto
             print("r: " + str(self.number) + " forwarded note: ")
             for entry in self.forwarded_note:
                 print(f"\t Note details: {entry['note'].midinote}")
-
         # Controllo e stampa delle recieved notes
         if self.recieved_note:  # Controlla se il buffer non è vuoto
             print("r: " + str(self.number) + " recieved note: ")
@@ -202,7 +198,6 @@ class Robot:
 
     # method to write robot music sheet.
     def add_note_to_spartito(self,ms,note_obj):
-        
         spartito_entry = {
             "ms": ms,
             "musician": self.number,
@@ -227,14 +222,11 @@ class Robot:
                 #print("propria nota: "+str(self.note))
                 # I set the buffer with the note I have to send
                 self.set_musical_message()
-                self.add_note_to_spartito(current_ms,note)
-                
-            
+                self.add_note_to_spartito(current_ms,note)  
             # Means that is not the first time that I enter in the condition, so I have to reset false.
             else:
                 self.playing_flag = False
                 self.colour = colours['blue']
-                
         # Means that my phase doesn't allow me to play.
         else:
             self.triggered_playing_flag = False
@@ -252,12 +244,9 @@ class Robot:
                 #print(f"Phase value: {phase_value}")
                 self.update_phase_kuramoto_model(phase_value)
             self.clean_buffers()
-        
         self.phase += (2 * np.pi / 4000)
         # normalization only if I reach 2pi then I go to 0.
         self.phase %= (2 * np.pi)
-        
-
         # method to control if I have the permission to play.
         self.control_playing_flag(current_ms)
         
