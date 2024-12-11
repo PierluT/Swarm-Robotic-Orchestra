@@ -49,6 +49,7 @@ class Robot:
         self.moving_status = ""
         self.stop_counter = 0
         self.moving_counter = 0
+        self.note = ""
         self.my_spartito = []
 
     def __repr__(self):
@@ -168,7 +169,6 @@ class Robot:
     
     # method to set the message to send for kuramoto model
     def set_emitter_message(self):
-        
         entry = {
             "robot number": self.number,
             "phase": float(self.phase)
@@ -176,31 +176,28 @@ class Robot:
         self.forwarded_message.append(entry)
     
     # metod to set the message to send for harmonic consensous.
-    def set_musical_message(self, note):
-        self.clean_music_buffer()
+    def set_musical_message(self):
         entry = {
             "robot number": self.number,
-            "note": note
+            "note": self.note
         }
         self.forwarded_note.append(entry)
-        self.print_musical_buffers()
-
+    
+    # method to print note messages. 
     def print_musical_buffers(self):
-        # Controllo e stampa delle forwarded notes
-        if self.forwarded_note:  # Controlla se il buffer non è vuoto
+        # Controllo e stampa delle recieved notes
+        if self.forwarded_note :  # Controlla se il buffer non è vuoto
             print("r: " + str(self.number) + " forwarded note: ")
             for entry in self.forwarded_note:
-                print(f"\tRobot number: {entry['robot number']}, Note details: {entry['note'].midinote}")
-
+                print(f"\t Note details: {entry['note'].midinote}")
         # Controllo e stampa delle recieved notes
         if self.recieved_note:  # Controlla se il buffer non è vuoto
             print("r: " + str(self.number) + " recieved note: ")
             for entry in self.recieved_note:
-                print(f"\tRobot number: {entry['robot number']}, Note details: {entry['note'].midinote}")
+                print(f"\t Note details: {entry['note'].midinote}")
 
     # method to write robot music sheet.
     def add_note_to_spartito(self,ms,note_obj):
-        
         spartito_entry = {
             "ms": ms,
             "musician": self.number,
@@ -221,11 +218,11 @@ class Robot:
                 self.triggered_playing_flag = True
                 self.colour = colours['blue']
                 note = Note()
+                self.note = note
+                #print("propria nota: "+str(self.note))
                 # I set the buffer with the note I have to send
-                self.set_musical_message(note)
-                self.add_note_to_spartito(current_ms,note)
-                
-            
+                self.set_musical_message()
+                self.add_note_to_spartito(current_ms,note)  
             # Means that is not the first time that I enter in the condition, so I have to reset false.
             else:
                 self.playing_flag = False
@@ -247,12 +244,9 @@ class Robot:
                 #print(f"Phase value: {phase_value}")
                 self.update_phase_kuramoto_model(phase_value)
             self.clean_buffers()
-        
         self.phase += (2 * np.pi / 4000)
         # normalization only if I reach 2pi then I go to 0.
         self.phase %= (2 * np.pi)
-        
-
         # method to control if I have the permission to play.
         self.control_playing_flag(current_ms)
         
