@@ -50,7 +50,9 @@ class Robot:
         self.stop_counter = 0
         self.moving_counter = 0
         self.note = ""
+        self.midinote = 0
         self.my_spartito = []
+        self.local_music_map = {}
 
     def __repr__(self):
         return f"Robot(number = {self.number}, coordinate x = {self.x}, y = {self.y}, phase = {self.phase})"
@@ -167,6 +169,16 @@ class Robot:
         self.x += self.vx
         self.y += self.vy
     
+    # the first note assigned to the robot is random.
+    def set_initial_random_note(self):
+        initial_random_note = random.randint(60, 72)
+        note = Note(midinote = initial_random_note)
+        self.note = note
+        self.midinote = initial_random_note
+        #print("robot number: "+str(self.number)+ " note: "+ str(self.note))
+        #self.set_musical_message()
+        
+    
     # method to set the message to send for kuramoto model
     def set_emitter_message(self):
         entry = {
@@ -177,12 +189,24 @@ class Robot:
     
     # metod to set the message to send for harmonic consensous.
     def set_musical_message(self):
+        
         entry = {
             "robot number": self.number,
-            "note": self.note
+            "note": self.midinote
         }
         self.forwarded_note.append(entry)
     
+    # Every robot has a dictionary on what is the last note that others are playing.
+    # With this structure I can predict the next note to play consulting music scales dictionary.
+    # last 4 notes for every of my neighbourghs.
+    def update_local_music_map(self):
+        for entry in self.recieved_note:
+            robot_number = entry.get("robot number")
+            note = entry.get("note")
+            self.local_music_map[robot_number] = note
+        #self.print_local_music_dictionary()
+        
+
     # method to print note messages. 
     def print_musical_buffers(self):
         # Controllo e stampa delle recieved notes
@@ -195,16 +219,20 @@ class Robot:
             print("r: " + str(self.number) + " recieved note: ")
             for entry in self.recieved_note:
                 print(f"\t Note details: {entry['note'].midinote}")
+    
+    def print_local_music_dictionary(self):
+        print(f"Robot {self.number} dictionary of others last played notes: {self.local_music_map}")
 
     # method to write robot music sheet.
-    def add_note_to_spartito(self,ms,note_obj):
+    def add_note_to_spartito(self,ms):
+        
         spartito_entry = {
             "ms": ms,
             "musician": self.number,
-            "note": note_obj.midinote,
-            "dur": note_obj.dur,
-            "amp": note_obj.amp,
-            "bpm": note_obj.bpm
+            "note": self.note.midinote,
+            "dur": self.note.dur,
+            "amp": self.note.amp,
+            "bpm": self.note.bpm
         }
 
         self.my_spartito.append(spartito_entry)
@@ -217,12 +245,9 @@ class Robot:
                 self.playing_flag = True
                 self.triggered_playing_flag = True
                 self.colour = colours['blue']
-                note = Note()
-                self.note = note
-                #print("propria nota: "+str(self.note))
-                # I set the buffer with the note I have to send
-                self.set_musical_message()
-                self.add_note_to_spartito(current_ms,note)  
+                
+                self.set_initial_random_note()
+                self.add_note_to_spartito(current_ms)  
             # Means that is not the first time that I enter in the condition, so I have to reset false.
             else:
                 self.playing_flag = False
@@ -254,7 +279,8 @@ class Robot:
     def update_phase_kuramoto_model(self,recieved_phase):
         self.phase += self.K * np.sin(recieved_phase - self.phase)
         # normalization
-        self.phase %= (2 * np.pi)  
+        self.phase %= (2 * np.pi) 
+         
 
     # robot updates itself in terms of position and phase.
     def step(self,millisecond):
