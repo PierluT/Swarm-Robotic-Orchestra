@@ -18,9 +18,6 @@ def main():
     num_bars_per_composition = 4
     START_SEQUENCE=["M",]*num_bars_per_composition
     G = Grammar_Sequence(ex_i_grammar) 
-    G.generate_midi_scales()
-    for scale, notes in G.midi_scales.items():
-        print(f"{scale}: {notes}")
     final_sequence, seqs = G.create_sequence(START_SEQUENCE)
     # divides notes duration per measure.
     G.dividi_sequenza_ritmica_melodia(final_sequence)   
@@ -35,10 +32,9 @@ def main():
         global_time = 0
         # the step depends on how much fast arena.draw() can draw.
         for millisecond in range(0,60000,supervisor.time_step):             
-            for robot in supervisor.dictionary_of_robots: 
-                
-                supervisor.collision_and_message_control(robot,global_time)
+            for robot in supervisor.dictionary_of_robots:   
                 robot.step(global_time)
+                supervisor.collision_and_message_control(robot,global_time)
                 # I write the infos. 
                 writer.writerow([
                 millisecond, 
@@ -59,9 +55,9 @@ def main():
     midi_class.write_csv(supervisor.conductor_spartito)
     #midi_class.generate_audio_from_csv()
     #arena.create_video(output_path= "video_simulation.mp4", fps = 25)
+    for r in supervisor.dictionary_of_robots:
+         r.print_local_music_dictionary()
 
-    for robot in supervisor.dictionary_of_robots:
-         robot.print_musical_buffers()
 
 if __name__ == "__main__":
         
