@@ -50,7 +50,7 @@ class Robot:
         self.stop_counter = 0
         self.moving_counter = 0
         self.note = ""
-        self.midinote = 0
+        #self.midinote = 0
         self.my_spartito = []
         self.local_music_map = {}
 
@@ -174,7 +174,7 @@ class Robot:
         initial_random_note = random.randint(60, 72)
         note = Note(midinote = initial_random_note)
         self.note = note
-        self.midinote = initial_random_note
+        #self.midinote = initial_random_note
         #print("robot number: "+str(self.number)+ " note: "+ str(self.note))
         #self.set_musical_message()
         
@@ -192,7 +192,8 @@ class Robot:
         
         entry = {
             "robot number": self.number,
-            "note": self.midinote
+            #"note": self.midinote,
+            "note": self.note
         }
         self.forwarded_note.append(entry)
     
@@ -245,7 +246,6 @@ class Robot:
                 self.playing_flag = True
                 self.triggered_playing_flag = True
                 self.colour = colours['blue']
-                
                 self.set_initial_random_note()
                 self.add_note_to_spartito(current_ms)  
             # Means that is not the first time that I enter in the condition, so I have to reset false.
