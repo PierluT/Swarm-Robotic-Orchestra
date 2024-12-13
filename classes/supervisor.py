@@ -160,7 +160,7 @@ class Supervisor:
 
     
     # method to send and receive messages.
-    def post_office(self,initial_robot):
+    def post_office(self,initial_robot, ms):
         for j in range(initial_robot.number +1, len(self.distances)):
             distance_to_check = self.distances[initial_robot.number][j]
             
@@ -199,7 +199,7 @@ class Supervisor:
     def collision_and_message_control(self,robot_to_parse, ms):
         self.make_matrix_control(robot_to_parse)
         #for i in range(self.time_step):
-        self.post_office(robot_to_parse)
+        self.post_office(robot_to_parse, ms)
         #self.check_phases_convergence()
     
     def nearest_timestep(self,ms):
