@@ -171,17 +171,12 @@ class Robot:
         self.y += self.vy
     
     # the first note assigned to the robot is random.
-    def set_initial_random_note(self):
+    def set_note(self):
         initial_random_note = random.randint(60, 72)
         note = Note(midinote = initial_random_note, id = self.id_note_counter)
         self.note = note
         self.id_note_counter += 1
         
-        #self.midinote = initial_random_note
-        #print("robot number: "+str(self.number)+ " note: "+ str(self.note))
-        #self.set_musical_message()
-        
-    
     # method to set the message to send for kuramoto model
     def set_emitter_message(self):
         entry = {
@@ -195,7 +190,6 @@ class Robot:
         
         entry = {
             "robot number": self.number,
-            #"note": self.midinote,
             "note": self.note
         }
         self.forwarded_note.append(entry)
@@ -204,11 +198,24 @@ class Robot:
     # With this structure I can predict the next note to play consulting music scales dictionary.
     # last 4 notes for every of my neighbourghs.
     def update_local_music_map(self):
+        
         for entry in self.recieved_note:
             robot_number = entry.get("robot number")
             note = entry.get("note")
-            self.local_music_map[robot_number] = note
-        #self.print_local_music_dictionary()
+            note_id = id(note)
+
+            # Initialize the map of played notes for this robot if it do not already exists.
+            if robot_number not in self.local_music_map:
+                self.local_music_map[robot_number] = []
+            
+            # control if the ID of the note is already present in the list
+            if note_id not in [id(existing_note) for existing_note in self.local_music_map[robot_number]]:
+                self.local_music_map[robot_number].append(note)
+            
+            # I store only the last 4 notes. If there are more than 4 I delet the first that is older one.
+            if len(self.local_music_map[robot_number]) > 4:
+                self.local_music_map[robot_number].pop(0)
+
         
 
     # method to print note messages. 
@@ -249,7 +256,7 @@ class Robot:
                 self.playing_flag = True
                 self.triggered_playing_flag = True
                 self.colour = colours['blue']
-                self.set_initial_random_note()
+                self.set_note()
                 self.add_note_to_spartito(current_ms)  
             # Means that is not the first time that I enter in the condition, so I have to reset false.
             else:
