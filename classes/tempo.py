@@ -128,8 +128,8 @@ class Grammar_Sequence:
 
 
 class Note:
-    def __init__(self, midinote):
-         #self.id = id
+    def __init__(self, midinote, id):
+         self.id = id
          self.midinote = midinote
          self.amp = 1
          self.dur = 1
@@ -139,7 +139,7 @@ class Note:
     def __repr__(self):
         return "\n\t".join([ 
                                 "midinote: %d"%self.midinote,
-                                "duration: %s"%str(self.dur)])
+                                "id: %s"%str(self.id)])
                                 #"amplitude: %.1f"%self.amp
 
                                 

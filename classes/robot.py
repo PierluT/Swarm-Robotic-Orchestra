@@ -50,6 +50,7 @@ class Robot:
         self.stop_counter = 0
         self.moving_counter = 0
         self.note = ""
+        self.id_note_counter = 0
         #self.midinote = 0
         self.my_spartito = []
         self.local_music_map = {}
@@ -172,8 +173,10 @@ class Robot:
     # the first note assigned to the robot is random.
     def set_initial_random_note(self):
         initial_random_note = random.randint(60, 72)
-        note = Note(midinote = initial_random_note)
+        note = Note(midinote = initial_random_note, id = self.id_note_counter)
         self.note = note
+        self.id_note_counter += 1
+        
         #self.midinote = initial_random_note
         #print("robot number: "+str(self.number)+ " note: "+ str(self.note))
         #self.set_musical_message()
