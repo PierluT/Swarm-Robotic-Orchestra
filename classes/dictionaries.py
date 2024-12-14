@@ -5,7 +5,7 @@ colours = {
     'blue': (255,0,0)
 }
 
-scale_maggiore_midi = {
+major_midi_scales = {
     "C": [60, 62, 64, 65, 67, 69, 71, 72],  # Do Maggiore
     "C#": [61, 63, 65, 66, 68, 70, 72, 73],  # Do# Maggiore
     "D": [62, 64, 66, 67, 69, 71, 73, 74],  # Re Maggiore
