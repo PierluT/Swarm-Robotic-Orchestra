@@ -3,7 +3,7 @@ import numpy as np
 import time
 from classes.robot import Robot
 from classes.file_reader import File_Reader
-from classes.tempo import Note
+
 
 file_reader_valuse = File_Reader()
 values_dictionary = file_reader_valuse.read_configuration_file()
@@ -22,8 +22,6 @@ class Supervisor:
         self.threshold = values_dictionary['threshold']
         # value for collision
         self.collision_margin = values_dictionary['radar']
-        # value for note message exchange.
-        self.note_threshold = values_dictionary['note_threshold']
         # dictionary of distance bewteen a robot and each others.
         self.distances = [[0 for _ in range(self.number_of_robots)] for _ in range(self.number_of_robots)]
         # to have clock for comunications already happened and avoid infite message exchange.
@@ -35,7 +33,6 @@ class Supervisor:
         # value to relate phase update and robot steps.
         self.time_step = values_dictionary['time_step']
         # value to control that notes message exchanges doesn't happen cpuntinously. 
-        self.note_communication_interval = values_dictionary['note_communication_interval']
         # final music sheet that will be converted into audio file.
         self.conductor_spartito = []
         # to estimate phases convergence
@@ -48,6 +45,7 @@ class Supervisor:
         for n in range(self.number_of_robots):
             robot = Robot(number = n)
             robot.set_note()
+            robot.get_random_note()
             self.dictionary_of_robots.append(robot)
 
     # method to set the intial positions of the robots, in order to avoid overlap.
@@ -110,9 +108,13 @@ class Supervisor:
             robot2.set_emitter_message()
             robot2.recieved_message = robot1.forwarded_message
             robot1.recieved_message = robot2.forwarded_message
-            #update interval value
+            # update interval value
             self.clock_interval_dictionary[pair_key] = current_time
         
+        # method for music messages.
+        self.music_communication(robot1,robot2)
+
+    def music_communication(self,robot1, robot2):
         # MUSIC MESSAGES EXCHANGE
         pair_key_notes = tuple(sorted((robot1.number, robot2.number)))
         current_note_time = time.time()
@@ -120,21 +122,14 @@ class Supervisor:
         if pair_key_notes not in self.clock_interval_notes_dictionary:
             self.clock_interval_notes_dictionary[pair_key_notes] = 0
         # if the time note communication interval is finished.
-        #if current_note_time - self.clock_interval_notes_dictionary[pair_key_notes] >= float(self.note_communication_interval):
+        # if current_note_time - self.clock_interval_notes_dictionary[pair_key_notes] >= float(self.note_communication_interval):
         robot1.set_musical_message()
         robot2.set_musical_message()
         robot2.recieved_note = robot1.forwarded_note
         robot1.recieved_note = robot2.forwarded_note
         robot1.update_local_music_map()
         robot2.update_local_music_map()
-            #robot1.clean_music_buffer()
-            #robot2.clean_music_buffer()
-            
 
-            # update interval value
-            #self.clock_interval_notes_dictionary[pair_key_notes] = current_note_time
-
- 
     # method to print distances between robots.
     def print_distances_dictionary(self):
         for pair, distance in self.distances.items():
@@ -160,7 +155,7 @@ class Supervisor:
 
     
     # method to send and receive messages.
-    def post_office(self,initial_robot, ms):
+    def post_office(self,initial_robot):
         for j in range(initial_robot.number +1, len(self.distances)):
             distance_to_check = self.distances[initial_robot.number][j]
             
@@ -196,10 +191,11 @@ class Supervisor:
         return None  # Nessun controllo effettuato
     
     
-    def collision_and_message_control(self,robot_to_parse, ms):
+    def collision_and_message_control(self,robot_to_parse):
         self.make_matrix_control(robot_to_parse)
         #for i in range(self.time_step):
-        self.post_office(robot_to_parse, ms)
+        # every 2 steps. a parameter that you can study.
+        self.post_office(robot_to_parse)
         #self.check_phases_convergence()
     
     def nearest_timestep(self,ms):
@@ -245,22 +241,22 @@ class Supervisor:
                     print("     ", end=' ')  # Spazio vuoto per la parte inferiore
             print()  # Nuova riga dopo ogni riga della matrice 
 
-            def handle_music_communication(self,robot1_note, robot2_note):
-                #print(" entratoooooo")
-                # I create a unique key to control music messavge exchange between robots.
-                pair_key_notes = tuple(sorted((robot1_note.number, robot2_note.number)))
-                current_note_time = time.time()
-                # for the first time interaction
-                if pair_key_notes not in self.clock_interval_notes_dictionary:
-                    self.clock_interval_notes_dictionary[pair_key_notes] = 0
-                # if the time note communication interval is finished.
-                if current_note_time - self.clock_interval_notes_dictionary[pair_key_notes] >= float(self.comuncation_clock_interval):
-                    robot2_note.recieved_note = robot1_note.forwarded_note
-                    robot1_note.recieved_note = robot2_note.forwarded_note
-                    robot1_note.update_local_music_map()
-                    robot2_note.update_local_music_map()
-                    # update interval value
-                    self.clock_interval_notes_dictionary[pair_key_notes] = current_note_time
+        # MUSIC MESSAGES EXCHANGE
+        pair_key_notes = tuple(sorted((robot1.number, robot2.number)))
+        current_note_time = time.time()
+        # for the first time interaction
+        if pair_key_notes not in self.clock_interval_notes_dictionary:
+            self.clock_interval_notes_dictionary[pair_key_notes] = 0
+        # if the time note communication interval is finished.
+        #if current_note_time - self.clock_interval_notes_dictionary[pair_key_notes] >= float(self.note_communication_interval):
+        robot1.set_musical_message()
+        robot2.set_musical_message()
+        robot2.recieved_note = robot1.forwarded_note
+        robot1.recieved_note = robot2.forwarded_note
+        robot1.update_local_music_map()
+        robot2.update_local_music_map()
+            #robot1.clean_music_buffer()
+            #robot2.clean_music_buffer()
 
 """
 

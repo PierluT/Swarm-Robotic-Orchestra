@@ -32,9 +32,10 @@ def main():
         global_time = 0
         # the step depends on how much fast arena.draw() can draw.
         for millisecond in range(0,60000,supervisor.time_step):             
-            for robot in supervisor.dictionary_of_robots:   
+            for robot in supervisor.dictionary_of_robots:
+                # PRIMA SUPERVISOR POI STEP DI ROBOT !!!!!   
+                supervisor.collision_and_message_control(robot)
                 robot.step(global_time)
-                supervisor.collision_and_message_control(robot,global_time)
                 # I write the infos. 
                 writer.writerow([
                 millisecond, 
@@ -55,8 +56,11 @@ def main():
     midi_class.write_csv(supervisor.conductor_spartito)
     #midi_class.generate_audio_from_csv()
     #arena.create_video(output_path= "video_simulation.mp4", fps = 25)
+
     for r in supervisor.dictionary_of_robots:
-         r.print_local_music_dictionary()
+         print("mappa note robot n.: "+ str(r.number))
+         print(r.local_music_map)
+         print()
 
 
 if __name__ == "__main__":

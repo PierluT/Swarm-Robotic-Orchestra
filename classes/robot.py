@@ -4,7 +4,7 @@ import time
 import random
 import datetime
 from classes.file_reader import File_Reader
-from classes.dictionaries import colours
+from classes.dictionaries import colours,major_midi_scales
 from classes.tempo import Note
 
 file_reader_valuse = File_Reader()
@@ -49,8 +49,11 @@ class Robot:
         self.moving_status = ""
         self.stop_counter = 0
         self.moving_counter = 0
+        # music variables
+        self.scales = list(major_midi_scales.keys())
         self.note = ""
         self.id_note_counter = 0
+        self.my_prediction = ""
         #self.midinote = 0
         self.my_spartito = []
         self.local_music_map = {}
@@ -64,7 +67,7 @@ class Robot:
     def moving_status_selection(self):
         rnd = random.random()
         # %50 to move
-        if rnd < 0.5:
+        if rnd < 0.55:
             action = "move"
             
         # %75 to stop
@@ -170,9 +173,20 @@ class Robot:
         self.x += self.vx
         self.y += self.vy
     
-    # the first note assigned to the robot is random.
+    # for the first iteraction
+    def get_random_note(self):
+        # for the first iteraction I select a random scale.
+        random_scale = random.choice(self.scales)
+        # for the first iteraction I select a random note from a random scale.
+        random_note = random.choice(random_scale)
+
+        self.my_prediction = random_scale
+        #print("predizione: "+ str(self.my_prediction))
+
+    
+    # method to predict the next note to play.
     def set_note(self):
-        initial_random_note = random.randint(60, 72)
+        initial_random_note = random.randint(60, 83)
         note = Note(midinote = initial_random_note, id = self.id_note_counter)
         self.note = note
         self.id_note_counter += 1
@@ -196,27 +210,27 @@ class Robot:
     
     # Every robot has a dictionary on what is the last note that others are playing.
     # With this structure I can predict the next note to play consulting music scales dictionary.
-    # last 4 notes for every of my neighbourghs.
+    # last 4 notes for every of my neighbourghs whom I reach trheshold.
     def update_local_music_map(self):
-        
         for entry in self.recieved_note:
             robot_number = entry.get("robot number")
             note = entry.get("note")
             note_id = id(note)
 
-            # Initialize the map of played notes for this robot if it do not already exists.
-            if robot_number not in self.local_music_map:
-                self.local_music_map[robot_number] = []
-            
-            # control if the ID of the note is already present in the list
-            if note_id not in [id(existing_note) for existing_note in self.local_music_map[robot_number]]:
-                self.local_music_map[robot_number].append(note)
-            
-            # I store only the last 4 notes. If there are more than 4 I delet the first that is older one.
-            if len(self.local_music_map[robot_number]) > 4:
-                self.local_music_map[robot_number].pop(0)
+            # Verifica se il robot_number è già presente nella mappa
+            if robot_number in self.local_music_map:
+                # Verifica se l'ID della nota è lo stesso
+                if id(self.local_music_map[robot_number]) == note_id:
+                    continue  # Nota già presente, salta l'iterazione
 
-        
+            # Se la lista ha già 4 elementi, rimuovi il più vecchio
+            if len(self.local_music_map) >= 5:
+                # Rimuovi il primo elemento (più vecchio)
+                self.local_music_map.pop(next(iter(self.local_music_map)))
+
+            # Aggiungi la nuova nota alla mappa
+            self.local_music_map[robot_number] = note
+
 
     # method to print note messages. 
     def print_musical_buffers(self):
@@ -271,7 +285,6 @@ class Robot:
     # method to update internal robot phase.
     def update_phase(self,global_time,counter):
         current_ms = global_time + counter
-        cc = counter
         if self.recieved_message:
             #print("r. numero: "+str(self.number)+ " ha ricevuto un messaggio")
             for message in self.recieved_message:
@@ -298,8 +311,18 @@ class Robot:
         self.moveRobot()
         for i in range(self.time_step):
             self.update_phase(millisecond,i)
-        #self.change_color()
         self.compute_robot_compass()
         
-
-        
+"""""
+# Initialize the map of played notes for this robot if it do not already exists.
+            if robot_number not in self.local_music_map:
+                self.local_music_map[robot_number] = []
+            
+            # control if the ID of the note is already present in the list
+            if note_id not in [id(existing_note) for existing_note in self.local_music_map[robot_number]]:
+                self.local_music_map[robot_number].append(note)
+            
+            # I store only the last 4 notes. If there are more than 4 I discard the first that is the older one.
+            if len(self.local_music_map[robot_number]) > 4:
+                self.local_music_map[robot_number].pop(0)
+"""
