@@ -201,14 +201,18 @@ class Robot:
         self.id_note_counter += 1
         self.my_prediction = scale_value
         print(self.note)
+        print("predizone robot n.: "+ str(self.number)+" scala: "+ self.my_prediction)
     
     def probablity_note(self):
         # I enter only if I didn't reach the consensous already.
         if not self.consensous:
-           #prob = random.random()
-           
-           print("robot n. "+ str(self.number) + " non cambia nota")
-           self.create_new_note(self.previous_midinote,self.my_prediction)
+           prob = random.random()
+           if prob < 0.07:
+               self.change_note_by_semitone()
+               print("robot n. "+ str(self.number) + " cambia nota")
+           else:
+                print("robot n. "+ str(self.number) + " non cambia nota")
+                self.create_new_note(self.previous_midinote,self.my_prediction)
                
         else:
             print("robot n.: " +str(self.number)+ " consenso ottenuto")
@@ -227,8 +231,7 @@ class Robot:
         else:
             # for all other values, the choose is random
             semitone = random.choice([-1, 1])
-            #print(type(self.previous_midinote)) 
-            #new_midinote = self.previous_midinote + semitone
+            new_midinote = self.previous_midinote + semitone
             # metodo per predire la nota
 
         # Stampa il nuovo valore per debug
@@ -262,18 +265,30 @@ class Robot:
 
             # Verifica se il robot number è già presente nel dizionario
             if robot_number not in self.local_music_map:
-                self.local_music_map[robot_number] = []  # inizializza una lista per il robot
+                self.local_music_map[robot_number] = note  # Inizializza con la prima nota per il robot
 
-            # Verifica se la nota è già presente (per evitare duplicati della stessa nota)
-            if note_id in [id(existing_note) for existing_note in self.local_music_map[robot_number]]:
-                continue
+            # Se la nota ricevuta è diversa dalla nota attuale del robot, la aggiorniamo
+            elif id(self.local_music_map[robot_number]) != note_id:
+                self.local_music_map[robot_number] = note  # Sostituisci con la nuova nota
 
-            # Aggiungi la nuova nota nella lista del robot
-            self.local_music_map[robot_number].append(note)
+        # Ora gestiamo la lista globale delle note, non solo quella per robot
+        all_notes = [note for note in self.local_music_map.values()]
 
-            # Se la lista contiene più di 4 note, rimuovi la più vecchia
-            if len(self.local_music_map[robot_number]) > 4:
-                self.local_music_map[robot_number].pop(0)  # rimuove la nota più vecchia
+        # Se la lista globale contiene più di 4 note, rimuovi la più vecchia
+        if len(all_notes) > 4:
+            # Ordina le note in base all'ID per rimuovere la più vecchia
+            all_notes.sort(key=lambda n: id(n))  # Ordina in base all'ID per mantenere un ordine coerente
+            # Rimuovi la nota più vecchia (quella con l'ID più basso)
+            note_to_remove = all_notes[0]
+            # Rimuovi questa nota dalla lista del robot appropriato
+            for robot_number, robot_note in self.local_music_map.items():
+                if robot_note == note_to_remove:
+                    del self.local_music_map[robot_number]  # Rimuove la voce del robot
+                    break
+
+        # Rimuovi le voci con liste vuote (non necessario con questa struttura, ma per sicurezza)
+        self.local_music_map = {robot_number: note for robot_number, note in self.local_music_map.items() if note}
+
 
     # method to print note messages. 
     def print_musical_buffers(self):
@@ -373,8 +388,56 @@ class Robot:
         else:
             self.probablity_note()
 
+    
+    def update_local_music_map(self):
+        for entry in self.recieved_note:
+            robot_number = entry.get("robot number")
+            note = entry.get("note")
+            note_id = id(note)
 
-    if prob < 0.01:
-               self.change_note_by_semitone()
-               print("robot n. "+ str(self.number) + " cambia nota")
+            # Verifica se la nota è già presente (per evitare duplicati)
+            if note_id in [id(existing_entry['note']) for existing_entry in self.local_music_map]:
+                continue
+
+            # Aggiungi la nuova nota nella lista globale
+            self.local_music_map.append({
+                "robot number": robot_number,
+                "note": note
+            })
+
+            # Se la lista contiene più di 4 note, rimuovi la più vecchia
+            if len(self.local_music_map) > 4:
+                self.local_music_map.pop(0)  # rimuove la nota più vecchia
+
+    def update_local_music_map(self):
+        for entry in self.recieved_note:
+            robot_number = entry.get("robot number")
+            note = entry.get("note")
+            note_id = id(note)
+
+            # Verifica se il robot number è già presente nel dizionario
+            if robot_number not in self.local_music_map:
+                self.local_music_map[robot_number] = []  # inizializza una lista per il robot
+
+            # Verifica se la nota è già presente (per evitare duplicati della stessa nota)
+            if note_id in [id(existing_note) for existing_note in self.local_music_map[robot_number]]:
+                continue
+
+            # Aggiungi la nuova nota nella lista del robot
+            self.local_music_map[robot_number].append(note)
+
+            # Ora gestiamo la lista globale delle note, non solo quella per robot
+            all_notes = [note for robot_notes in self.local_music_map.values() for note in robot_notes]
+
+            # Se la lista globale contiene più di 4 note, rimuovi la più vecchia
+            if len(all_notes) > 4:
+                # Ordina le note in base all'ID per rimuovere la più vecchia
+                all_notes.sort(key=lambda n: id(n))  # Ordina in base all'ID per mantenere un ordine coerente
+                # Rimuovi la nota più vecchia (quella con l'ID più basso)
+                note_to_remove = all_notes[0]
+                # Rimuovi questa nota dalla lista del robot appropriato
+                for robot_number, robot_notes in self.local_music_map.items():
+                    if note_to_remove in robot_notes:
+                        robot_notes.remove(note_to_remove)
+                        break
 """
