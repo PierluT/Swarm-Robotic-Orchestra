@@ -56,13 +56,18 @@ def main():
     midi_class.write_csv(supervisor.conductor_spartito)
     #midi_class.generate_audio_from_csv()
     #arena.create_video(output_path= "video_simulation.mp4", fps = 25)
+    for e in supervisor.dictionary_of_robots:
+         e.print_local_music_dictionary()
 
-    for r in supervisor.dictionary_of_robots:
-         print("mappa note robot n.: "+ str(r.number))
-         print(r.local_music_map)
-         print()
 
 
 if __name__ == "__main__":
         
         main()
+
+"""""
+    for r in supervisor.dictionary_of_robots:
+         print("mappa note robot n.: "+ str(r.number))
+         print(r.local_music_map)
+         print()
+"""
