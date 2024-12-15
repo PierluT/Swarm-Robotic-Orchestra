@@ -49,11 +49,16 @@ class Robot:
         self.moving_status = ""
         self.stop_counter = 0
         self.moving_counter = 0
-        # music variables
+        # MUSIC VARIABLES
         self.scales = list(major_midi_scales.keys())
         self.note = ""
         self.id_note_counter = 0
+        # variable to compute prediciton
         self.my_prediction = ""
+        # variable to control the previous midinote I played
+        self.previous_midinote = 0
+        # variable to control the reach of consensousness
+        self.consensous = False
         #self.midinote = 0
         self.my_spartito = []
         self.local_music_map = {}
@@ -171,26 +176,65 @@ class Robot:
         self.vx = speed * math.cos(angle)  # Nuova componente X
         self.vy = speed * math.sin(angle)  # Nuova componente Y
         self.x += self.vx
-        self.y += self.vy
-    
-    # for the first iteraction
-    def get_random_note(self):
-        # for the first iteraction I select a random scale.
-        random_scale = random.choice(self.scales)
-        # for the first iteraction I select a random note from a random scale.
-        random_note = random.choice(random_scale)
-
-        self.my_prediction = random_scale
-        #print("predizione: "+ str(self.my_prediction))
-
+        self.y += self.vy    
     
     # method to predict the next note to play.
     def set_note(self):
-        initial_random_note = random.randint(60, 83)
-        note = Note(midinote = initial_random_note, id = self.id_note_counter)
+        # if is the first iteraction.
+        if self.id_note_counter == 0:
+            # I choose a random scale form the scales fo the dictionary
+            random_scale_key = random.choice(self.scales)
+            print (" scala scelta per robot n.: "+ str(self.number)+ random_scale_key)
+            random_scale_notes = major_midi_scales[random_scale_key]
+            # I choose a random note from the notes of the previous scale.
+            random_note = random.choice(random_scale_notes)
+            print (" nota scelta per robot n.: "+ str(self.number)+ str(random_note))
+            self.create_new_note(random_note,random_scale_key)
+        else:
+            self.probablity_note()
+
+    # general method to create note
+    def create_new_note(self,midi_value,scale_value):
+        note = Note(midinote = midi_value, id = self.id_note_counter)
         self.note = note
+        self.previous_midinote = midi_value
         self.id_note_counter += 1
+        self.my_prediction = scale_value
+        print(self.note)
+    
+    def probablity_note(self):
+        # I enter only if I didn't reach the consensous already.
+        if not self.consensous:
+           #prob = random.random()
+           
+           print("robot n. "+ str(self.number) + " non cambia nota")
+           self.create_new_note(self.previous_midinote,self.my_prediction)
+               
+        else:
+            print("robot n.: " +str(self.number)+ " consenso ottenuto")
+               
+    def change_note_by_semitone(self):
+        # If I am in the lower boundary I have to add a semitone
+        if self.previous_midinote == 60:
+            
+            new_midinote = self.previous_midinote + 1
+            # metodo per predire la nota
+        elif self.previous_midinote == 82:
+            # If I am in the upper boundary I have to remove  a semitone 
+            new_midinote = self.previous_midinote - 1
+            # metodo per predire la nota
         
+        else:
+            # for all other values, the choose is random
+            semitone = random.choice([-1, 1])
+            #print(type(self.previous_midinote)) 
+            #new_midinote = self.previous_midinote + semitone
+            # metodo per predire la nota
+
+        # Stampa il nuovo valore per debug
+        print(f"Nuovo valore di previous_midinote: " + str(self.previous_midinote))
+        return self.previous_midinote
+    
     # method to set the message to send for kuramoto model
     def set_emitter_message(self):
         entry = {
@@ -201,7 +245,6 @@ class Robot:
     
     # metod to set the message to send for harmonic consensous.
     def set_musical_message(self):
-        
         entry = {
             "robot number": self.number,
             "note": self.note
@@ -217,20 +260,20 @@ class Robot:
             note = entry.get("note")
             note_id = id(note)
 
-            # Verifica se il robot_number è già presente nella mappa
-            if robot_number in self.local_music_map:
-                # Verifica se l'ID della nota è lo stesso
-                if id(self.local_music_map[robot_number]) == note_id:
-                    continue  # Nota già presente, salta l'iterazione
+            # Verifica se il robot number è già presente nel dizionario
+            if robot_number not in self.local_music_map:
+                self.local_music_map[robot_number] = []  # inizializza una lista per il robot
 
-            # Se la lista ha già 4 elementi, rimuovi il più vecchio
-            if len(self.local_music_map) >= 5:
-                # Rimuovi il primo elemento (più vecchio)
-                self.local_music_map.pop(next(iter(self.local_music_map)))
+            # Verifica se la nota è già presente (per evitare duplicati della stessa nota)
+            if note_id in [id(existing_note) for existing_note in self.local_music_map[robot_number]]:
+                continue
 
-            # Aggiungi la nuova nota alla mappa
-            self.local_music_map[robot_number] = note
+            # Aggiungi la nuova nota nella lista del robot
+            self.local_music_map[robot_number].append(note)
 
+            # Se la lista contiene più di 4 note, rimuovi la più vecchia
+            if len(self.local_music_map[robot_number]) > 4:
+                self.local_music_map[robot_number].pop(0)  # rimuove la nota più vecchia
 
     # method to print note messages. 
     def print_musical_buffers(self):
@@ -314,15 +357,24 @@ class Robot:
         self.compute_robot_compass()
         
 """""
-# Initialize the map of played notes for this robot if it do not already exists.
-            if robot_number not in self.local_music_map:
-                self.local_music_map[robot_number] = []
-            
-            # control if the ID of the note is already present in the list
-            if note_id not in [id(existing_note) for existing_note in self.local_music_map[robot_number]]:
-                self.local_music_map[robot_number].append(note)
-            
-            # I store only the last 4 notes. If there are more than 4 I discard the first that is the older one.
-            if len(self.local_music_map[robot_number]) > 4:
-                self.local_music_map[robot_number].pop(0)
+# method to predict the next note to play.
+    def set_note(self):
+        # if is the first iteraction.
+        if self.id_note_counter == 0:
+            # I choose a random scale form the scales fo the dictionary
+            random_scale = random.choice(self.scales)
+            # I choose a random note from the notes of the previous scale.
+            random_note = random.choice(random_scale)
+            note = Note(midinote = random_note, id = self.id_note_counter)
+            self.note = note
+            self.previous_midinote = random_note
+            self.id_note_counter += 1
+            self.my_prediction = random_scale
+        else:
+            self.probablity_note()
+
+
+    if prob < 0.01:
+               self.change_note_by_semitone()
+               print("robot n. "+ str(self.number) + " cambia nota")
 """
