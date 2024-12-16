@@ -1,5 +1,6 @@
 import random
 
+
 default_note_duration = {
     "m": 4, # semibreve
     "q": 1 # semiminima
@@ -128,18 +129,17 @@ class Grammar_Sequence:
 
 
 class Note:
-    def __init__(self, midinote, id):
-         self.id = id
+    def __init__(self, midinote):
+         
          self.midinote = midinote
          self.amp = 1
          self.dur = 1
          self.bpm = 60
-         self.MIDI_Port_name = 'loopMIDI Port 1'
     
     def __repr__(self):
         return "\n\t".join([ 
-                                "midinote: %d"%self.midinote,
-                                "id: %s"%str(self.id)])
+                                "midinote: %d"%self.midinote
+                                ])
                                 #"amplitude: %.1f"%self.amp
 
                                 
