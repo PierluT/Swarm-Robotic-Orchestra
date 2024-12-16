@@ -59,7 +59,7 @@ class Robot:
         # variable to control the previous midinote I played
         self.previous_midinote = 0
         # variable to control if in the previous iteraction I play in a common scale with neirghbourgs.
-        self.harmonicity = False
+        self.harmony = False
         #self.midinote = 0
         self.my_spartito = []
         self.local_music_map = {}
@@ -189,14 +189,14 @@ class Robot:
             random_scale_notes = major_midi_scales[random_scale_key]
             # I choose a random note from the notes of the previous scale.
             random_note = random.choice(random_scale_notes)
-            self.create_new_note(random_note,random_scale_key)
+            self.create_new_note(random_note)
         else:
             # function to set harmony true or false. If all the notes are in one majority scale.
             
             if  self.harmony:
                 # no need to create a new note if the info are the same. delete note id.
                 # If I already reach harmonicity I play the same note as before.
-                self.create_new_note(random_note,random_scale_key)
+                self.create_new_note(random_note)
                 
             else:
                 # if I don't already reach harmonicity.
@@ -205,7 +205,7 @@ class Robot:
                 
 
     # general method to create note
-    def create_new_note(self,midi_value,scale_value):
+    def create_new_note(self,midi_value):
         note = Note(midinote = midi_value)
         self.note = note
         # non devo settarlo qui ma quando lo predico
@@ -215,12 +215,15 @@ class Robot:
         #print(self.note)             
         
     def consult_local_music_dictionary(self):
-        # list for only the notes
+        # Lista per raccogliere solo le note
         all_notes = []
-        # Extract only notes from local_music_dictionary
-        for robot_id, notes in self.local_music_map.items():
-            all_notes.append(notes.midinote)
         
+        # Estrai solo le note dalla local_music_map
+        for robot_id, notes in self.local_music_map.items():
+            if notes:  # Verifica che la deque non sia vuota
+                note_object = notes[0]  # Accedi al primo (e unico) elemento nella deque
+                all_notes.append(note_object.midinote)
+            
         # found scale with larager number of notes in common
         scale_matches = {}
         for scale_name, scale_notes in major_midi_scales.items():
@@ -238,14 +241,14 @@ class Robot:
         if self.previous_midinote in major_midi_scales[majority_scale]:
             print("r.: "+ str(self.number)+ " plays a note that is already in mthe majority scale, so repeats it.") 
             # is not my_prediciton but the belonging scale of the note.
-            self.create_new_note(self.previous_midinote,self.my_prediction) 
+            self.create_new_note(self.previous_midinote) 
         
         # i'm not playing a note from the majority scale.
         else:
             prob = random.random()
             if prob > 0.7:
                print("robot n. "+ str(self.number) + " doesn't change note")
-               self.create_new_note(self.previous_midinote,self.my_prediction)
+               self.create_new_note(self.previous_midinote)
                #predicted_scale = self.consult_local_music_dictionary()
                #print( "majority scale for robot :" +str(self.number)+" " + str(predicted_scale))
             else:
@@ -261,7 +264,7 @@ class Robot:
                 else:
                     direction = -1  # Move down
                 
-                self.change_note_by_semitone(direction)
+                #self.change_note_by_semitone(direction)
                 print("robot n. "+ str(self.number) + " changes note from"+ str(self.previous_midinote)+ " in direction "+ str(direction))
 
         #return majority_scale
@@ -304,7 +307,7 @@ class Robot:
             oldest_robot = next(iter(self.local_music_map))  # Prende la chiave più vecchia
             del self.local_music_map[oldest_robot]
         
-        self.clean_music_buffer()
+        #self.clean_music_buffer()
         #self.print_local_music_dictionary()
 
     # method to print note messages. 
@@ -321,7 +324,13 @@ class Robot:
                 print(f"\t Note details: {entry['note'].midinote}")
     
     def print_local_music_dictionary(self):
-        print(f"Robot {self.number} dictionary of others last played notes: {self.local_music_map}")
+        # Creare una rappresentazione pulita del dizionario
+        clean_map = {
+            robot_id: notes[0].midinote if notes else None  # Estrai il midinote dalla deque
+            for robot_id, notes in self.local_music_map.items()
+        }
+        print(f"Robot {self.number} dictionary of others last played notes: {clean_map}")
+
 
     # method to write robot music sheet.
     def add_note_to_spartito(self,ms):
