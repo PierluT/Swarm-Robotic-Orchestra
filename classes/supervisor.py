@@ -122,15 +122,17 @@ class Supervisor:
         if pair_key_notes not in self.clock_interval_notes_dictionary:
             self.clock_interval_notes_dictionary[pair_key_notes] = 0
         # if the time note communication interval is finished.
-        if current_note_time - self.clock_interval_notes_dictionary[pair_key_notes] >= float(self.note_communication_interval):
-            robot1.set_musical_message()
-            robot2.set_musical_message()
-            robot2.recieved_note = robot1.forwarded_note
-            robot1.recieved_note = robot2.forwarded_note
-            robot1.update_local_music_map()
-            robot2.update_local_music_map()
+        #if current_note_time - self.clock_interval_notes_dictionary[pair_key_notes] >= float(self.note_communication_interval):
+        robot1.set_musical_message()
+        robot2.set_musical_message()
+        robot2.recieved_note = robot1.forwarded_note
+        robot1.recieved_note = robot2.forwarded_note
+        robot1.update_local_music_map()
+        robot2.update_local_music_map()
+        robot1.clean_music_buffer()
+        robot2.clean_music_buffer()
             # update interval value
-            self.clock_interval_notes_dictionary[pair_key_notes] = current_note_time
+        self.clock_interval_notes_dictionary[pair_key_notes] = current_note_time
 
     # method to print distances between robots.
     def print_distances_dictionary(self):
