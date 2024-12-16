@@ -57,7 +57,8 @@ def main():
     #midi_class.generate_audio_from_csv()
     #arena.create_video(output_path= "video_simulation.mp4", fps = 25)
     for e in supervisor.dictionary_of_robots:
-        e.print_local_music_dictionary()
+        a = e.extract_notes_from_local_music_dictionary()
+        print(a)
 
 
 
