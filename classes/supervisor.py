@@ -40,7 +40,8 @@ class Supervisor:
         self.target_precision = 0.01
         # time interval for phases check 
         self.last_check_time = time.time()
- 
+    
+
     # method to return the list of robots and assign a phase to each of them.
     def create_dictionary_of_robots(self):      
         for n in range(self.number_of_robots):
@@ -127,12 +128,12 @@ class Supervisor:
         robot2.set_musical_message()
         robot2.recieved_note = robot1.forwarded_note
         robot1.recieved_note = robot2.forwarded_note
-        robot1.update_local_music_map()
-        robot2.update_local_music_map()
-        robot1.clean_music_buffer()
-        robot2.clean_music_buffer()
-            # update interval value
-        self.clock_interval_notes_dictionary[pair_key_notes] = current_note_time
+        #robot1.update_local_music_map()
+        #robot2.update_local_music_map()
+        #robot1.clean_music_buffer()
+        #robot2.clean_music_buffer()
+        # update interval value
+        #self.clock_interval_notes_dictionary[pair_key_notes] = current_note_time
 
     # method to print distances between robots.
     def print_distances_dictionary(self):
