@@ -5,7 +5,7 @@ import random
 import datetime
 from collections import deque
 from classes.file_reader import File_Reader
-from classes.dictionaries import colours,major_midi_scales
+from classes.dictionaries import colours,major_scales
 from classes.tempo import Note
 
 file_reader_valuse = File_Reader()
@@ -51,19 +51,21 @@ class Robot:
         self.stop_counter = 0
         self.moving_counter = 0
         # MUSIC VARIABLES
-        self.scales = list(major_midi_scales.keys())
+        self.scales = major_scales
         self.note = ""
         self.id_note_counter = 0
-        self.max_music_neighbourgs = 6
+        self.max_music_neighbourgs = 4
         self.max_notes_per_neighbourg = 1
         # variable to control the previous midinote I played
         self.previous_midinote = 0
         # variable to control if in the previous iteraction I play in a common scale with neirghbourgs.
         self.harmony = False
         self.scale_name = None
+        self.probable_scales = []
         #self.midinote = 0
         self.my_spartito = []
         self.local_music_map = {}
+        self.interval_pattern = [2, 2, 1, 2, 2, 2, 1]
 
     def __repr__(self):
         return f"Robot(number = {self.number}, coordinate x = {self.x}, y = {self.y}, phase = {self.phase})"
@@ -186,30 +188,39 @@ class Robot:
         # if is the first iteraction.
         if self.id_note_counter == 0:
             # I choose a random scale form the scales fo the dictionary
-            random_scale_key = random.choice(self.scales)
-            random_scale_notes = major_midi_scales[random_scale_key]
+            random_scale_key = random.choice(list(self.scales.keys())) 
+            random_scale_notes = self.scales[random_scale_key]
             # I choose a random note from the notes of the previous scale.
             random_note = random.choice(random_scale_notes)
             self.create_new_note(random_note)
         else:
             # function to set harmony true or false. If all the notes are in one majority scale.
-            self.control_harmony()
+            self.consult_local_music_dictionary()
             #print("r: "+ str(self.number)+ " harmony value "+str(self.harmony))
             #and self.scale_name is not None
+            print(self.probable_scales)
             if  self.harmony :
-                #print("r: "+ str(self.number)+ " "+str(self.harmony))
+                #print("r: "+ str(self.number) + " "+str(self.harmony))
                 # If I already reach harmonicity I play the same note as before.
                 self.create_new_note(self.previous_midinote)
                 print("r: "+ str(self.number)+ " reached harmony in "+ str(self.scale_name))
                 
-            else:
-                # if I don't already reach harmonicity.
+            # If I don't reach harmony, probability of 70% to change
+            change_probability = random.random()  # Numero casuale tra 0 e 1
+            if change_probability < 0.7:  
                 self.consult_local_music_dictionary()
-                print("r: "+ str(self.number)+ " not reached harmony")
+                print(f"r: {self.number} note changes note")
+            else:
+                # 30% to mantain the same note
+                self.create_new_note(self.previous_midinote)
+                print(f"r: {self.number} kept the same note {self.previous_midinote}")
+
+        #self.update_local_music_map()
+        #self.clean_music_buffer()
 
     # general method to create note
-    def create_new_note(self,midi_value):
-        note = Note(midinote = midi_value)
+    def create_new_note(self, midi_value):
+        note = Note( midinote = midi_value)
         self.note = note
         # I store the mdidi
         self.previous_midinote = midi_value
@@ -227,71 +238,123 @@ class Robot:
         return all_notes    
 
     def control_harmony(self):
-        # Estrai la tua nota attuale e le note nel dizionario locale
-        all_notes = self.extract_notes_from_local_music_dictionary()  # Note dei vicini
+        # in this case I have to include also the note I'm playing.
+        self.probable_scales = self.find_probable_scales(include_current_note=True)
         
-        # Aggiungi la tua nota alla lista delle note da controllare
-        all_notes.append(self.note.midinote)
-        
-        # Rimuovo i duplicati mantenendo l'ordine originale
-        all_notes_set = []
-        for note in all_notes:
-            if note not in all_notes_set:
-                all_notes_set.append(note)
-        
-        # Itero attraverso le scale e verifico se l'array è un sottoinsieme
-        for scale_name, scale_notes in major_midi_scales.items():
-            # Converto scale_notes in set per il confronto
-            if set(all_notes_set).issubset(scale_notes):
-                self.harmony = True
-                self.scale_name = scale_name
-                break
+        # Se più di una scala contiene tutte le note, non siamo in armonia
+        if len(self.probable_scales) == 1:
+            self.harmony = True
+            self.scale_name = self.probable_scales[0]
         else:
-            # Se non trovo nessuna corrispondenza, imposta harmony su False
             self.harmony = False
-            self.scale_name = None
-
+            #self.scale_name = self.probable_scales
+            #print(self.probable_scales)
         
+        return self.probable_scales
+
     def consult_local_music_dictionary(self):
-        # return only the notes list in the dictionary
-        all_notes = self.extract_notes_from_local_music_dictionary()
-            
-        # found scale with larager number of notes in common
-        scale_matches = {}
-        for scale_name, scale_notes in major_midi_scales.items():
-           # count how many notes of my neighbourhs are in the scale that I'm parsing.
-            matching_notes = [note for note in all_notes if note in scale_notes]
-            # counts yìthe number of notes in the scale I'm parsing.
-            scale_matches[scale_name] = len(matching_notes)
-
-        # Founds the scale with maximum notes in common.
-        majority_scale = max(scale_matches, key=scale_matches.get)
-        # to test the number of notes in common in that scale.
-        number_of_notes_majority_scale = scale_matches[majority_scale]
-        print("for r: "+ str(self.number)+ " the majority scale is: "+ str(majority_scale))
-        # check if the note I play is already in the majority scale.
-        if self.previous_midinote in major_midi_scales[majority_scale]:
-            print("r.: "+ str(self.number)+ " plays a note that is already in the majority scale, so repeats it.") 
-            # is not my_prediciton but the belonging scale of the note.
-            self.create_new_note(self.previous_midinote) 
+        self.probable_scales.clear()
+        self.probable_scales = self.find_probable_scales(include_current_note=False)
+        #print(self.probable_scales)
         
-        # i'm not playing a note from the majority scale.
-        else:
-            prob = random.random()
-            if prob > 0.7:
-               #print("robot n. "+ str(self.number) + " doesn't change note")
-               self.create_new_note(self.previous_midinote)
-               print( "r: "+ str(self.number)+ " isn't in majority but doesn't change note")
-            else:
-                # notes of the majority scale
-                majority_scale_notes = major_midi_scales[majority_scale]
-                # founds the note in the majority scale that has the minimum distance with the played one.
-                closest_note = min(majority_scale_notes, key=lambda x: abs(x - self.previous_midinote))
-                # assign the closest note
-                self.create_new_note(midi_value = closest_note) 
-                
+        if len(self.probable_scales) > 1:
+            # if there are many scales with max matches there's an ambigous harmony
+            #self.harmony = False
+            #self.scale_name = None
+            print(f"For robot {self.number},Ambiguous harmony, {len(self.probable_scales)} possible scales.")
+            #print( self.probable_scales)
+            self.find_discriminative_notes()
 
-        #return majority_scale
+        else:
+            # if there's only a maximum matching scale, we found harmony.
+            self.harmony = True
+            self.scale_name = self.probable_scales[0]
+            print(f"For robot {self.number}, the majority scale is: {self.scale_name}")
+    
+        #self.probable_scales.clear()
+
+    # method to consult local dictionary. In the case of choosing the next note I don't need to include the note I'm playing, otherwise in the case that 
+    # I have to control harmonicity I have to inclue also my note.
+    def find_probable_scales(self, include_current_note=False):
+        # Estrai le note dai vicini
+        all_notes = self.extract_notes_from_local_music_dictionary()
+        
+        # Se include_current_note è True, aggiungi la tua nota alla lista
+        if include_current_note:
+            all_notes.append(self.note.midinote)
+        
+        # Crea un dizionario per memorizzare il numero di note corrispondenti per ogni scala
+        scale_matches = {}
+        
+        # Itera su tutte le scale e conta le note in comune
+        for scale_name, scale_notes in self.scales.items():
+            # Conta quante note della tua lista sono nella scala
+            matching_notes = [note for note in all_notes if note in scale_notes]
+            # Memorizza il numero di note comuni
+            scale_matches[scale_name] = len(matching_notes)
+        
+        # Trova il numero massimo di note in comune
+        max_matches = max(scale_matches.values())
+        
+        # Restituisci tutte le scale che hanno il massimo numero di note comuni
+        self.probable_scales = [scale_name for scale_name, matches in scale_matches.items() if matches == max_matches]
+        
+        return self.probable_scales
+    
+    # method to find a peculiar note that helps me to discard a possible scale
+    def find_discriminative_notes(self):
+        discriminative_notes = []
+        scale_to_discriminative_note = {}  # Mappa scala -> nota discriminativa
+
+        for i in range(len(self.probable_scales)):
+            for j in range(i + 1, len(self.probable_scales)):
+                scale1 = self.probable_scales[i]
+                scale2 = self.probable_scales[j]
+                
+                # Trova le note uniche
+                unique_to_scale1 = set(self.scales[scale1]) - set(self.scales[scale2])
+                unique_to_scale2 = set(self.scales[scale2]) - set(self.scales[scale1])
+                
+                # Aggiungi alle note discriminative
+                discriminative_notes.extend(list(unique_to_scale1))
+                discriminative_notes.extend(list(unique_to_scale2))
+
+        # Rimuovi duplicati
+        discriminative_notes = list(set(discriminative_notes))
+
+        # Escludi la nota attuale se è presente
+        if self.note.midinote in discriminative_notes:
+            discriminative_notes.remove(self.note.midinote)
+        
+        # Verifica ogni nota discriminativa per l'armonia
+        valid_scales = []
+        for note_to_test in discriminative_notes:
+            self.create_new_note(note_to_test)
+            self.control_harmony()
+            
+            # Mappa la scala alla nota discriminativa se l'armonia è valida
+            if self.harmony:
+                scale_name = self.scale_name  # Scala armoniosa trovata
+                scale_to_discriminative_note[scale_name] = note_to_test
+                print(f"Discriminative note {note_to_test} found for scale {scale_name}")
+
+        # Scarta le scale non valide
+        valid_scales = [scale for scale in self.probable_scales if scale in scale_to_discriminative_note]
+
+        # Aggiorna le scale probabili con solo quelle valide
+        self.probable_scales = valid_scales
+
+        if len(self.probable_scales) > 1:
+            print(f"Ambiguous harmony, multiple possible scales: {self.probable_scales}")
+        else:
+            print(f"Harmony found, the valid scale is: {self.probable_scales}")
+
+
+
+    # method to get the scale from the name. 
+    def get_scale(self, number):
+        if number in self.scales:
+            return self.scales[number]        
 
     # method to set the message to send for kuramoto model
     def set_emitter_message(self):
@@ -313,22 +376,29 @@ class Robot:
     # With this structure I can predict the next note to play consulting music scales dictionary.
     # last 4 notes for every of my neighbourghs whom I reach trheshold.
     def update_local_music_map(self):
-        # Itera su tutte le note ricevute
-        for entry in self.recieved_note:
-            robot_number = entry.get("robot number")
-            note = entry.get("note")
-            # Se il robot non è nel dizionario, inizializza una coda per le sue note
-            if robot_number not in self.local_music_map:
-                self.local_music_map[robot_number] = deque(maxlen=self.max_notes_per_neighbourg)
+        # Verifica se ci sono messaggi ricevuti
+        if self.recieved_note:
+            # Itera su tutte le note ricevute
+            for entry in self.recieved_note:
+                robot_number = entry.get("robot number")
+                note = entry.get("note")
+                
+                # Se il robot non è nel dizionario, inizializza una coda per le sue note
+                if robot_number not in self.local_music_map:
+                    self.local_music_map[robot_number] = deque(maxlen=self.max_notes_per_neighbourg)
 
-            # Aggiungi la nuova nota alla coda del robot
-            self.local_music_map[robot_number].append(note)
-        
-        # Se il dizionario supera il numero massimo di robot, elimina il più vecchio
-        while len(self.local_music_map) > self.max_music_neighbourgs:
-            oldest_robot = next(iter(self.local_music_map))  # Prende la chiave più vecchia
-            del self.local_music_map[oldest_robot]
+                # Aggiungi la nuova nota alla coda del robot
+                self.local_music_map[robot_number].append(note)
 
+            # Se il dizionario supera il numero massimo di robot, elimina il più vecchio
+            while len(self.local_music_map) > self.max_music_neighbourgs:
+                oldest_robot = next(iter(self.local_music_map))  # Prende la chiave più vecchia
+                del self.local_music_map[oldest_robot]
+
+            # Pulizia del buffer musicale dopo l'aggiornamento
+            self.clean_music_buffer()
+        else:
+            print("No messages received. Skipping local music map update.")
     # method to print note messages. 
     def print_musical_buffers(self):
         # Controllo e stampa delle recieved notes
@@ -373,7 +443,7 @@ class Robot:
                 self.playing_flag = True
                 self.triggered_playing_flag = True
                 self.colour = colours['blue']
-                self.set_note()
+                #self.set_note()
                 self.add_note_to_spartito(current_ms)  
             # Means that is not the first time that I enter in the condition, so I have to reset false.
             else:
@@ -412,30 +482,51 @@ class Robot:
     def step(self,millisecond):
         self.moving_status_selection()
         self.moveRobot()
+        self.update_local_music_map()
+        self.set_note()
         for i in range(self.time_step):
             self.update_phase(millisecond,i)
         self.compute_robot_compass()
         
 """""
 
-    def update_local_music_map(self):
-        for entry in self.recieved_note:
-            robot_number = entry.get("robot number")
-            note = entry.get("note")
-            note_id = id(note)
+    def consult_local_music_dictionary(self):
+        # return only the notes list in the dictionary
+        all_notes = self.extract_notes_from_local_music_dictionary()
+            
+        # found scale with larager number of notes in common
+        scale_matches = {}
+        for scale_name, scale_notes in self.scales.items():
+           # count how many notes of my neighbourhs are in the scale that I'm parsing.
+            matching_notes = [note for note in all_notes if note in scale_notes]
+            # counts yìthe number of notes in the scale I'm parsing.
+            scale_matches[scale_name] = len(matching_notes)
 
-            # Verifica se la nota è già presente (per evitare duplicati)
-            if note_id in [id(existing_entry['note']) for existing_entry in self.local_music_map]:
-                continue
-
-            # Aggiungi la nuova nota nella lista globale
-            self.local_music_map.append({
-                "robot number": robot_number,
-                "note": note
-            })
-
-            # Se la lista contiene più di 4 note, rimuovi la più vecchia
-            if len(self.local_music_map) > 4:
-                self.local_music_map.pop(0)  # rimuove la nota più vecchia
+        # Founds the scale with maximum notes in common.
+        majority_scale = max(scale_matches, key=scale_matches.get)
+        # to test the number of notes in common in that scale.
+        number_of_notes_majority_scale = scale_matches[majority_scale]
+        print("for r: "+ str(self.number)+ " the majority scale is: "+ str(majority_scale))
+        # check if the note I play is already in the majority scale.
+        
+        if self.previous_midinote in self.scales[majority_scale]:
+            print("r.: "+ str(self.number)+ " plays a note that is already in the majority scale, so repeats it.") 
+            # is not my_prediciton but the belonging scale of the note.
+            self.create_new_note(self.previous_midinote) 
+        
+        # i'm not playing a note from the majority scale.
+        else:
+            prob = random.random()
+            if prob > 0.7:
+               #print("robot n. "+ str(self.number) + " doesn't change note")
+               self.create_new_note(self.previous_midinote)
+               print( "r: "+ str(self.number)+ " isn't in majority but doesn't change note")
+            else:
+                # notes of the majority scale
+                majority_scale_notes = self.scales[majority_scale]
+                # founds the note in the majority scale that has the minimum distance with the played one.
+                closest_note = min(majority_scale_notes, key=lambda x: abs(x - self.previous_midinote))
+                # assign the closest note
+                self.create_new_note(midi_value = closest_note) 
 
 """

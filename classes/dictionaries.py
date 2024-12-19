@@ -5,17 +5,21 @@ colours = {
     'blue': (255,0,0)
 }
 
-major_midi_scales = {
-    "C": [60, 62, 64, 65, 67, 69, 71, 72],  # Do Maggiore
-    "C#": [61, 63, 65, 66, 68, 70, 72, 73],  # Do# Maggiore
-    "D": [62, 64, 66, 67, 69, 71, 73, 74],  # Re Maggiore
-    "D#": [63, 65, 67, 68, 70, 72, 74, 75],  # Re# Maggiore
-    "E": [64, 66, 68, 69, 71, 73, 75, 76],  # Mi Maggiore
-    "F": [65, 67, 69, 70, 72, 74, 76, 77],  # Fa Maggiore
-    "F#": [66, 68, 70, 71, 73, 75, 77, 78],  # Fa# Maggiore
-    "G": [67, 69, 71, 72, 74, 76, 78, 79],  # Sol Maggiore
-    "G#": [68, 70, 72, 73, 75, 77, 79, 80],  # Sol# Maggiore
-    "A": [69, 71, 73, 74, 76, 78, 80, 81],  # La Maggiore
-    "A#": [70, 72, 74, 75, 77, 79, 81, 82],  # La# Maggiore
-    "B": [71, 73, 75, 76, 78, 80, 82, 83],  # Si Maggiore
+major_scales = {
+    0: [0, 2, 4, 5, 7, 9, 11],   # Do maggiore (C Major)
+    1: [1, 3, 5, 6, 8, 10, 0],    # Do# maggiore (C# Major)
+    2: [2, 4, 6, 7, 9, 11, 1],    # Re maggiore (D Major)
+    3: [3, 5, 7, 8, 10, 0, 2],    # Re# maggiore (D# Major)
+    4: [4, 6, 8, 9, 11, 1, 3],    # Mi maggiore (E Major)
+    5: [5, 7, 9, 10, 0, 2, 4],    # Fa maggiore (F Major)
+    6: [6, 8, 10, 11, 1, 3, 5],   # Fa# maggiore (F# Major)
+    7: [7, 9, 11, 0, 2, 4, 6],    # Sol maggiore (G Major)
+    8: [8, 10, 0, 1, 3, 5, 7],    # Sol# maggiore (G# Major)
+    9: [9, 11, 1, 2, 4, 6, 8],    # La maggiore (A Major)
+    10: [10, 0, 2, 3, 5, 7, 9],   # La# maggiore (A# Major)
+    11: [11, 1, 3, 4, 6, 8, 10],  # Si maggiore (B Major)
+}
+
+rule_of_notes = {
+    
 }
