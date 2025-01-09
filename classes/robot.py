@@ -3,7 +3,7 @@ import numpy as np
 import time
 import random
 import datetime
-from collections import deque
+from collections import defaultdict, deque
 from classes.file_reader import File_Reader
 from classes.dictionaries import colours,major_scales
 from classes.tempo import Note
@@ -64,7 +64,7 @@ class Robot:
         self.probable_scales = []
         #self.midinote = 0
         self.my_spartito = []
-        self.local_music_map = {}
+        self.local_music_map = defaultdict(list) 
         self.interval_pattern = [2, 2, 1, 2, 2, 2, 1]
 
     def __repr__(self):
@@ -186,9 +186,8 @@ class Robot:
     def create_new_note(self, midi_value):
         note = Note( midinote = midi_value)
         self.note = note
-        # I store the mdidi
+        # I store the midi
         self.previous_midinote = midi_value
-        #self.id_note_counter += 1
 
     # method to get the scale from the name. 
     def get_scale(self, number):
@@ -214,31 +213,31 @@ class Robot:
     # Every robot has a dictionary on what is the last note that others are playing.
     # With this structure I can predict the next note to play consulting music scales dictionary.
     # last 4 notes for every of my neighbourghs whom I reach trheshold.
-    from collections import deque
-
     def update_local_music_map(self):
+        # Verifica se ci sono messaggi ricevuti
         if self.recieved_note:
             # Itera su tutte le note ricevute
-            for entry in self.recieved_note:
-                robot_number = entry.get("robot number")
-                note = entry.get("note")
+            for note_list in self.recieved_note:
+                if isinstance(note_list, list):  # Verifica che ogni elemento sia una lista
+                    for entry in note_list:  # Itera sui dizionari nella lista
+                        if isinstance(entry, dict):  # Assicura che l'elemento sia un dizionario
+                            robot_number = entry.get("robot number")
+                            note = entry.get("note")
+                            
+                            # Se il robot non è nel dizionario, inizializza una coda per le sue note
+                            if robot_number not in self.local_music_map:
+                                self.local_music_map[robot_number] = deque(maxlen=self.max_notes_per_neighbourg)
 
-                # Inizializza la coda per il robot se non esiste nel dizionario
-                if robot_number not in self.local_music_map:
-                    self.local_music_map[robot_number] = deque(maxlen=self.max_notes_per_neighbourg)
-
-                # Aggiungi la nuova nota alla coda del robot
-                self.local_music_map[robot_number].append(note)
-
+                            # Aggiungi la nuova nota alla coda del robot
+                            self.local_music_map[robot_number].append(note)
+            
             # Se il dizionario supera il numero massimo di robot, rimuovi il più vecchio
             while len(self.local_music_map) > self.max_music_neighbourgs:
-                # Usa il metodo `popitem` con `last=False` per eliminare il primo elemento (il più vecchio)
-                oldest_robot = next(iter(self.local_music_map))  # Trova la chiave più vecchia
+                # Usa `popitem(last=False)` per rimuovere il primo elemento (il più vecchio)
+                oldest_robot = next(iter(self.local_music_map))
                 del self.local_music_map[oldest_robot]
 
-            # Pulizia del buffer musicale dopo l'aggiornamento
-            self.clean_music_buffer()
-    
+
     # method to print note messages. 
     def print_musical_buffers(self):
         # Controllo e stampa delle recieved notes
@@ -326,9 +325,10 @@ class Robot:
     def step(self,millisecond):
         self.moving_status_selection()
         self.moveRobot()
-        #self.update_local_music_map()
+        self.update_local_music_map()
         for i in range(self.time_step):
             self.update_phase(millisecond,i)
+        
         #self.set_note()
         self.compute_robot_compass()
         

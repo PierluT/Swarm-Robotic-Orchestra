@@ -48,6 +48,9 @@ def main():
                 robot.moving_status,
             ])
             global_time += supervisor.time_step  
+            for robot in supervisor.dictionary_of_robots:
+                 robot.clean_music_buffer()
+        
     # test Arena csv reader.
     arena = Arena()
     arena.load_robot_data(video_csv_file)
@@ -60,7 +63,7 @@ def main():
     
     for r in supervisor.dictionary_of_robots:
          print("mappa note robot n.: "+ str(r.number))
-         print(r.print_local_music_dictionary())
+         print(r.local_music_map)
          #print("ultima nota suonata: "+ str(r.note))
          print()
     

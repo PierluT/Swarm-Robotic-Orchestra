@@ -123,7 +123,6 @@ class Supervisor:
         # MUSIC MESSAGES EXCHANGE
         # I creat a tuple to not replicate the messages exchange.
         pair_key_notes = tuple(sorted((robot1.number, robot2.number)))
-        current_note_time = time.time()
         # for the first time interaction
         if pair_key_notes not in self.clock_interval_notes_dictionary:
             self.clock_interval_notes_dictionary[pair_key_notes] = 0
@@ -131,8 +130,8 @@ class Supervisor:
         #if current_note_time - self.clock_interval_notes_dictionary[pair_key_notes] >= float(self.note_communication_interval):
         robot1.set_musical_message()
         robot2.set_musical_message()
-        robot2.recieved_note = robot1.forwarded_note
-        robot1.recieved_note = robot2.forwarded_note
+        robot2.recieved_note.append(robot1.forwarded_note)
+        robot1.recieved_note.append(robot2.forwarded_note)
             # update interval value
             #self.clock_interval_notes_dictionary[pair_key_notes] = current_note_time
 
@@ -201,7 +200,7 @@ class Supervisor:
         self.make_matrix_control(robot_to_parse)
         #for i in range(self.time_step):
         # every 2 steps. a parameter that you can study.
-        #self.post_office(robot_to_parse)
+        self.post_office(robot_to_parse)
         #self.check_phases_convergence()
     
     def nearest_timestep(self,ms):
