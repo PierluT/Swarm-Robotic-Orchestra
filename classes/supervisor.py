@@ -1,5 +1,6 @@
 import math
 import numpy as np
+import random
 import time
 from classes.robot import Robot
 from classes.file_reader import File_Reader
@@ -32,7 +33,6 @@ class Supervisor:
         self.comuncation_clock_interval = values_dictionary['comunication_clock_interval']
         # value to relate phase update and robot steps.
         self.time_step = values_dictionary['time_step']
-        self.note_communication_interval = values_dictionary['note_communication_interval']
         # value to control that notes message exchanges doesn't happen cpuntinously. 
         # final music sheet that will be converted into audio file.
         self.conductor_spartito = []
@@ -46,7 +46,8 @@ class Supervisor:
     def create_dictionary_of_robots(self):      
         for n in range(self.number_of_robots):
             robot = Robot(number = n)
-            robot.set_note()
+            robot.create_new_note(random.randint(0,11))
+            #robot.set_note()
             self.dictionary_of_robots.append(robot)
 
     # method to set the intial positions of the robots, in order to avoid overlap.
@@ -94,6 +95,9 @@ class Supervisor:
         distance = np.sqrt((robot1.x - robot2.x) ** 2 + (robot1.y - robot2.y) ** 2)
         return round(distance)
     
+    # x il futuro un buffer solo.
+    # un metodo solo con un paramtero 
+    
     # method to handle phase communication
     def handle_communication(self,robot1, robot2):
         # I create a unique key to control the message exchange between a pair of robots.
@@ -117,6 +121,7 @@ class Supervisor:
 
     def music_communication(self,robot1, robot2):
         # MUSIC MESSAGES EXCHANGE
+        # I creat a tuple to not replicate the messages exchange.
         pair_key_notes = tuple(sorted((robot1.number, robot2.number)))
         current_note_time = time.time()
         # for the first time interaction
@@ -128,12 +133,8 @@ class Supervisor:
         robot2.set_musical_message()
         robot2.recieved_note = robot1.forwarded_note
         robot1.recieved_note = robot2.forwarded_note
-        #robot1.update_local_music_map()
-        #robot2.update_local_music_map()
-        #robot1.clean_music_buffer()
-        #robot2.clean_music_buffer()
-        # update interval value
-        #self.clock_interval_notes_dictionary[pair_key_notes] = current_note_time
+            # update interval value
+            #self.clock_interval_notes_dictionary[pair_key_notes] = current_note_time
 
     # method to print distances between robots.
     def print_distances_dictionary(self):
@@ -141,7 +142,7 @@ class Supervisor:
             print(f"{pair} : {distance}")
         print()
 
-    # method to check
+    # method to check distan
     def make_matrix_control(self,initial_robot):  
         # Compute distances between robot in input and all the others
         for j in range(len(self.dictionary_of_robots)):
@@ -157,9 +158,9 @@ class Supervisor:
             if distance_between_robots < (2*self.collision_margin) + 10:
                 initial_robot.change_direction_x_axes()
                 robot_to_check.change_direction_y_axes()
-
     
     # method to send and receive messages.
+    # DIFFERENTIATE LOGIC AND PYSICS, so handle differently collision and 
     def post_office(self,initial_robot):
         for j in range(initial_robot.number +1, len(self.distances)):
             distance_to_check = self.distances[initial_robot.number][j]
@@ -200,7 +201,7 @@ class Supervisor:
         self.make_matrix_control(robot_to_parse)
         #for i in range(self.time_step):
         # every 2 steps. a parameter that you can study.
-        self.post_office(robot_to_parse)
+        #self.post_office(robot_to_parse)
         #self.check_phases_convergence()
     
     def nearest_timestep(self,ms):
