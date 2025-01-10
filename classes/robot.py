@@ -323,9 +323,11 @@ class Robot:
         if self.recieved_message:
             # change as for the music
             for message in self.recieved_message:
-                phase_value = message['phase']
-                #print(f"Phase value: {phase_value}")
-                self.update_phase_kuramoto_model(phase_value)
+                if isinstance(message, list):
+                    for entry in message:  # Itera sui dizionari nella lista
+                        if isinstance(entry, dict):  # Assicura che l'elemento sia un dizionario
+                            phase_value = entry.get("phase")
+                            self.update_phase_kuramoto_model(phase_value)
             self.clean_buffers()
         self.phase += (2 * np.pi / 4000)
         # normalization only if I reach 2pi then I go to 0.

@@ -102,35 +102,16 @@ class Supervisor:
     
     # method to handle phase communication
     def handle_communication(self,robot1, robot2):
-        #print("comunication between: "+ str(robot1)+ " "+ str(robot2))
-        # I create a unique key to control the message exchange between a pair of robots.
-        pair_key = tuple(sorted((robot1.number, robot2.number)))      
-        current_time = time.time()
-        # ADD A MAXIMUM OF ROBOTS TO REACH.
-        # for the first time iteraction.
-        if pair_key not in self.clock_interval_dictionary:
-            self.clock_interval_dictionary[pair_key] = 0
-        # If the 0.10 seconds interval is finished.
-        if current_time - self.clock_interval_dictionary[pair_key] >= float(self.comuncation_clock_interval):
-            robot1.set_emitter_message()
-            robot2.set_emitter_message()
-            # change with  the append because otherwise you will lost the previous message if you have more than one communication.
-            robot2.recieved_message = robot1.forwarded_message
-            robot1.recieved_message = robot2.forwarded_message
-            # update interval value
-            self.clock_interval_dictionary[pair_key] = current_time
         
+        robot1.set_emitter_message()
+        robot2.set_emitter_message()
+        robot2.recieved_message.append(robot1.forwarded_message)
+        robot1.recieved_message.append(robot2.forwarded_message)
         # method for music messages.
         self.music_communication(robot1,robot2)
 
     def music_communication(self,robot1, robot2):
         # MUSIC MESSAGES EXCHANGE
-        # I creat a tuple to not replicate the messages exchange.
-        pair_key_notes = tuple(sorted((robot1.number, robot2.number)))
-        # for the first time interaction
-        if pair_key_notes not in self.clock_interval_notes_dictionary:
-            self.clock_interval_notes_dictionary[pair_key_notes] = 0
-
         robot1.set_musical_message()
         robot2.set_musical_message()
         robot2.recieved_note.append(robot1.forwarded_note)

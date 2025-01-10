@@ -34,7 +34,7 @@ def main():
                 
                 # COMMUNICATION every 80 ms.   
                 if (millisecond % 80 == 0):
-                        supervisor.post_office(robot)             
+                    supervisor.post_office(robot)             
             for robot in supervisor.dictionary_of_robots:
                  robot.clean_music_buffer()
     
@@ -48,43 +48,9 @@ def main():
 if __name__ == "__main__":
         
         main()
-"""""
-             for r in supervisor.dictionary_of_robots:
-         print("mappa note robot n.: "+ str(r.number))
-         print(r.local_music_map)
-         print("ultima nota suonata: "+ str(r.note.midinote))
-         print()
 
 
 
 
 
 
-
-
-
-
-
-
-
-
-
-        ########## OLD MAIN ###################
-         
-         # Scrivi i dati in un file CSV
-    with open(video_csv_file , mode="w", newline="") as file:
-        writer = csv.writer(file, delimiter=';')
-        writer.writerow(["ms", "robot number", "x", "y","compass", "phase", "colour", "status"])
-        global_time = 0
-        for millisecond in range(0,60000,supervisor.time_step):             
-            for robot in supervisor.dictionary_of_robots:
-                # PRIMA SUPERVISOR POI STEP DI ROBOT !!!!!   
-                supervisor.collision_and_message_control(robot)
-                robot.step(global_time)
-                # I write the infos. 
-                arena.write_robot_data(writer,millisecond, robot)
-            
-            global_time += supervisor.time_step  
-            for robot in supervisor.dictionary_of_robots:
-                 robot.clean_music_buffer()
-"""
