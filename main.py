@@ -9,7 +9,7 @@ def main():
     supervisor = Supervisor([])
     midi_class = MIDIMessage()
     arena = Arena()
-    
+    print("prova")
     supervisor.setup_robots()
     # I create a new csv file.
     video_csv_file  = "video_maker.csv"
