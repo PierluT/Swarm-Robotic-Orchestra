@@ -43,7 +43,7 @@ class Supervisor:
     
 
     # method to return the list of robots and assign a phase to each of them.
-    def create_dictionary_of_robots(self):      
+    def create_dictionary_of_robots(self):  
         for n in range(self.number_of_robots):
             robot = Robot(number = n)
             robot.create_new_note(random.randint(0,11))
