@@ -198,21 +198,21 @@ class Robot:
             # found the scale with major number of common notes.
             max_matches = max(scale_matches.values())
             mas = max_matches
-            best_scales = [scale_name for scale_name, match_count in scale_matches.items() if match_count == max_matches]
+        best_scales = [scale_name for scale_name, match_count in scale_matches.items() if match_count == mas]
         
-        print("number max: "+str(mas)+ " for robot: "+str(self.number))
+        #print("probable scales: "+str(best_scales)+ " for robot: "+str(self.number))
         # control if my note is included in one of the probable scales:
         for scale in best_scales:
-            print("probable scale for r number: "+ str(self.number)+ " "+ str(scale))
+            #print("probable scale for r number: "+ str(self.number)+ " "+ str(scale))
             scale_notes = self.scales[scale]
             if self.note.midinote in scale_notes:
                  # put a flag if the note that I play is included in one of the best scales found for the harmony.
                 self.flag_included_proper_midinote = True
-                print("robot :"+ str(self.number)+ " is already in harmony")
+                #print("robot :"+ str(self.number)+ " is already in harmony")
         if not self.flag_included_proper_midinote:
             print("note robot :"+ str(self.number)+" not included in the best scales")
             # function change 70-30 to call it or not.
-            #self.change_note(best_scales) 
+            self.change_note(best_scales) 
             
         self.flag_included_proper_midinote = False 
     
@@ -225,11 +225,12 @@ class Robot:
 
     # mehtod to change the note if I'm not in harmony
     def change_note(self,best_scales):
+        print(best_scales)
         change_probability = random.random()
         # I change note
         if change_probability < 0.7:
             print(f"r: {self.number} changes note")
-            # I found the closest scale
+             # I found the closest scale
             closest_scale = min(
                 best_scales,
                 key=lambda scale_name: min(
@@ -238,14 +239,16 @@ class Robot:
                 )
             )
 
-            # Trova la nota più vicina nella scala più vicina
+            # found closest note into the closest scale
             closest_note = min(
                 self.scales[closest_scale],
                 key=lambda note: min(abs(self.note.midinote - note), 12 - abs(self.note.midinote - note))
             )
-
+            previous_note = self.note.midinote
             # change note
             self.note.midinote = closest_note
+            print("robot n: "+ str(self.number)+ " changes from "+ str(previous_note)+ " to: "+ str(self.note.midinote))
+            
         else: 
             #self.create_new_note(self.previous_midinote)
             print(f"r: {self.number} kept the same note {self.previous_midinote} not in harmony")      
@@ -375,7 +378,6 @@ class Robot:
         self.phase += self.K * np.sin(recieved_phase - self.phase)
         # normalization
         self.phase %= (2 * np.pi) 
-         
 
     # robot updates itself in terms of position and phase.
     def step(self,millisecond):
@@ -384,15 +386,10 @@ class Robot:
         self.update_local_music_map()
         if self.local_music_map:
             self.update_note()
-        else:
-            print("dizionario vuoto")
         
         for i in range(self.time_step):
             self.update_phase(millisecond,i)
-        
-        #self.set_note()
-        self.compute_robot_compass()
-        
+        self.compute_robot_compass()      
 """""
         else:
             # function to set harmony true or false. If all the notes are in one majority scale.
@@ -418,4 +415,20 @@ class Robot:
 
         #self.update_local_music_map()
         #self.clean_music_buffer()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+       
 """
