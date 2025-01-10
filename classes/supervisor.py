@@ -40,7 +40,13 @@ class Supervisor:
         self.target_precision = 0.01
         # time interval for phases check 
         self.last_check_time = time.time()
+        # this value is the ability of a robot to see thing around it.
+        self.sensor = values_dictionary['sensor']
+
     
+    def setup_robots(self):
+        self.create_dictionary_of_robots()
+        self.compute_initial_positions()
 
     # method to return the list of robots and assign a phase to each of them.
     def create_dictionary_of_robots(self):  
@@ -94,11 +100,9 @@ class Supervisor:
         distance = np.sqrt((robot1.x - robot2.x) ** 2 + (robot1.y - robot2.y) ** 2)
         return round(distance)
     
-    # x il futuro un buffer solo.
-    # un metodo solo con un paramtero 
-    
     # method to handle phase communication
     def handle_communication(self,robot1, robot2):
+        #print("comunication between: "+ str(robot1)+ " "+ str(robot2))
         # I create a unique key to control the message exchange between a pair of robots.
         pair_key = tuple(sorted((robot1.number, robot2.number)))      
         current_time = time.time()
@@ -110,13 +114,14 @@ class Supervisor:
         if current_time - self.clock_interval_dictionary[pair_key] >= float(self.comuncation_clock_interval):
             robot1.set_emitter_message()
             robot2.set_emitter_message()
+            # change with  the append because otherwise you will lost the previous message if you have more than one communication.
             robot2.recieved_message = robot1.forwarded_message
             robot1.recieved_message = robot2.forwarded_message
             # update interval value
             self.clock_interval_dictionary[pair_key] = current_time
         
         # method for music messages.
-        self.music_communication(robot1,robot2)
+        #self.music_communication(robot1,robot2)
 
     def music_communication(self,robot1, robot2):
         # MUSIC MESSAGES EXCHANGE
@@ -125,50 +130,70 @@ class Supervisor:
         # for the first time interaction
         if pair_key_notes not in self.clock_interval_notes_dictionary:
             self.clock_interval_notes_dictionary[pair_key_notes] = 0
-        # if the time note communication interval is finished.
-        #if current_note_time - self.clock_interval_notes_dictionary[pair_key_notes] >= float(self.note_communication_interval):
+
         robot1.set_musical_message()
         robot2.set_musical_message()
         robot2.recieved_note.append(robot1.forwarded_note)
         robot1.recieved_note.append(robot2.forwarded_note)
-            # update interval value
-            #self.clock_interval_notes_dictionary[pair_key_notes] = current_note_time
+
+    # Metodo per calcolare e aggiornare la matrice delle distanze
+    def make_matrix_control(self):
+        self.update_positions()
+        # Itera su tutti i robot
+        for i in range(self.number_of_robots):
+            robot_a = self.dictionary_of_robots[i]
+            # Confronta ogni robot con gli altri, evitando ridondanze
+            for j in range(i + 1, self.number_of_robots):
+                robot_b = self.dictionary_of_robots[j]
+                # Calcola la distanza tra robot_a e robot_b
+                distance_between_robots = self.compute_distance(robot_a, robot_b)
+                # I store only the values that teh robot is able to read.
+                if distance_between_robots <= self.sensor:
+                    # Aggiorna la matrice delle distanze in modo simmetrico
+                    self.distances[i][j] = distance_between_robots
+                    self.distances[j][i] = distance_between_robots
+
+        return self.distances 
+
+    # method to update robot positions
+    def update_positions(self):
+        for i in range(self.number_of_robots):
+            robot_a = self.dictionary_of_robots[i]
+            robot_a.x += robot_a.vx
+            robot_a.y += robot_a.vy
 
     # method to print distances between robots.
-    def print_distances_dictionary(self):
-        for pair, distance in self.distances.items():
-            print(f"{pair} : {distance}")
-        print()
+    def print_distance_matrix(self):
+        """
+        Stampa la matrice delle distanze tra i robot, con indici per righe e colonne.
+        """
+        print("Matrice delle distanze:")
+        # Stampa l'intestazione della matrice (numeri dei robot)
+        header = "     " + " ".join(f"{i:6}" for i in range(len(self.distances)))
+        print(header)
+        print("-" * len(header))
 
-    # method to check distan
-    def make_matrix_control(self,initial_robot):  
-        # Compute distances between robot in input and all the others
-        for j in range(len(self.dictionary_of_robots)):
-            if j == initial_robot.number:
-                continue  # If is itself
-            robot_to_check = self.dictionary_of_robots[j]            
-            # compute distances
-            distance_between_robots = self.compute_distance(initial_robot, robot_to_check)            
-            # Update distances dictionary in a symmetric way.
-            self.distances[initial_robot.number][robot_to_check.number] = distance_between_robots
-
-            # collision control
-            if distance_between_robots < (2*self.collision_margin) + 10:
-                initial_robot.change_direction_x_axes()
-                robot_to_check.change_direction_y_axes()
+        # Stampa ogni riga con il numero del robot come intestazione
+        for i, row in enumerate(self.distances):
+            row_data = " ".join(f"{distance:6.2f}" for distance in row)
+            print(f"{i:3} | {row_data}")
     
     # method to send and receive messages.
-    # DIFFERENTIATE LOGIC AND PYSICS, so handle differently collision and 
-    def post_office(self,initial_robot):
-        for j in range(initial_robot.number +1, len(self.distances)):
-            distance_to_check = self.distances[initial_robot.number][j]
-            
-            # block to handle phase communication between robots.
-            if distance_to_check <= self.threshold:              
-                robot1_chat = self.dictionary_of_robots[initial_robot.number]
-                robot2_chat = self.dictionary_of_robots[j]
-                #print("robot numero: "+ str(robot1_chat.number)+ " robot numero: "+ str(robot2_chat.number)+ " threshold")
-                self.handle_communication(robot1_chat, robot2_chat)
+    # DIFFERENTIATE LOGIC AND PYSICS, so handle differently collision and post office
+    def post_office(self):
+        # Itera su tutti i robot nel dizionario
+        for i in range(self.number_of_robots):
+            robot1 = self.dictionary_of_robots[i]
+            # Itera su tutti i robot successivi per evitare dati ridondanti
+            for j in range(i + 1, self.number_of_robots):
+                robot2 = self.dictionary_of_robots[j]
+                distance_to_check = self.distances[i][j]
+
+                # Verifica se la distanza è sotto la soglia
+                if distance_to_check <= self.threshold:
+                    # Gestione della comunicazione tra robot
+                    self.handle_communication(robot1, robot2)
+
   
     # method to check periodically if phases are converging or not.
     def check_phases_convergence(self):
@@ -196,10 +221,9 @@ class Supervisor:
     
     
     def collision_and_message_control(self,robot_to_parse):
-        self.make_matrix_control(robot_to_parse)
-        #for i in range(self.time_step):
+        self.make_matrix_control(robot_to_parse)# physical
         # every 2 steps. a parameter that you can study.
-        self.post_office(robot_to_parse)
+        self.post_office(robot_to_parse)# logical 
         #self.check_phases_convergence()
     
     def nearest_timestep(self,ms):
@@ -223,44 +247,12 @@ class Supervisor:
         
         #print(self.conductor_spartito)
     
-
 """""
-    def print_half_matrix(self):
-        robot_indexes = []
-        for i in self.dictionary_of_robots:
-            robot_indexes.append(i.number)
-            # Stampa gli indici delle colonne
-        print("     ", end='')  # Spazio iniziale per l'intestazione
-        for index in robot_indexes:
-            print(f"{index:<5}", end=' ')
-        print()  # Nuova riga dopo l'intestazione
-
-        # Stampa la matrice solo per la parte superiore
-        for i in range(len(self.distances)):
-            print(f"{robot_indexes[i]:<5}", end=' ')  # Indice del robot
-            for j in range(len(self.distances[i])):
-                if j > i:  # Stampa solo la parte superiore
-                    print(f"{self.distances[i][j]:<5}", end=' ')
-                else:
-                    print("     ", end=' ')  # Spazio vuoto per la parte inferiore
-            print()  # Nuova riga dopo ogni riga della matrice 
-
-        # MUSIC MESSAGES EXCHANGE
-        pair_key_notes = tuple(sorted((robot1.number, robot2.number)))
-        current_note_time = time.time()
-        # for the first time interaction
-        if pair_key_notes not in self.clock_interval_notes_dictionary:
-            self.clock_interval_notes_dictionary[pair_key_notes] = 0
-        # if the time note communication interval is finished.
-        #if current_note_time - self.clock_interval_notes_dictionary[pair_key_notes] >= float(self.note_communication_interval):
-        robot1.set_musical_message()
-        robot2.set_musical_message()
-        robot2.recieved_note = robot1.forwarded_note
-        robot1.recieved_note = robot2.forwarded_note
-        robot1.update_local_music_map()
-        robot2.update_local_music_map()
-            #robot1.clean_music_buffer()
-            #robot2.clean_music_buffer()
+            # PUT IT IN ROBOT
+            # collision control
+            if distance_between_robots < (2*self.collision_margin) + 10:
+                initial_robot.change_direction_x_axes()
+                robot_to_check.change_direction_y_axes()
 
 """
 

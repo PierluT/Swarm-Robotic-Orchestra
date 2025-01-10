@@ -69,27 +69,7 @@ class Robot:
 
     def __repr__(self):
         return f"Robot(number = {self.number}, coordinate x = {self.x}, y = {self.y}, phase = {self.phase})"
-    
-    def set_moving_status(self,status):
-        self.moving_status = status
-    
-    def moving_status_selection(self):
-        rnd = random.random()
-        # %50 to move
-        if rnd < 0.55:
-            action = "move"
-            
-        # %75 to stop
-        elif rnd < 0.45:
-            action = "stop"
-            # Reset the counter when robot stops.
-            self.pause_counter = 0
-        # 
-        else:
-            action = "rotate"
-        
-        self.set_moving_status(action)
-        return action
+
     
     def compute_initial_x_position(self):
         possible_x_coordinate = random.randint(int(self.radar_radius + 10), int(self.rectangleArea_width - self.radar_radius - 10))
@@ -134,44 +114,27 @@ class Robot:
     def get_angle(self):
         return math.atan2(self.vx,self.vy)
     
-    def control_robot_movement_from_status(self):
-        if self.moving_status == "move":
-            if self.moving_counter < 50:
-                self.x += self.vx
-                self.y += self.vy
-                self.moving_counter += 1
-        elif self.moving_status == "stop":
-            if self.pause_counter < 20:  
-               self.x += 0
-               self.y += 0
-               self.pause_counter += 1   
-            
-        elif self.moving_status == "rotate":
-            self.change_direction()
-            #print(" rotation")
+    def move_robot(self, matrix_to_check, collision_threshold = 15):
         
-        # to check boundary collisions.
-        if self.x - self.radar_radius <= 10 or self.x + self.radar_radius >= self.rectangleArea_width - 10:
+        # method to compute the bussola for visualing robot orientation.
+        #self.compute_robot_compass()
+        
+        # Boundaries collision control
+        if self.x - self.radar_radius <= 10 or self.x + self.radar_radius >= self.rectangleArea_width:
             self.change_direction_x_axes()
-        if self.y - self.radar_radius <= 10 or self.y + self.radar_radius >= self.rectangleArea_heigth - 10:
+        if self.y - self.radar_radius <= 10 or self.y + self.radar_radius >= self.rectangleArea_heigth:
             self.change_direction_y_axes()
-    
-    def moveRobot(self):
-        # Aggiorna la posizione
-        self.x += self.vx
-        self.y += self.vy
-        # Controlla se sono trascorsi 3 secondi dal cambio direzione
-        current_time = time.time()
-        if current_time - self.last_direction_change_time >= 1:
-            self.change_direction()
-            self.last_direction_change_time = current_time  # Aggiorna il tempo del cambio di direzione
-            #print(f"Robot {self.number} ha cambiato direzione a {current_time}",flush=True)
-
-        # Controlla i bordi per il rimbalzo
-        if self.x - self.radar_radius <= 10 or self.x + self.radar_radius >= self.rectangleArea_width - 10:
-            self.change_direction_x_axes()
-        if self.y - self.radar_radius <= 10 or self.y + self.radar_radius >= self.rectangleArea_heigth - 10:
-            self.change_direction_y_axes()
+        
+         # collision control with other robots
+        for other_robot_index, distance in enumerate(matrix_to_check[self.number]):
+            # Skip itself
+            if other_robot_index == self.number:
+                continue
+            
+            # Check if the distance is below the collision threshold
+            if distance <= collision_threshold:
+                #print(f"Robot {self.number} is colliding with Robot {other_robot_index} (distance: {distance:.2f})")
+                self.change_direction_y_axes()
             
     def change_direction(self):
         # Cambia direzione con un angolo casuale
@@ -179,8 +142,7 @@ class Robot:
         speed = math.sqrt(self.vx**2 + self.vy**2)  # Mantieni la velocità costante
         self.vx = speed * math.cos(angle)  # Nuova componente X
         self.vy = speed * math.sin(angle)  # Nuova componente Y
-        self.x += self.vx
-        self.y += self.vy    
+   
 
     def update_note(self):
         # extract only notes from my dictionary
@@ -336,17 +298,15 @@ class Robot:
         self.my_spartito.append(spartito_entry)
     
     # method to control that robot enters only the forst time in the playing status.
-    def control_playing_flag(self,current_ms):
+    def control_playing_flag(self, millisecond):
         if 0 <= self.phase < 1:
             # the first time that I enter means that I have to play.
             if not self.triggered_playing_flag:
                 self.playing_flag = True
                 self.triggered_playing_flag = True
                 self.colour = colours['blue']
-                # PROBLEM OF WHEN WRITE THE NOTES TO INDIVIDUAL SPARTITO ( DIFFERENTIATE BETWEEN DECISION AND SUPPOSING NOTES? )
                 # that has to be separated by the 0 cross phase.
-                #self.create_new_note(random.randint(0,11))
-                self.add_note_to_spartito(current_ms)  
+                self.add_note_to_spartito(millisecond)  
             # Means that is not the first time that I enter in the condition, so I have to reset false.
             else:
                 self.playing_flag = False
@@ -358,10 +318,48 @@ class Robot:
             self.colour = colours['green']
     
     # method to update internal robot phase.
-    def update_phase(self,global_time,counter):
+    def update_phase(self,millisecond):
+        #current_ms = global_time + counter
+        if self.recieved_message:
+            # change as for the music
+            for message in self.recieved_message:
+                phase_value = message['phase']
+                #print(f"Phase value: {phase_value}")
+                self.update_phase_kuramoto_model(phase_value)
+            self.clean_buffers()
+        self.phase += (2 * np.pi / 4000)
+        # normalization only if I reach 2pi then I go to 0.
+        self.phase %= (2 * np.pi)
+        # method to control if I have the permission to play.
+        self.control_playing_flag(millisecond)
+        
+    # method for kuramoto model
+    def update_phase_kuramoto_model(self,recieved_phase):
+        self.phase += self.K * np.sin(recieved_phase - self.phase)
+        # normalization
+        self.phase %= (2 * np.pi) 
+
+
+    
+    # robot updates itself in terms of position and phase.
+    def step(self,millisecond):
+        self.moving_status_selection()
+        self.moveRobot()
+        # fill music buffer
+        self.update_local_music_map()
+        if self.local_music_map:
+            self.update_note()
+        
+        for i in range(self.time_step):
+            self.update_phase(millisecond,i)
+        self.compute_robot_compass()      
+
+
+"""""
+def update_phase(self,global_time,counter):
         current_ms = global_time + counter
         if self.recieved_message:
-            #print("r. numero: "+str(self.number)+ " ha ricevuto un messaggio")
+            # change as for the music
             for message in self.recieved_message:
                 phase_value = message['phase']
                 #print(f"Phase value: {phase_value}")
@@ -372,63 +370,5 @@ class Robot:
         self.phase %= (2 * np.pi)
         # method to control if I have the permission to play.
         self.control_playing_flag(current_ms)
-        
-    # method for kuramoto model
-    def update_phase_kuramoto_model(self,recieved_phase):
-        self.phase += self.K * np.sin(recieved_phase - self.phase)
-        # normalization
-        self.phase %= (2 * np.pi) 
 
-    # robot updates itself in terms of position and phase.
-    def step(self,millisecond):
-        self.moving_status_selection()
-        self.moveRobot()
-        self.update_local_music_map()
-        if self.local_music_map:
-            self.update_note()
-        
-        for i in range(self.time_step):
-            self.update_phase(millisecond,i)
-        self.compute_robot_compass()      
-"""""
-        else:
-            # function to set harmony true or false. If all the notes are in one majority scale.
-            self.consult_local_music_dictionary()
-            #print("r: "+ str(self.number)+ " harmony value "+str(self.harmony))
-            #and self.scale_name is not None
-            print(self.probable_scales)
-            if  self.harmony :
-                #print("r: "+ str(self.number) + " "+str(self.harmony))
-                # If I already reach harmonicity I play the same note as before.
-                self.create_new_note(self.previous_midinote)
-                print("r: "+ str(self.number)+ " reached harmony in "+ str(self.scale_name))
-                
-            # If I don't reach harmony, probability of 70% to change
-            change_probability = random.random()  # Numero casuale tra 0 e 1
-            if change_probability < 0.7:  
-                self.consult_local_music_dictionary()
-                print(f"r: {self.number} note changes note")
-            else:
-                # 30% to mantain the same note
-                self.create_new_note(self.previous_midinote)
-                print(f"r: {self.number} kept the same note {self.previous_midinote}")
-
-        #self.update_local_music_map()
-        #self.clean_music_buffer()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-       
 """

@@ -30,6 +30,19 @@ class Arena:
             cv2.destroyAllWindows()
             exit()
     
+    # method to write a single row in CSV file
+    def write_robot_data(self, writer, millisecond, robot):
+        writer.writerow([
+        millisecond, 
+        robot.number, 
+        robot.x, 
+        robot.y,
+        robot.compass, 
+        robot.phase, 
+        robot.colour,
+        robot.moving_status,
+    ])
+
     def save_arena_as_png(self):
         """Salva un frame dell'arena come PNG con nomi compatibili con FFmpeg."""
         filename = os.path.join(self.png_folder, f"frame{self.frame_counter:04d}.png")
@@ -65,7 +78,7 @@ class Arena:
                 }  
                 self.robot_data[int(millisecond)].append(robot_info)
 
-    def create_video(self, output_path="video.mp4", fps=25):
+    def create_video(self, output_path="video.mp4", fps=20):
         """Creation of the video from png's."""
         try:
             command = [
@@ -104,14 +117,7 @@ class Arena:
             self.draw_robots_time.append(draw_time)
             # if int(millisecond) % 30 == 0:
             self.save_arena_as_png()
-            
-            # I print the average of time spent to draw each robot.
-            # print(f"Tempo per disegnare un frame: {draw_time*1000:.6f} ms")
-        average_time = sum(self.draw_robots_time) / len(self.draw_robots_time)
-        print(f" Tempo medio per disegnare un frame: {average_time*1000:.6f} ms" )
-
-    
-    
+   
     def draw_robot(self,robot):
         #print(f"robot  numero: {robot.number}, Velocità X: {robot.vx}, Velocità Y: {robot.vy}")
         cv2.circle(self.arena, (int(robot['x']), int(robot['y'])), values_dictionary['radius'], robot['colour'], -1)

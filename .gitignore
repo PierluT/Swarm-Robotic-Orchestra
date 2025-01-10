@@ -10,5 +10,3 @@ png
 # Escludi i file audio
 *.wav
 
-# Escludi file csv
-*.csv
