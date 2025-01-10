@@ -1,13 +1,14 @@
 import ast
 import numpy as np
 import cv2
-import subprocess
-import sys
-import os
+
 import csv
 import time
 from classes.file_reader import File_Reader
 from collections import defaultdict
+import sys
+import os
+import subprocess
 
 file_reader_valuse = File_Reader()
 values_dictionary = file_reader_valuse.read_configuration_file()
@@ -77,6 +78,7 @@ class Arena:
         robot.colour,
         robot.moving_status,
     ])
+
 
     def open_video_file(self,filepath):
         if sys.platform.startswith('darwin'):
