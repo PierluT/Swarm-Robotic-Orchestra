@@ -1,6 +1,7 @@
 import ast
 import numpy as np
 import cv2
+
 import csv
 import time
 from classes.file_reader import File_Reader
@@ -66,6 +67,17 @@ class Arena:
                 }  
                 self.robot_data[int(millisecond)].append(robot_info)
 
+    def write_robot_data(self, writer, millisecond, robot):
+        writer.writerow([
+        millisecond, 
+        robot.number, 
+        robot.x, 
+        robot.y,
+        robot.compass, 
+        robot.phase, 
+        robot.colour,
+        robot.moving_status,
+    ])
 
 
     def open_video_file(self,filepath):
