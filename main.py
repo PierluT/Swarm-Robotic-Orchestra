@@ -60,14 +60,12 @@ def main():
     # use ffmpeg to create final video.
     #midi_class.generate_audio_from_csv()
     #arena.create_video(output_path= "video_simulation.mp4", fps = 25)
-    
     for r in supervisor.dictionary_of_robots:
          print("mappa note robot n.: "+ str(r.number))
          print(r.local_music_map)
-         #print("ultima nota suonata: "+ str(r.note))
+         print("ultima nota suonata: "+ str(r.note.midinote))
+         r.update_note()
          print()
-    
-
 
 if __name__ == "__main__":
         
@@ -75,6 +73,9 @@ if __name__ == "__main__":
 
 """""
     for r in supervisor.dictionary_of_robots:
-         print(" harmony for robot n: "+str(r.number))
-         print(r.probable_scales)
+         print("mappa note robot n.: "+ str(r.number))
+         print(r.local_music_map)
+         print("ultima nota suonata: "+ str(r.note.midinote))
+         r.update_note()
+         print()
 """

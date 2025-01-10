@@ -47,7 +47,6 @@ class Supervisor:
         for n in range(self.number_of_robots):
             robot = Robot(number = n)
             robot.create_new_note(random.randint(0,11))
-            #robot.set_note()
             self.dictionary_of_robots.append(robot)
 
     # method to set the intial positions of the robots, in order to avoid overlap.
