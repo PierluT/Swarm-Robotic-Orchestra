@@ -121,7 +121,7 @@ class Supervisor:
             self.clock_interval_dictionary[pair_key] = current_time
         
         # method for music messages.
-        #self.music_communication(robot1,robot2)
+        self.music_communication(robot1,robot2)
 
     def music_communication(self,robot1, robot2):
         # MUSIC MESSAGES EXCHANGE
@@ -137,30 +137,38 @@ class Supervisor:
         robot1.recieved_note.append(robot2.forwarded_note)
 
     # Metodo per calcolare e aggiornare la matrice delle distanze
-    def make_matrix_control(self):
-        self.update_positions()
-        # Itera su tutti i robot
-        for i in range(self.number_of_robots):
-            robot_a = self.dictionary_of_robots[i]
-            # Confronta ogni robot con gli altri, evitando ridondanze
-            for j in range(i + 1, self.number_of_robots):
+    def make_matrix_control(self, initial_robot):
+        
+        self.update_positions(initial_robot)
+        
+        for j in range(initial_robot.number + 1, self.number_of_robots):
                 robot_b = self.dictionary_of_robots[j]
                 # Calcola la distanza tra robot_a e robot_b
-                distance_between_robots = self.compute_distance(robot_a, robot_b)
+                distance_between_robots = self.compute_distance(initial_robot, robot_b)
                 # I store only the values that teh robot is able to read.
                 if distance_between_robots <= self.sensor:
-                    # Aggiorna la matrice delle distanze in modo simmetrico
-                    self.distances[i][j] = distance_between_robots
-                    self.distances[j][i] = distance_between_robots
+                    self.distances[initial_robot.number][j] = distance_between_robots
+                    self.distances[j][initial_robot.number] = distance_between_robots
 
         return self.distances 
 
+     # method to send and receive messages.
+    # DIFFERENTIATE LOGIC AND PYSICS, so handle differently collision and post office
+    def post_office(self,initial_robot):
+        for j in range(initial_robot.number +1, len(self.distances)):
+            distance_to_check = self.distances[initial_robot.number][j]
+            
+            # block to handle phase communication between robots.
+            if distance_to_check <= self.threshold:              
+                robot1_chat = self.dictionary_of_robots[initial_robot.number]
+                robot2_chat = self.dictionary_of_robots[j]
+                #print("robot numero: "+ str(robot1_chat.number)+ " robot numero: "+ str(robot2_chat.number)+ " threshold")
+                self.handle_communication(robot1_chat, robot2_chat)
+
     # method to update robot positions
-    def update_positions(self):
-        for i in range(self.number_of_robots):
-            robot_a = self.dictionary_of_robots[i]
-            robot_a.x += robot_a.vx
-            robot_a.y += robot_a.vy
+    def update_positions(self,initial_robot):
+        initial_robot.x += initial_robot.vx
+        initial_robot.y += initial_robot.vy
 
     # method to print distances between robots.
     def print_distance_matrix(self):
@@ -178,21 +186,7 @@ class Supervisor:
             row_data = " ".join(f"{distance:6.2f}" for distance in row)
             print(f"{i:3} | {row_data}")
     
-    # method to send and receive messages.
-    # DIFFERENTIATE LOGIC AND PYSICS, so handle differently collision and post office
-    def post_office(self):
-        # Itera su tutti i robot nel dizionario
-        for i in range(self.number_of_robots):
-            robot1 = self.dictionary_of_robots[i]
-            # Itera su tutti i robot successivi per evitare dati ridondanti
-            for j in range(i + 1, self.number_of_robots):
-                robot2 = self.dictionary_of_robots[j]
-                distance_to_check = self.distances[i][j]
-
-                # Verifica se la distanza è sotto la soglia
-                if distance_to_check <= self.threshold:
-                    # Gestione della comunicazione tra robot
-                    self.handle_communication(robot1, robot2)
+   
 
   
     # method to check periodically if phases are converging or not.

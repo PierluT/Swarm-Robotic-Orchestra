@@ -19,7 +19,7 @@ class MIDIMessage():
     
     # convert a MIDI note into frequency.
     def midi_to_freq(self,midi_note):
-        return 440.0 * (2 ** ((midi_note - 69) / 12.0))
+        return 440.0 * (2 ** ((midi_note + 69 - 69) / 12.0))
     
     # to generate a sinusoidal wave.
     def generate_wave(self,freq,duration, amplitude, sample_rate = 44100):

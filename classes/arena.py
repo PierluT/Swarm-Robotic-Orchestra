@@ -2,6 +2,7 @@ import ast
 import numpy as np
 import cv2
 import subprocess
+import sys
 import os
 import csv
 import time
@@ -20,7 +21,7 @@ class Arena:
         self.robot_data = defaultdict(list)
         self.draw_robots_time = []
         self.frame_counter = 0
-        self.png_folder = os.path.abspath("C://Users//pierl//Desktop//MMI//tesi//robotic-orchestra//png")
+        self.png_folder = "classes/png"
 
     def show_arena(self,window_name = "Robot Simulation"):
         cv2.imshow(window_name, self.arena)
@@ -30,19 +31,6 @@ class Arena:
             cv2.destroyAllWindows()
             exit()
     
-    # method to write a single row in CSV file
-    def write_robot_data(self, writer, millisecond, robot):
-        writer.writerow([
-        millisecond, 
-        robot.number, 
-        robot.x, 
-        robot.y,
-        robot.compass, 
-        robot.phase, 
-        robot.colour,
-        robot.moving_status,
-    ])
-
     def save_arena_as_png(self):
         """Salva un frame dell'arena come PNG con nomi compatibili con FFmpeg."""
         filename = os.path.join(self.png_folder, f"frame{self.frame_counter:04d}.png")
@@ -78,22 +66,81 @@ class Arena:
                 }  
                 self.robot_data[int(millisecond)].append(robot_info)
 
-    def create_video(self, output_path="video.mp4", fps=20):
-        """Creation of the video from png's."""
+    def write_robot_data(self, writer, millisecond, robot):
+        writer.writerow([
+        millisecond, 
+        robot.number, 
+        robot.x, 
+        robot.y,
+        robot.compass, 
+        robot.phase, 
+        robot.colour,
+        robot.moving_status,
+    ])
+
+    def open_video_file(self,filepath):
+        if sys.platform.startswith('darwin'):
+            # macOS
+            subprocess.run(["open", filepath])
+        elif sys.platform.startswith('win'):
+            # Windows
+            os.startfile(filepath)  # This only works on Windows
+        elif sys.platform.startswith('linux'):
+            # Linux (GNOME, KDE, etc.)
+            subprocess.run(["xdg-open", filepath])
+        else:
+            print(f"Opening files is not supported on this OS via script. Please open {filepath} manually.")
+
+
+    def create_video(self, output_path="video.mp4", fps=25, audio_path=None, auto_open=False):
+        """
+        Create a video from PNG images and optionally merge the provided audio.
+
+        :param output_path:    Name/path of the output video file (e.g. "video.mp4").
+        :param fps:            Frames per second for the resulting video.
+        :param audio_path:     Path to a WAV/MP3/etc. file to merge as the audio track.
+                               If None, no audio is added.
+        """
         try:
+            # Base FFmpeg command to convert PNG frames to a video
             command = [
                 "ffmpeg",
-                "-y",  # Sovrascrivi il file di output se esiste
-                "-framerate", str(fps),  
-                "-i", os.path.join(self.png_folder, "frame%04d.png"),  # Pattern per i frame
-                "-pix_fmt", "yuv420p", 
-                output_path
+                "-y",  # Overwrite output if it exists
+                "-framerate", str(fps),
+                "-i", os.path.join(self.png_folder, "frame%04d.png"),  # Input PNG frames
             ]
 
+            # If audio is provided, add it to the command
+            if audio_path:
+                command.extend([
+                    "-i", audio_path,  # Add the audio input
+                    "-c:v", "libx264",  # Encode video with libx264
+                    "-c:a", "aac",  # Encode audio with AAC
+                    "-shortest",  # End when the shortest stream ends
+                ])
+            else:
+                # If no audio, still need to encode video
+                command.extend([
+                    "-pix_fmt", "yuv420p",  # Pixel format for compatibility
+                    "-c:v", "libx264"
+                ])
+
+            # Always output YUV420p for wide compatibility
+            if audio_path:
+                command.extend(["-pix_fmt", "yuv420p"])
+
+            # Specify the output file at the end
+            command.append(output_path)
+
+            # Run the FFmpeg command
             subprocess.run(command, check=True)
-            print(f"Video creato con successo: {output_path}")
+            print(f"Video successfully created: {output_path}")
+
+            if auto_open:
+                self.open_video_file(output_path)
+
         except subprocess.CalledProcessError as e:
-            print(f"Errore durante la creazione del video: {e}")
+            print(f"Error during video creation: {e}")
     
     # method to print robot data that have to bechecked.
     def print_robot_data(self):
@@ -111,13 +158,20 @@ class Arena:
             for robot in robots:
                     self.draw_robot(robot)
             # I record the time after I drew them. 
-            self.show_arena("Robot Simulation")
+            #self.show_arena("Robot Simulation")
             end_time = time.perf_counter()
             draw_time = end_time - start_time
             self.draw_robots_time.append(draw_time)
             # if int(millisecond) % 30 == 0:
             self.save_arena_as_png()
-   
+            
+            # I print the average of time spent to draw each robot.
+            # print(f"Tempo per disegnare un frame: {draw_time*1000:.6f} ms")
+        average_time = sum(self.draw_robots_time) / len(self.draw_robots_time)
+        print(f" Tempo medio per disegnare un frame: {average_time*1000:.6f} ms" )
+
+    
+    
     def draw_robot(self,robot):
         #print(f"robot  numero: {robot.number}, Velocità X: {robot.vx}, Velocità Y: {robot.vy}")
         cv2.circle(self.arena, (int(robot['x']), int(robot['y'])), values_dictionary['radius'], robot['colour'], -1)

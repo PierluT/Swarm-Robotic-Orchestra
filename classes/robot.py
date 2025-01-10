@@ -187,7 +187,7 @@ class Robot:
 
     # mehtod to change the note if I'm not in harmony
     def change_note(self,best_scales):
-        print(best_scales)
+        #print(best_scales)
         change_probability = random.random()
         # I change note
         if change_probability < 0.7:
