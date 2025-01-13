@@ -6,7 +6,6 @@ class MIDIMessage():
     
     
     def __init__(self):
-        self.MIDI_Port_name = 'loopMIDI Port 1'
         self.music_csv_file = "music_data.csv"
         self.audio_file = 'final_output.wav'
 
@@ -107,45 +106,3 @@ class MIDIMessage():
         self.read_data_from_csv_and_write_music_data(filename)
         self.generate_audio_from_csv()
 
-"""""
-        # Aggiungi il metronomo
-        beat_interval = 60.0 / bpm  # Intervallo di un battito in secondi
-        total_duration_seconds = max_ms / 1000.0  # Durata totale dell'audio in secondi
-        metronome_samples = int(sample_rate * beat_interval)
-
-        for beat in range(0, int(total_duration_seconds / beat_interval)):
-            start_sample = beat * metronome_samples
-            end_sample = start_sample + len(metronome_click)
-            if len(audio_data) < end_sample:
-                audio_data.extend([0] * (end_sample - len(audio_data)))  # Aggiungi silenzio se necessario
-            audio_data[start_sample:end_sample] += metronome_click
-
-
-
-    def read_data_from_csv_and_write_music_data(self, filename):
-        with open(filename, mode= 'r') as file:
-            reader = csv.DictReader(file,delimiter = ";")
-            next(reader)
-            
-            rows = list(reader)
-            
-            with open(self.music_csv_file, mode = "w", newline = "") as output_file:
-                writer = csv.writer(output_file, delimiter=";")
-                writer.writerow(["ms", "musician", "note", "dur", "amp", "bpm"])
-
-                for row in rows:
-                    millisecond = row["ms"]  # "ms"
-                    robot_number = row["robot number"]  # "robot number"
-                    playing_flag = row["is playing"]
-                    
-                    if playing_flag == "True":
-                        note = Note()
-                        writer.writerow([millisecond, robot_number, note.midinote, note.dur, note.amp, note.BPM])
-                        #print("robot n.:"+str(robot_number)+" deve suonare a ms: "+str(millisecond))
-    
-                # Determina l'ultimo millisecondo presente nel CSV
-                last_millisecond = max(int(row["ms"]) for row in rows if row["ms"].isdigit())
-
-                # Scrivi l'ultima riga con l'ultimo millisecondo
-                writer.writerow([last_millisecond, "", "", "", "", ""])
-"""        

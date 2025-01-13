@@ -4,6 +4,8 @@ import random
 import time
 from classes.robot import Robot
 from classes.file_reader import File_Reader
+from classes.dictionaries import orchestra_to_midi_range, music_formations
+from collections import defaultdict
 
 
 file_reader_valuse = File_Reader()
@@ -42,7 +44,8 @@ class Supervisor:
         self.last_check_time = time.time()
         # this value is the ability of a robot to see thing around it.
         self.sensor = values_dictionary['sensor']
-
+        self.timbre_dictionary = orchestra_to_midi_range
+        self.music_formations = music_formations
     
     def setup_robots(self):
         self.create_dictionary_of_robots()
@@ -52,7 +55,11 @@ class Supervisor:
     def create_dictionary_of_robots(self):  
         for n in range(self.number_of_robots):
             robot = Robot(number = n)
-            robot.create_new_note(random.randint(0,127))
+            initial_random_note = random.randint(21,109)
+            initial_timbre = self.get_timbre_from_midi(initial_random_note)
+            robot.timbre = initial_timbre
+            robot.create_new_note(initial_random_note)
+            
             self.dictionary_of_robots.append(robot)
 
     # method to set the intial positions of the robots, in order to avoid overlap.
@@ -99,7 +106,6 @@ class Supervisor:
     def compute_distance(self, robot1, robot2):
         distance = np.sqrt((robot1.x - robot2.x) ** 2 + (robot1.y - robot2.y) ** 2)
         return round(distance)
-    
     
     # Metodo per calcolare e aggiornare la matrice delle distanze
     def make_matrix_control(self, initial_robot):
@@ -155,9 +161,21 @@ class Supervisor:
             row_data = " ".join(f"{distance:6.2f}" for distance in row)
             print(f"{i:3} | {row_data}")
     
-   
+    def get_timbre_from_midi(self,note):
+        matching_instruments = []
 
-  
+        # Scorri i gruppi di strumenti nell'orchestra
+        for instruments in self.timbre_dictionary.values():
+            for instrument, midi_range in instruments.items():
+                if note in midi_range:  # Verifica se il numero è nel range MIDI dello strumento
+                    matching_instruments.append(instrument)
+
+        # Se ci sono strumenti corrispondenti, scegline uno a caso
+        if matching_instruments:
+            return random.choice(matching_instruments)
+        else:
+            return "No matching instrument found"  # Se nessuno strumento corrisponde
+
     # method to check periodically if phases are converging or not.
     def check_phases_convergence(self):
         # current time for phases check
@@ -207,33 +225,36 @@ class Supervisor:
             self.conductor_spartito.extend(adjusted_spartito)
         # I sort the final music sheet considering ms.
         self.conductor_spartito.sort(key=lambda x: x["ms"])
+
+    def calculate_instrument_affinity(self):
+        # Creiamo un dizionario per tenere traccia delle coppie di strumenti
+        affinity_dict = defaultdict(lambda: defaultdict(int))
         
-        #print(self.conductor_spartito)
+        # Conta il numero di apparizioni di ogni strumento
+        instrument_count = defaultdict(int)
+        
+        # Itera su tutte le formazioni
+        for formation, instruments in music_formations.items():
+            # Incrementa il conteggio di ogni strumento
+            for instrument in instruments:
+                instrument_count[instrument] += 1
+            # Calcola l'affinità per ogni coppia di strumenti in una formazione
+            for i in range(len(instruments)):
+                for j in range(i + 1, len(instruments)):
+                    instrument1 = instruments[i]
+                    instrument2 = instruments[j]
+                    affinity_dict[instrument1][instrument2] += 1
+                    affinity_dict[instrument2][instrument1] += 1  # L'affinità è simmetrica
+        
+        # Calcoliamo la matrice di affinità
+        affinity_matrix = {}
+        for instrument1, instrument_dict in affinity_dict.items():
+            affinity_matrix[instrument1] = {}
+            total_pairs = len(music_formations)  # Totale delle formazioni
+            for instrument2, count in instrument_dict.items():
+                affinity_matrix[instrument1][instrument2] = count / total_pairs
     
-"""""
-            # PUT IT IN ROBOT
-            # collision control
-            if distance_between_robots < (2*self.collision_margin) + 10:
-                initial_robot.change_direction_x_axes()
-                robot_to_check.change_direction_y_axes()
+        return affinity_matrix
+    
 
-
-            # method to handle phase communication
-    def handle_communication(self,robot1, robot2):
-        
-        robot1.set_emitter_message()
-        robot2.set_emitter_message()
-        robot2.recieved_message.append(robot1.forwarded_message)
-        robot1.recieved_message.append(robot2.forwarded_message)
-        # method for music messages.
-        self.music_communication(robot1,robot2)
-
-    def music_communication(self,robot1, robot2):
-        # MUSIC MESSAGES EXCHANGE
-        robot1.set_musical_message()
-        robot2.set_musical_message()
-        robot2.recieved_note.append(robot1.forwarded_note)
-        robot1.recieved_note.append(robot2.forwarded_note)
-
-"""
 
