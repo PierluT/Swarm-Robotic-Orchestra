@@ -60,7 +60,7 @@ class Arena:
             reader = csv.reader(file, delimiter=';')
             next(reader)  # Salta l'intestazione
             for row in reader:
-                millisecond, robot_number, x, y,compass, phase, colour_str,status, midinote, pitch= row
+                millisecond, robot_number, x, y,compass, phase, colour_str,status, midinote, pitch, timbre = row
                 colour_str = colour_str.strip().strip('()')  # Rimuove parentesi e spazi extra
                 colour = tuple(map(int, colour_str.split(',')))
                 # Parsing del compasso
@@ -93,7 +93,8 @@ class Arena:
         robot.colour,
         robot.moving_status,
         robot.note.midinote,
-        robot.note.pitch
+        robot.note.pitch,
+        robot.timbre
     ])
 
     def open_video_file(self,filepath):
@@ -187,9 +188,7 @@ class Arena:
             # print(f"Tempo per disegnare un frame: {draw_time*1000:.6f} ms")
         average_time = sum(self.draw_robots_time) / len(self.draw_robots_time)
         print(f" Tempo medio per disegnare un frame: {average_time*1000:.6f} ms" )
-
-    
-    
+  
     def draw_robot(self,robot):
         #print(f"robot  numero: {robot.number}, Velocità X: {robot.vx}, Velocità Y: {robot.vy}")
         cv2.circle(self.arena, (int(robot['x']), int(robot['y'])), values_dictionary['radius'], robot['colour'], -1)

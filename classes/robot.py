@@ -70,7 +70,7 @@ class Robot:
         self.local_music_map = defaultdict(list)
         # dictionary for recieved phases
         self.local_phase_map = defaultdict(list) 
-        self.interval_pattern = [2, 2, 1, 2, 2, 2, 1]
+        self.timbre = ""
 
     def __repr__(self):
         return f"Robot(number = {self.number}, coordinate x = {self.x}, y = {self.y}, phase = {self.phase})"
@@ -228,7 +228,8 @@ class Robot:
         entry = {
             "robot number": self.number,
             "phase": self.phase,
-            "note": self.note.pitch
+            "note": self.note.pitch,
+            "timbre": self.timbre
         }
         self.forwarded_message = entry
         #print(self.forwarded_message)
