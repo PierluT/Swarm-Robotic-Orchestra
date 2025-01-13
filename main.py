@@ -9,7 +9,6 @@ def main():
     supervisor = Supervisor([])
     midi_class = MIDIMessage()
     arena = Arena()
-    print("prova")
     supervisor.setup_robots()
     # I create a new csv file.
     video_csv_file  = "video_maker.csv"
@@ -22,19 +21,37 @@ def main():
             for robot in supervisor.dictionary_of_robots:
                 robot.update_phase(millisecond)
                 
-                # ROBOT STEP
-                if (millisecond % 40 == 0):
-                    distances_to_check = supervisor.make_matrix_control(robot)
-                    robot.move_robot(distances_to_check)
-                    arena.write_robot_data(writer,millisecond, robot)
-
-                    robot.update_local_music_map()
-                    if robot.local_music_map:
-                        robot.update_note()
-                
                 # COMMUNICATION every 80 ms.   
                 if (millisecond % 80 == 0):
-                    supervisor.post_office(robot)             
+                    supervisor.post_office(robot)
+                
+                # ROBOT STEP
+                if (millisecond % 40 == 0):
+                    #  KNOWLEDGE PART
+                    # can stay here
+                    distances_to_check = supervisor.make_matrix_control(robot)
+                    # rename methods as : get____info
+                    # 1) get info for distances to check ( sensor simulation )
+                    # 2) get info for update local music map, change name method with get
+                    robot.update_local_music_map()
+                    # robot.get_window_info()
+                    # 3) get phase info
+                    # after processing, clean buffers.
+                    # ACTION PART
+                    # Now that I have all the info I can act, decide what to do:
+                    # 1) distances: decide where to move
+                    robot.move_robot(distances_to_check)
+                    # SPLIT the moment when you get info and the moment when you USE the infos.
+                    
+                    
+                    if robot.local_music_map:
+                        robot.update_note()
+                    # if you have phase info apply kuramoto. take out kuramoto from update and put it in this if
+                    # if you have something in window list, update.
+                    
+                    arena.write_robot_data(writer,millisecond, robot)
+                
+
             for robot in supervisor.dictionary_of_robots:
                  robot.clean_music_buffer()
     

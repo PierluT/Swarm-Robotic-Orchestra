@@ -229,5 +229,23 @@ class Supervisor:
                 initial_robot.change_direction_x_axes()
                 robot_to_check.change_direction_y_axes()
 
+
+            # method to handle phase communication
+    def handle_communication(self,robot1, robot2):
+        
+        robot1.set_emitter_message()
+        robot2.set_emitter_message()
+        robot2.recieved_message.append(robot1.forwarded_message)
+        robot1.recieved_message.append(robot2.forwarded_message)
+        # method for music messages.
+        self.music_communication(robot1,robot2)
+
+    def music_communication(self,robot1, robot2):
+        # MUSIC MESSAGES EXCHANGE
+        robot1.set_musical_message()
+        robot2.set_musical_message()
+        robot2.recieved_note.append(robot1.forwarded_note)
+        robot1.recieved_note.append(robot2.forwarded_note)
+
 """
 

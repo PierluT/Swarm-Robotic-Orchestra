@@ -64,7 +64,10 @@ class Robot:
         self.probable_scales = []
         self.flag_included_proper_midinote = False
         self.my_spartito = []
-        self.local_music_map = defaultdict(list) 
+        # dictionary for recieved notes
+        self.local_music_map = defaultdict(list)
+        # dictionary for recieved phases
+        self.local_phase_map = defaultdict(list) 
         self.interval_pattern = [2, 2, 1, 2, 2, 2, 1]
 
     def __repr__(self):
@@ -233,7 +236,7 @@ class Robot:
     
     # Every robot has a dictionary on what is the last note that others are playing.
     # With this structure I can predict the next note to play consulting music scales dictionary.
-    # last 4 notes for every of my neighbourghs whom I reach trheshold.
+    # last 4 notes for every of my neighbourghs whom I reach treshold.
     def update_local_music_map(self):
         # Verifica se ci sono messaggi ricevuti
         if self.recieved_note:
@@ -326,9 +329,16 @@ class Robot:
                 if isinstance(message, list):
                     for entry in message:  # Itera sui dizionari nella lista
                         if isinstance(entry, dict):  # Assicura che l'elemento sia un dizionario
+                            robot_number = entry.get("robot number")
                             phase_value = entry.get("phase")
+                            
+                            # I save the recieved phase in my local phase map
+                            if robot_number is not None and phase_value is not None:
+                                self.local_phase_map[robot_number].append(phase_value)
+
                             self.update_phase_kuramoto_model(phase_value)
             self.clean_buffers()
+        
         self.phase += (2 * np.pi / 4000)
         # normalization only if I reach 2pi then I go to 0.
         self.phase %= (2 * np.pi)
