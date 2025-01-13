@@ -40,6 +40,7 @@ class Robot:
         # buffers for notes
         self.recieved_note = []
         self.forwarded_note = []
+        self.last_played_ms = 0
         # time step for phase communication.
         self.time_step = values_dictionary['time_step']
         # flags for controlling the moment to play.
@@ -101,10 +102,7 @@ class Robot:
     def clean_buffers(self):
         self.forwarded_message.clear()
         self.recieved_message.clear()
-    
-    def clean_music_buffer(self):
-        self.forwarded_note.clear()
-        self.recieved_note.clear()
+
     
     # manage differently the collision
     def change_direction_x_axes(self):
@@ -218,48 +216,40 @@ class Robot:
             #self.create_new_note(self.previous_midinote)
             print(f"r: {self.number} kept the same note {self.previous_midinote} not in harmony")      
 
-    # method to set the message to send for kuramoto model
     def set_emitter_message(self):
+        
         entry = {
             "robot number": self.number,
-            "phase": float(self.phase)
-        }
-        self.forwarded_message.append(entry)
-    
-    # metod to set the message to send for harmonic harmonicity.
-    def set_musical_message(self):
-        entry = {
-            "robot number": self.number,
+            "phase": self.phase,
             "note": self.note.midinote
         }
-        self.forwarded_note.append(entry)
+        self.forwarded_message = entry
+        #print(self.forwarded_message)
     
     # Every robot has a dictionary on what is the last note that others are playing.
     # With this structure I can predict the next note to play consulting music scales dictionary.
     # last 4 notes for every of my neighbourghs whom I reach treshold.
-    def update_local_music_map(self):
-        # Verifica se ci sono messaggi ricevuti
-        if self.recieved_note:
-            # Itera su tutte le note ricevute
-            for note_list in self.recieved_note:
-                if isinstance(note_list, list):  # Verifica che ogni elemento sia una lista
-                    for entry in note_list:  # Itera sui dizionari nella lista
-                        if isinstance(entry, dict):  # Assicura che l'elemento sia un dizionario
-                            robot_number = entry.get("robot number")
-                            note = entry.get("note")
-                            
-                            # Se il robot non è nel dizionario, inizializza una coda per le sue note
-                            if robot_number not in self.local_music_map:
-                                self.local_music_map[robot_number] = deque(maxlen=self.max_notes_per_neighbourg)
+    def get_note_info(self):
+        if self.recieved_message:
+            for entry in self.recieved_message:  # Itera direttamente sui dizionari nel buffer
+                if isinstance(entry, dict):  # Assicura che l'elemento sia un dizionario
+                    robot_number = entry.get("robot number")
+                    note = entry.get("note")
+                    
+                    # Processa solo i messaggi che contengono una nota
+                    if robot_number is not None and note is not None:
+                        # Se il robot non è nel dizionario, inizializza una coda per le sue note
+                        if robot_number not in self.local_music_map:
+                            self.local_music_map[robot_number] = deque(maxlen=self.max_notes_per_neighbourg)
 
-                            # Aggiungi la nuova nota alla coda del robot
-                            self.local_music_map[robot_number].append(note)
+                        # Aggiungi la nuova nota alla coda del robot
+                        self.local_music_map[robot_number].append(note)
             
             # Se il dizionario supera il numero massimo di robot, rimuovi il più vecchio
             while len(self.local_music_map) > self.max_music_neighbourgs:
-                # Usa `popitem(last=False)` per rimuovere il primo elemento (il più vecchio)
                 oldest_robot = next(iter(self.local_music_map))
                 del self.local_music_map[oldest_robot]
+
 
     # method to print note messages. 
     def print_musical_buffers(self):
@@ -301,6 +291,7 @@ class Robot:
         self.my_spartito.append(spartito_entry)
     
     # method to control that robot enters only the forst time in the playing status.
+    # ADD a control for playing note: if i started playing note I cannot change/stop the note for this round.
     def control_playing_flag(self, millisecond):
         if 0 <= self.phase < 1:
             # the first time that I enter means that I have to play.
@@ -308,6 +299,7 @@ class Robot:
                 self.playing_flag = True
                 self.triggered_playing_flag = True
                 self.colour = colours['blue']
+                self.last_played_ms = millisecond
                 # that has to be separated by the 0 cross phase.
                 self.add_note_to_spartito(millisecond)  
             # Means that is not the first time that I enter in the condition, so I have to reset false.
@@ -316,43 +308,44 @@ class Robot:
                 self.colour = colours['blue']
         # Means that my phase doesn't allow me to play.
         else:
-            self.triggered_playing_flag = False
-            self.playing_flag = False
-            self.colour = colours['green']
+            if( (millisecond - self.last_played_ms) > (1000 * self.note.dur)):
+                # add a condition that the else condition happens only after the end of the note.
+                self.triggered_playing_flag = False
+                self.playing_flag = False
+                self.colour = colours['green']
     
     # method to update internal robot phase.
     def update_phase(self,millisecond):
         #current_ms = global_time + counter
-        if self.recieved_message:
-            # change as for the music
-            for message in self.recieved_message:
-                if isinstance(message, list):
-                    for entry in message:  # Itera sui dizionari nella lista
-                        if isinstance(entry, dict):  # Assicura che l'elemento sia un dizionario
-                            robot_number = entry.get("robot number")
-                            phase_value = entry.get("phase")
-                            
-                            # I save the recieved phase in my local phase map
-                            if robot_number is not None and phase_value is not None:
-                                self.local_phase_map[robot_number].append(phase_value)
-
-                            self.update_phase_kuramoto_model(phase_value)
-            self.clean_buffers()
-        
         self.phase += (2 * np.pi / 4000)
         # normalization only if I reach 2pi then I go to 0.
         self.phase %= (2 * np.pi)
         # method to control if I have the permission to play.
         self.control_playing_flag(millisecond)
-        
-    # method for kuramoto model
-    def update_phase_kuramoto_model(self,recieved_phase):
-        self.phase += self.K * np.sin(recieved_phase - self.phase)
-        # normalization
-        self.phase %= (2 * np.pi) 
-
-
     
+    def get_phase_info(self):
+        if self.recieved_message:
+            for entry in self.recieved_message:  # Itera direttamente sui dizionari nel buffer
+                if isinstance(entry, dict):  # Assicura che l'elemento sia un dizionario
+                    robot_number = entry.get("robot number")
+                    phase_value = entry.get("phase")
+                    
+                    # Processa solo i messaggi che contengono una fase
+                    if robot_number is not None and phase_value is not None:
+                        self.local_phase_map[robot_number].append(phase_value)
+
+    # Method for Kuramoto model
+    def update_phase_kuramoto_model(self):
+        # Itera su tutte le fasi ricevute e applica il modello di Kuramoto
+        for robot_number, phases in self.local_phase_map.items():
+            for recieved_phase in phases:
+                self.phase += self.K * np.sin(recieved_phase - self.phase)
+                # Normalizzazione della fase
+                self.phase %= (2 * np.pi)
+        
+        # Dopo aver elaborato le fasi, svuota la mappa locale
+        self.local_phase_map.clear()
+
     # robot updates itself in terms of position and phase.
     def step(self,millisecond):
         self.moving_status_selection()
@@ -368,19 +361,20 @@ class Robot:
 
 
 """""
-def update_phase(self,global_time,counter):
-        current_ms = global_time + counter
-        if self.recieved_message:
-            # change as for the music
-            for message in self.recieved_message:
-                phase_value = message['phase']
-                #print(f"Phase value: {phase_value}")
-                self.update_phase_kuramoto_model(phase_value)
-            self.clean_buffers()
-        self.phase += (2 * np.pi / 4000)
-        # normalization only if I reach 2pi then I go to 0.
-        self.phase %= (2 * np.pi)
-        # method to control if I have the permission to play.
-        self.control_playing_flag(current_ms)
+    # method to set the message to send for kuramoto model
+    def set_emitter_message(self):
+        entry = {
+            "robot number": self.number,
+            "phase": float(self.phase)
+        }
+        self.forwarded_message.append(entry)
+    
+    # metod to set the message to send for harmonic harmonicity.
+    def set_musical_message(self):
+        entry = {
+            "robot number": self.number,
+            "note": self.note.midinote
+        }
+        self.forwarded_note.append(entry)
 
 """

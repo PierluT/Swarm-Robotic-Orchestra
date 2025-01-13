@@ -100,23 +100,7 @@ class Supervisor:
         distance = np.sqrt((robot1.x - robot2.x) ** 2 + (robot1.y - robot2.y) ** 2)
         return round(distance)
     
-    # method to handle phase communication
-    def handle_communication(self,robot1, robot2):
-        
-        robot1.set_emitter_message()
-        robot2.set_emitter_message()
-        robot2.recieved_message.append(robot1.forwarded_message)
-        robot1.recieved_message.append(robot2.forwarded_message)
-        # method for music messages.
-        self.music_communication(robot1,robot2)
-
-    def music_communication(self,robot1, robot2):
-        # MUSIC MESSAGES EXCHANGE
-        robot1.set_musical_message()
-        robot2.set_musical_message()
-        robot2.recieved_note.append(robot1.forwarded_note)
-        robot1.recieved_note.append(robot2.forwarded_note)
-
+    
     # Metodo per calcolare e aggiornare la matrice delle distanze
     def make_matrix_control(self, initial_robot):
         
@@ -136,15 +120,23 @@ class Supervisor:
      # method to send and receive messages.
     # DIFFERENTIATE LOGIC AND PYSICS, so handle differently collision and post office
     def post_office(self,initial_robot):
+        initial_robot.set_emitter_message()
         for j in range(initial_robot.number +1, len(self.distances)):
             distance_to_check = self.distances[initial_robot.number][j]
             
             # block to handle phase communication between robots.
-            if distance_to_check <= self.threshold:              
+            if distance_to_check <= self.threshold: 
                 robot1_chat = self.dictionary_of_robots[initial_robot.number]
                 robot2_chat = self.dictionary_of_robots[j]
-                #print("robot numero: "+ str(robot1_chat.number)+ " robot numero: "+ str(robot2_chat.number)+ " threshold")
                 self.handle_communication(robot1_chat, robot2_chat)
+    
+    # method to handle phase communication
+    def handle_communication(self,robot1, robot2):
+        
+        robot2.set_emitter_message()
+        robot2.recieved_message.append(robot1.forwarded_message)
+        robot1.recieved_message.append(robot2.forwarded_message)
+
 
     # method to update robot positions
     def update_positions(self,initial_robot):
@@ -153,9 +145,7 @@ class Supervisor:
 
     # method to print distances between robots.
     def print_distance_matrix(self):
-        """
-        Stampa la matrice delle distanze tra i robot, con indici per righe e colonne.
-        """
+
         print("Matrice delle distanze:")
         # Stampa l'intestazione della matrice (numeri dei robot)
         header = "     " + " ".join(f"{i:6}" for i in range(len(self.distances)))
