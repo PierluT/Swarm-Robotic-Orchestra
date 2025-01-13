@@ -23,6 +23,7 @@ def main():
                 
                 # COMMUNICATION every 80 ms.   
                 if (millisecond % 80 == 0):
+                    
                     supervisor.post_office(robot)
                 
                 # ROBOT STEP
@@ -30,10 +31,11 @@ def main():
                     #  KNOWLEDGE PART
                     # can stay here
                     distances_to_check = supervisor.make_matrix_control(robot)
-                    # rename methods as : get____info
+                    # rename methods as : get__""__info
                     # 1) get info for distances to check ( sensor simulation )
                     # 2) get info for update local music map, change name method with get
-                    robot.update_local_music_map()
+                    robot.get_note_info()
+                    robot.get_phase_info()
                     # robot.get_window_info()
                     # 3) get phase info
                     # after processing, clean buffers.
@@ -46,14 +48,19 @@ def main():
                     
                     if robot.local_music_map:
                         robot.update_note()
+                    
+                    if robot.local_phase_map:
+                         robot.update_phase_kuramoto_model()
+                
+                    robot.clean_buffers()
+                    
                     # if you have phase info apply kuramoto. take out kuramoto from update and put it in this if
                     # if you have something in window list, update.
                     
                     arena.write_robot_data(writer,millisecond, robot)
                 
 
-            for robot in supervisor.dictionary_of_robots:
-                 robot.clean_music_buffer()
+            
     
     arena.load_robot_data(video_csv_file)
     arena.draw_all_robots()
