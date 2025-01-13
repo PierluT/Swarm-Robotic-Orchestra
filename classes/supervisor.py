@@ -52,7 +52,7 @@ class Supervisor:
     def create_dictionary_of_robots(self):  
         for n in range(self.number_of_robots):
             robot = Robot(number = n)
-            robot.create_new_note(random.randint(0,11))
+            robot.create_new_note(random.randint(0,127))
             self.dictionary_of_robots.append(robot)
 
     # method to set the intial positions of the robots, in order to avoid overlap.
@@ -132,11 +132,9 @@ class Supervisor:
     
     # method to handle phase communication
     def handle_communication(self,robot1, robot2):
-        
         robot2.set_emitter_message()
         robot2.recieved_message.append(robot1.forwarded_message)
         robot1.recieved_message.append(robot2.forwarded_message)
-
 
     # method to update robot positions
     def update_positions(self,initial_robot):

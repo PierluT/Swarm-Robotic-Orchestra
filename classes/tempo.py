@@ -135,10 +135,12 @@ class Note:
          self.amp = 1
          self.dur = 1
          self.bpm = 60
+         self.pitch = self.midinote % 12
     
     def __repr__(self):
         return "\n\t".join([ 
-                                "midinote: %d"%self.midinote
+                                "midinote: %d"%self.midinote,
+                                "pitch: %.1f"%self.pitch
                                 ])
                                 #"amplitude: %.1f"%self.amp
 

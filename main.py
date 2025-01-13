@@ -12,10 +12,12 @@ def main():
     supervisor.setup_robots()
     # I create a new csv file.
     video_csv_file  = "video_maker.csv"
+    arena.clear_png_folder()
     
     with open(video_csv_file , mode="w", newline="") as file:
         writer = csv.writer(file, delimiter=';')
-        writer.writerow(["ms", "robot number", "x", "y","compass", "phase", "colour", "status"])
+        # add note infos
+        writer.writerow(["ms", "robot number", "x", "y","compass", "phase", "colour", "status","midinote","pitch"])
         
         for millisecond in range(0,50000):
             for robot in supervisor.dictionary_of_robots:
@@ -23,7 +25,7 @@ def main():
                 
                 # COMMUNICATION every 80 ms.   
                 if (millisecond % 80 == 0):
-                    
+
                     supervisor.post_office(robot)
                 
                 # ROBOT STEP
@@ -59,9 +61,6 @@ def main():
                     
                     arena.write_robot_data(writer,millisecond, robot)
                 
-
-            
-    
     arena.load_robot_data(video_csv_file)
     arena.draw_all_robots()
     supervisor.build_conductor_spartito()
