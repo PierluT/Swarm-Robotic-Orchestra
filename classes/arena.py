@@ -23,6 +23,21 @@ class Arena:
         self.frame_counter = 0
         self.png_folder = "classes/png"
 
+    
+    def clear_png_folder(self):
+        """Elimina tutti i file nella cartella PNG."""
+        if not os.path.exists(self.png_folder):
+            os.makedirs(self.png_folder)  # Crea la cartella se non esiste
+        else:
+            # Elimina tutti i file nella cartella
+            for filename in os.listdir(self.png_folder):
+                file_path = os.path.join(self.png_folder, filename)
+                try:
+                    if os.path.isfile(file_path):  # Controlla che sia un file
+                        os.unlink(file_path)  # Cancella il file
+                except Exception as e:
+                    print(f"Errore nell'eliminazione del file {file_path}: {e}")       
+
     def show_arena(self,window_name = "Robot Simulation"):
         cv2.imshow(window_name, self.arena)
         # Usa cv2.waitKey con un breve ritardo per permettere l'aggiornamento continuo
@@ -45,7 +60,7 @@ class Arena:
             reader = csv.reader(file, delimiter=';')
             next(reader)  # Salta l'intestazione
             for row in reader:
-                millisecond, robot_number, x, y,compass, phase, colour_str,status= row
+                millisecond, robot_number, x, y,compass, phase, colour_str,status, midinote, pitch= row
                 colour_str = colour_str.strip().strip('()')  # Rimuove parentesi e spazi extra
                 colour = tuple(map(int, colour_str.split(',')))
                 # Parsing del compasso
@@ -67,6 +82,7 @@ class Arena:
                 self.robot_data[int(millisecond)].append(robot_info)
 
     def write_robot_data(self, writer, millisecond, robot):
+        # add info for midinote and window to plot info about consensous
         writer.writerow([
         millisecond, 
         robot.number, 
@@ -76,6 +92,8 @@ class Arena:
         robot.phase, 
         robot.colour,
         robot.moving_status,
+        robot.note.midinote,
+        robot.note.pitch
     ])
 
     def open_video_file(self,filepath):
