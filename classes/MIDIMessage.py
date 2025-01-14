@@ -4,7 +4,6 @@ from scipy.io.wavfile import write
 
 class MIDIMessage():
     
-    
     def __init__(self):
         self.music_csv_file = "music_data.csv"
         self.audio_file = 'final_output.wav'
@@ -14,7 +13,6 @@ class MIDIMessage():
             writer = csv.DictWriter(file, fieldnames=["ms", "musician", "note", "dur", "amp", "bpm"])
             writer.writeheader()  # Scrive l'intestazione del CSV
             writer.writerows(conductor_spartito)  # Scrive tutte le righe
-
     
     # convert a MIDI note into frequency.
     def midi_to_freq(self,midi_note):
@@ -27,7 +25,7 @@ class MIDIMessage():
         return wave
     
     def generate_audio_from_csv(self):
-        """Genera un file audio dal file CSV con note e metronomo scandito ogni secondo."""
+        """ Genera un file audio dal file CSV con note e metronomo scandito ogni secondo. """
         sample_rate = 44100  # Sample rate in Hz
         audio_data = []
 
