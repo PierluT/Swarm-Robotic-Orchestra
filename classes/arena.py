@@ -4,8 +4,10 @@ import cv2
 import subprocess
 import sys
 import os
+from pathlib import Path
 import csv
 import time
+import shutil
 from classes.file_reader import File_Reader
 from collections import defaultdict
 
@@ -21,22 +23,25 @@ class Arena:
         self.robot_data = defaultdict(list)
         self.draw_robots_time = []
         self.frame_counter = 0
-        self.png_folder = "classes/png"
+        self.my_path = Path(__file__).parent
 
     
     def clear_png_folder(self):
-        """Elimina tutti i file nella cartella PNG."""
-        if not os.path.exists(self.png_folder):
-            os.makedirs(self.png_folder)  # Crea la cartella se non esiste
-        else:
-            # Elimina tutti i file nella cartella
-            for filename in os.listdir(self.png_folder):
-                file_path = os.path.join(self.png_folder, filename)
-                try:
-                    if os.path.isfile(file_path):  # Controlla che sia un file
-                        os.unlink(file_path)  # Cancella il file
-                except Exception as e:
-                    print(f"Errore nell'eliminazione del file {file_path}: {e}")       
+        self.my_path = os.path.join(self.my_path, 'png')
+        if os.path.exists(self.my_path):
+            print(f"La path '{self.my_path}' esiste.")
+            # Cancella il contenuto della cartella
+        for filename in os.listdir(self.my_path):
+            file_path = os.path.join(self.my_path, filename)
+            try:
+                # Rimuovi file o directory
+                if os.path.isfile(file_path) or os.path.islink(file_path):
+                    os.unlink(file_path)  # Rimuove file o link simbolici
+                elif os.path.isdir(file_path):
+                    shutil.rmtree(file_path)  # Rimuove directory
+                print(f"Rimosso: {file_path}")
+            except Exception as e:
+                print(f"Errore eliminando {file_path}: {e}")
 
     def show_arena(self,window_name = "Robot Simulation"):
         cv2.imshow(window_name, self.arena)
@@ -48,7 +53,7 @@ class Arena:
     
     def save_arena_as_png(self):
         """Salva un frame dell'arena come PNG con nomi compatibili con FFmpeg."""
-        filename = os.path.join(self.png_folder, f"frame{self.frame_counter:04d}.png")
+        filename = os.path.join(self.my_path, f"frame{self.frame_counter:04d}.png")
         cv2.imwrite(filename, self.arena)
         #print(f"Salvato frame: {filename}")
         self.frame_counter += 1
@@ -127,7 +132,7 @@ class Arena:
                 "ffmpeg",
                 "-y",  # Overwrite output if it exists
                 "-framerate", str(fps),
-                "-i", os.path.join(self.png_folder, "frame%04d.png"),  # Input PNG frames
+                "-i", os.path.join(self.my_path, "frame%04d.png"),  # Input PNG frames
             ]
 
             # If audio is provided, add it to the command

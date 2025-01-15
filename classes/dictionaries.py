@@ -23,27 +23,39 @@ major_scales = {
 orchestra_to_midi_range = {
 
     "Strings": {
+        # violin
         "Vn": list(range(55, 100)),       # G3–A7
+        # viola
         "Va": list(range(48, 96)),         # C3–E6
+        # violoncello
         "Vc": list(range(36, 84)),         # C2–E5
-        #"Double Bass": list(range(28, 61)),   # E1–C4
+        # contrabbasso
+        "Cb": list(range(28, 72))  # B0–B3
         #"Harp": list(range(24, 104))          # C1–G7
     },
     "Woodwinds": {
+        # flute
         "Fl": list(range(59, 98)),         # B3–D7
         #"Piccolo": list(range(74, 109)),      # D5–C8
+        # oboe
         "Ob": list(range(58, 92)),          # B3–G6
         #"English Horn": list(range(52, 85)),  # E3–C6
+        # clarinet Bb
         "ClBb": list(range(52, 92)),      # E3–C7
         #"Bass Clarinet": list(range(38, 66)), # D2–F5
+        # bassoon
         "Bn": list(range(34, 75)),       # B1–E5
-        "Cb": list(range(28, 72))  # B0–B3
+        
     },
     "Brass": {
+        # trumpet in C
         "TpC": list(range(54, 87)),            # F#3–D6
+        # Trombone
         "Tbn": list(range(34, 73)),           # E2–F5
         #"Bass Trombone": list(range(36, 66)),      # C2–F4
+        # horn
         "Hn": list(range(31, 77)),        # F2–F5
+        # Bass tuba
         "BTb": list(range(30, 65))                # D1–F4
     },
     "Percussion": {
@@ -66,6 +78,7 @@ orchestra_to_midi_range = {
         #"Harpsichord": list(range(29, 90))         # F1–F6
     },
     "Other Instruments": {
+        # alto sax
         "ASax": list(range(49, 81)),          # Bb3–F6
         #"Accordion": list(range(41, 85)),          # F2–C6
         #"Classical Guitar": list(range(40, 89)),   # E2–E6
