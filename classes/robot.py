@@ -6,7 +6,7 @@ import random
 import datetime
 from collections import defaultdict, deque
 from classes.file_reader import File_Reader
-from classes.dictionaries import colours,major_scales
+from classes.dictionaries import colours,major_scales,orchestra_to_midi_range
 from classes.tempo import Note
 
 file_reader_valuse = File_Reader()
@@ -71,6 +71,7 @@ class Robot:
         # dictionary for recieved phases
         self.local_phase_map = defaultdict(list) 
         self.timbre = ""
+        self.timbre_dictionary = orchestra_to_midi_range
 
     def __repr__(self):
         return f"Robot(number = {self.number}, coordinate x = {self.x}, y = {self.y}, phase = {self.phase})"
@@ -117,7 +118,6 @@ class Robot:
         return math.atan2(self.vx,self.vy)
     
     def move_robot(self, matrix_to_check, collision_threshold = 15):
-        
         # method to compute the bussola for visualing robot orientation.
         #self.compute_robot_compass()
         
@@ -149,10 +149,6 @@ class Robot:
     def update_note(self):
         # extract only notes from my dictionary
         notes_to_check = [note[0] for note in self.local_music_map.values()]
-        #print(notes)
-        # I add my note to the array of local music notes.
-        #notes_to_check.append(self.note.midinote)
-        #print(notes)
         mas = 0
         scale_matches = {}
         for scale_name, scale_notes in self.scales.items():
@@ -163,8 +159,7 @@ class Robot:
             max_matches = max(scale_matches.values())
             mas = max_matches
         best_scales = [scale_name for scale_name, match_count in scale_matches.items() if match_count == mas]
-        
-        #print("probable scales: "+str(best_scales)+ " for robot: "+str(self.number))
+
         # control if my note is included in one of the probable scales:
         for scale in best_scales:
             #print("probable scale for r number: "+ str(self.number)+ " "+ str(scale))
@@ -204,7 +199,6 @@ class Robot:
             )
 
             # found closest note into the closest scale.
-            # need to save distance 
             closest_note = min(
                 self.scales[closest_scale],
                 key=lambda note: min(abs(self.note.pitch - note), 12 - abs(self.note.pitch - note))
@@ -219,8 +213,18 @@ class Robot:
             self.note.pitch += musical_interval % 12
             #print("robot n: "+ str(self.number)+ " changes from "+ str(previous_note)+ " to: "+ str(self.note.midinote))
             
+            # control if the new note is in the range of my actual instrument
+            for instrument_group, instruments in self.timbre_dictionary.items():
+                if self.timbre in instruments:
+                    current_range = instruments[self.timbre]
+
+                    if self.note.midinote not in current_range:
+                        print(f"Note {self.note.midinote} is out of range for {self.timbre}. Reassigning timbre...")
+                        self.set_timbre_from_midi()
+                    else:
+                        print(f"Note {self.note.midinote} is within range for {self.timbre}.")
+
         else: 
-            #self.create_new_note(self.previous_midinote)
             print(f"r: {self.number} kept the same note {self.previous_midinote} not in harmony")      
 
     def set_emitter_message(self):
@@ -232,8 +236,24 @@ class Robot:
             "timbre": self.timbre
         }
         self.forwarded_message = entry
-        #print(self.forwarded_message)
-    
+
+    def set_timbre_from_midi(self):
+        matching_instruments = []
+        for instruments in self.timbre_dictionary.values():
+            for instrument, midi_range in instruments.items():
+                # Verify if the note that I'm playing is in the midi range of the instrument
+                if self.note.midinote in midi_range:  
+                    matching_instruments.append(instrument)
+
+        # If there are more than one corrispondent instrument, choose one randomly.
+        if matching_instruments:
+            choosen_timbre = random.choice(matching_instruments)
+            self.timbre = choosen_timbre
+            #return random.choice(matching_instruments)
+        else:
+            return "No matching instrument found" 
+
+
     # Every robot has a dictionary on what is the last note that others are playing.
     # With this structure I can predict the next note to play consulting music scales dictionary.
     # last 4 notes for every of my neighbourghs whom I reach treshold.
@@ -293,7 +313,8 @@ class Robot:
             "note": self.note.midinote,
             "dur": self.note.dur,
             "amp": self.note.amp,
-            "bpm": self.note.bpm
+            "bpm": self.note.bpm,
+            "timbre": self.timbre
         }
 
         self.my_spartito.append(spartito_entry)

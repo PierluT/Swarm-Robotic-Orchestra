@@ -89,9 +89,9 @@ def process_wav_files(input_directory, output_directory, desired_duration):
         sf.write(new_filepath, time_scaled_audio, sr)
         print(f"File elaborato e salvato come: {new_filepath}")
 
-input_directory = r"C:/Users/pierl\Downloads/TinySOL/TinySOL/audio/Brass/Bass_Tuba/ordinario"
-output_directory = r"C:/Users/pierl/Desktop/MMI/tesi/robotic-orchestra/classes/samples/bass_tuba"
+input_directory = r"C:/Users/pierl\Downloads/TinySOL/TinySOL/audio/Strings/Violin/ordinario"
+output_directory = r"C:/Users/pierl/Desktop/MMI/tesi/robotic-orchestra/classes/samples/violin"
 
-final_duration = 0.5
+final_duration = 2
 
 process_wav_files(input_directory, output_directory, final_duration)

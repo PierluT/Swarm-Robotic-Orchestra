@@ -23,53 +23,53 @@ major_scales = {
 orchestra_to_midi_range = {
 
     "Strings": {
-        "Violin": list(range(55, 104)),       # G3–A7
-        "Viola": list(range(48, 77)),         # C3–E6
-        "Cello": list(range(36, 65)),         # C2–E5
-        "Double Bass": list(range(28, 61)),   # E1–C4
-        "Harp": list(range(24, 104))          # C1–G7
+        #"Violin": list(range(55, 104)),       # G3–A7
+        #"Viola": list(range(48, 77)),         # C3–E6
+        #"Cello": list(range(36, 65)),         # C2–E5
+        #"Double Bass": list(range(28, 61)),   # E1–C4
+        #"Harp": list(range(24, 104))          # C1–G7
     },
     "Woodwinds": {
         "Flute": list(range(59, 99)),         # B3–D7
-        "Piccolo": list(range(74, 109)),      # D5–C8
-        "Oboe": list(range(59, 92)),          # B3–G6
-        "English Horn": list(range(52, 85)),  # E3–C6
-        "Clarinet": list(range(52, 97)),      # E3–C7
-        "Bass Clarinet": list(range(38, 66)), # D2–F5
-        "Bassoon": list(range(35, 66)),       # B1–E5
-        "Contrabassoon": list(range(23, 60))  # B0–B3
+        #"Piccolo": list(range(74, 109)),      # D5–C8
+        "Oboe": list(range(50, 92)),          # B3–G6
+        #"English Horn": list(range(52, 85)),  # E3–C6
+        "Clarinet_Bb": list(range(52, 98)),      # E3–C7
+        #"Bass Clarinet": list(range(38, 66)), # D2–F5
+        #"Bassoon": list(range(35, 66)),       # B1–E5
+        #"Contrabassoon": list(range(23, 60))  # B0–B3
     },
     "Brass": {
         "Trumpet": list(range(54, 87)),            # F#3–D6
-        "Trombone": list(range(40, 78)),           # E2–F5
-        "Bass Trombone": list(range(36, 66)),      # C2–F4
-        "French Horn": list(range(41, 78)),        # F2–F5
-        "Tuba": list(range(26, 66))                # D1–F4
+        "Trombone": list(range(34, 73)),           # E2–F5
+        #"Bass Trombone": list(range(36, 66)),      # C2–F4
+        #"French Horn": list(range(41, 78)),        # F2–F5
+        "Tuba": list(range(30, 66))                # D1–F4
     },
     "Percussion": {
-        "Timpani": list(range(38, 61)),            # D2–C4
-        "Glockenspiel": list(range(79, 110)),      # G5–C8
-        "Xylophone": list(range(65, 97)),          # F3–C7
-        "Vibraphone": list(range(65, 90)),         # F3–F6
-        "Marimba": list(range(48, 97)),            # C2–C7
-        "Tubular Bells": list(range(60, 78)),      # C4–F5
-        "Bass Drum": [36],                         # Single note
-        "Snare Drum": [38],                        # Single note
-        "Tambourine": [39],                        # Single note
-        "Cymbals": [40],                           # Single note
-        "Triangle": [41]                           # Single note
+        #"Timpani": list(range(38, 61)),            # D2–C4
+        #"Glockenspiel": list(range(79, 110)),      # G5–C8
+        #"Xylophone": list(range(65, 97)),          # F3–C7
+        #"Vibraphone": list(range(65, 90)),         # F3–F6
+        #"Marimba": list(range(48, 97)),            # C2–C7
+        #"Tubular Bells": list(range(60, 78)),      # C4–F5
+        #"Bass Drum": [36],                         # Single note
+        #"Snare Drum": [38],                        # Single note
+        #"Tambourine": [39],                        # Single note
+        #"Cymbals": [40],                           # Single note
+        #"Triangle": [41]                           # Single note
     },
     "Keyboards": {
-        "Piano": list(range(21, 110)),             # A0–C8
-        "Organ": list(range(36, 97)),              # C2–C7
-        "Celesta": list(range(48, 97)),            # C3–C7
-        "Harpsichord": list(range(29, 90))         # F1–F6
+        #"Piano": list(range(21, 110)),             # A0–C8
+        #"Organ": list(range(36, 97)),              # C2–C7
+        #"Celesta": list(range(48, 97)),            # C3–C7
+        #"Harpsichord": list(range(29, 90))         # F1–F6
     },
     "Other Instruments": {
-        "Saxophone": list(range(58, 90)),          # Bb3–F6
-        "Accordion": list(range(41, 85)),          # F2–C6
-        "Classical Guitar": list(range(40, 89)),   # E2–E6
-        "Mandolin": list(range(55, 101))           # G3–E7
+        #"Saxophone": list(range(58, 90)),          # Bb3–F6
+        #"Accordion": list(range(41, 85)),          # F2–C6
+        #"Classical Guitar": list(range(40, 89)),   # E2–E6
+        #"Mandolin": list(range(55, 101))           # G3–E7
     }
 }
 

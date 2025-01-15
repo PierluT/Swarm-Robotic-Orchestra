@@ -44,7 +44,7 @@ class Supervisor:
         self.last_check_time = time.time()
         # this value is the ability of a robot to see thing around it.
         self.sensor = values_dictionary['sensor']
-        self.timbre_dictionary = orchestra_to_midi_range
+        #self.timbre_dictionary = orchestra_to_midi_range
         self.music_formations = music_formations
     
     def setup_robots(self):
@@ -55,11 +55,12 @@ class Supervisor:
     def create_dictionary_of_robots(self):  
         for n in range(self.number_of_robots):
             robot = Robot(number = n)
-            initial_random_note = random.randint(21,109)
-            initial_timbre = self.get_timbre_from_midi(initial_random_note)
-            robot.timbre = initial_timbre
+            initial_random_note = random.randint(30,100)
+            # robot aspect?
+            #initial_timbre = self.get_timbre_from_midi(initial_random_note)
+            #robot.timbre = initial_timbre
             robot.create_new_note(initial_random_note)
-            
+            robot.set_timbre_from_midi()
             self.dictionary_of_robots.append(robot)
 
     # method to set the intial positions of the robots, in order to avoid overlap.
@@ -160,21 +161,6 @@ class Supervisor:
         for i, row in enumerate(self.distances):
             row_data = " ".join(f"{distance:6.2f}" for distance in row)
             print(f"{i:3} | {row_data}")
-    
-    def get_timbre_from_midi(self,note):
-        matching_instruments = []
-
-        # Scorri i gruppi di strumenti nell'orchestra
-        for instruments in self.timbre_dictionary.values():
-            for instrument, midi_range in instruments.items():
-                if note in midi_range:  # Verifica se il numero è nel range MIDI dello strumento
-                    matching_instruments.append(instrument)
-
-        # Se ci sono strumenti corrispondenti, scegline uno a caso
-        if matching_instruments:
-            return random.choice(matching_instruments)
-        else:
-            return "No matching instrument found"  # Se nessuno strumento corrisponde
 
     # method to check periodically if phases are converging or not.
     def check_phases_convergence(self):
@@ -258,3 +244,19 @@ class Supervisor:
     
 
 
+"""""
+def get_timbre_from_midi(self,note):
+        matching_instruments = []
+
+        # Scorri i gruppi di strumenti nell'orchestra
+        for instruments in self.timbre_dictionary.values():
+            for instrument, midi_range in instruments.items():
+                if note in midi_range:  # Verifica se il numero è nel range MIDI dello strumento
+                    matching_instruments.append(instrument)
+
+        # Se ci sono strumenti corrispondenti, scegline uno a caso
+        if matching_instruments:
+            return random.choice(matching_instruments)
+        else:
+            return "No matching instrument found"  # Se nessuno strumento corrisponde
+"""

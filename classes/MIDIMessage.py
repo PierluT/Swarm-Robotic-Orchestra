@@ -10,7 +10,7 @@ class MIDIMessage():
 
     def write_csv(self,conductor_spartito):
         with open(self.music_csv_file, mode="w", newline="") as file:
-            writer = csv.DictWriter(file, fieldnames=["ms", "musician", "note", "dur", "amp", "bpm"])
+            writer = csv.DictWriter(file, fieldnames=["ms", "musician", "note", "dur", "amp", "bpm","timbre"])
             writer.writeheader()  # Scrive l'intestazione del CSV
             writer.writerows(conductor_spartito)  # Scrive tutte le righe
     
