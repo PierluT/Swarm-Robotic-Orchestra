@@ -39,14 +39,12 @@ def main():
                     robot.get_note_info()
                     robot.get_phase_info()
                     # robot.get_window_info()
-                    # 3) get phase info
-                    # after processing, clean buffers.
+
                     # ACTION PART
                     # Now that I have all the info I can act, decide what to do:
                     # 1) distances: decide where to move
                     robot.move_robot(distances_to_check)
-                    # SPLIT the moment when you get info and the moment when you USE the infos.
-                    
+
                     if robot.local_music_map:
                         robot.update_note()
                     
@@ -57,26 +55,28 @@ def main():
                     
                     arena.write_robot_data(writer,millisecond, robot)    
     
-    #arena.load_robot_data(video_csv_file)
-    #arena.draw_all_robots()
-    #supervisor.build_conductor_spartito()
-    #midi_class.write_csv(supervisor.conductor_spartito)
+    arena.load_robot_data(video_csv_file)
+    arena.draw_all_robots()
+    supervisor.build_conductor_spartito()
+    midi_class.write_csv(supervisor.conductor_spartito)
     #midi_class.generate_audio_from_csv()
     #arena.create_video(output_path= "video_simulation.mp4",audio_path = "final_output.wav", fps = 25, auto_open= True)
 
-    affinity_matrix = supervisor.calculate_instrument_affinity()
+    
+
+if __name__ == "__main__":
+        
+        main()
+
+"""""
+affinity_matrix = supervisor.calculate_instrument_affinity()
 
     # Visualizza la matrice di affinità
     for instrument1, instrument_dict in affinity_matrix.items():
         print(f"{instrument1}:")
         for instrument2, affinity in instrument_dict.items():
             print(f"  {instrument2}: {affinity:.2f}")
-
-if __name__ == "__main__":
-        
-        main()
-
-
+"""
 
 
 
