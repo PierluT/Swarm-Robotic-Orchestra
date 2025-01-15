@@ -17,7 +17,7 @@ def main():
     with open(video_csv_file , mode="w", newline="") as file:
         writer = csv.writer(file, delimiter=';')
         # add note infos
-        writer.writerow(["ms", "robot number", "x", "y","compass", "phase", "colour", "status","midinote","pitch", "timbre"])
+        writer.writerow(["ms", "robot number", "x", "y","compass", "phase", "colour", "status","midinote","pitch", "timbre", "delay"])
         
         for millisecond in range(0,50000):
             for robot in supervisor.dictionary_of_robots:
