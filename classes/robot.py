@@ -72,6 +72,7 @@ class Robot:
         self.local_phase_map = defaultdict(list) 
         self.timbre = ""
         self.timbre_dictionary = orchestra_to_midi_range
+        self.delay = random.randint(0,3) 
 
     def __repr__(self):
         return f"Robot(number = {self.number}, coordinate x = {self.x}, y = {self.y}, phase = {self.phase})"
@@ -119,7 +120,7 @@ class Robot:
     
     def move_robot(self, matrix_to_check, collision_threshold = 15):
         # method to compute the bussola for visualing robot orientation.
-        #self.compute_robot_compass()
+        self.compute_robot_compass()
         
         # Boundaries collision control
         if self.x - self.radar_radius <= 10 or self.x + self.radar_radius >= self.rectangleArea_width:
@@ -233,7 +234,8 @@ class Robot:
             "robot number": self.number,
             "phase": self.phase,
             "note": self.note.pitch,
-            "timbre": self.timbre
+            "timbre": self.timbre,
+            "delay": self.delay
         }
         self.forwarded_message = entry
 
@@ -317,7 +319,8 @@ class Robot:
             "dur": self.note.dur,
             "amp": self.note.amp,
             "bpm": self.note.bpm,
-            "timbre": self.timbre
+            "timbre": self.timbre,
+            "delay": self.delay
         }
 
         self.my_spartito.append(spartito_entry)

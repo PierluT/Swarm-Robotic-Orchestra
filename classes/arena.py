@@ -60,7 +60,7 @@ class Arena:
             reader = csv.reader(file, delimiter=';')
             next(reader)  # Salta l'intestazione
             for row in reader:
-                millisecond, robot_number, x, y,compass, phase, colour_str,status, midinote, pitch, timbre = row
+                millisecond, robot_number, x, y,compass, phase, colour_str,status, midinote, pitch, timbre, delay = row
                 colour_str = colour_str.strip().strip('()')  # Rimuove parentesi e spazi extra
                 colour = tuple(map(int, colour_str.split(',')))
                 # Parsing del compasso
@@ -94,7 +94,8 @@ class Arena:
         robot.moving_status,
         robot.note.midinote,
         robot.note.pitch,
-        robot.timbre
+        robot.timbre,
+        robot.delay
     ])
 
     def open_video_file(self,filepath):
