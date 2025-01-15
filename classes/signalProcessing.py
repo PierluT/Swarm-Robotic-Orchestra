@@ -46,19 +46,19 @@ def process_wav_files(input_directory, output_directory, desired_duration):
     if not wav_files:
         raise FileNotFoundError(f"Nessun file WAV trovato nella directory: {input_directory}")
     
-    print(f"Trovati {len(wav_files)} file WAV nella directory di input: {input_directory}")
+    #print(f"Trovati {len(wav_files)} file WAV nella directory di input: {input_directory}")
     
     for wav_file in wav_files:
         # Analizza il nome del file
         filename = os.path.basename(wav_file)
         # Modifica la regex per estrarre la dinamica senza la N o la R finale
-        match = re.match(r"(\w+)-ord-([A-G]#?\d+)-(\w+)-([NR])\.wav", filename)
+        match = re.match(r"(\w+)-ord-([A-G]#?\d+)-(\w+).*\.wav", filename)
         if not match:
             print(f"Formato del file non valido, ignorato: {filename}")
             continue
         
         # Estrai i componenti dal nome
-        acronym, note, dynamic, dynamic_value = match.groups()
+        acronym, note, dynamic = match.groups()
         
         # Converte la nota in valore MIDI
         midi_value = note_to_midi(note)
@@ -73,10 +73,10 @@ def process_wav_files(input_directory, output_directory, desired_duration):
         
         # Ora prendiamo solo la dinamica senza la "N" o la "R" finale
         # Ad esempio "pp", "mf", "ff"
-        dynamic_value = dynamic
+        #dynamic_value = dynamic
         
         # Nuovo nome del file con durata desiderata inclusa
-        new_filename = f"{acronym}_{midi_value}_{safe_duration}_{dynamic_value}.wav"
+        new_filename = f"{acronym}_{midi_value}_{safe_duration}_{dynamic}.wav"
         new_filepath = os.path.join(output_directory, new_filename)
         
         # Modifica la durata del file audio
@@ -89,12 +89,12 @@ def process_wav_files(input_directory, output_directory, desired_duration):
         sf.write(new_filepath, time_scaled_audio, sr)
         print(f"File elaborato e salvato come: {new_filepath}")
 
-#input_directory = r"C:/Users/pierl\Downloads/TinySOL/TinySOL/audio/Strings/Violin/ordinario"
-#output_directory = r"C:/Users/pierl/Desktop/MMI/tesi/robotic-orchestra/classes/samples/violin"
+input_directory = r"C:/Users/pierl\Downloads/TinySOL/TinySOL/audio/Winds/Sax_Alto/ordinario"
+output_directory = r"C:/Users/pierl/Desktop/MMI/tesi/robotic-orchestra/classes/samples/ASax"
 
-#final_duration = 2
+final_duration = 0.5
 
-#process_wav_files(input_directory, output_directory, final_duration)
+process_wav_files(input_directory, output_directory, final_duration)
 
 def generate_mixed_audio(output_file, duration=20.0):
     """
@@ -127,5 +127,5 @@ def generate_mixed_audio(output_file, duration=20.0):
     sf.write(output_file, final_audio, sr)
     print(f"Audio finale sovrapposto salvato in: {output_file}")
 
-output_final_wav_file = r"C:/Users/pierl/Desktop/MMI/tesi/robotic-orchestra/classes/samples/Mix-Audio.wav"
-generate_mixed_audio(output_final_wav_file, duration=15.0)
+#output_final_wav_file = r"C:/Users/pierl/Desktop/MMI/tesi/robotic-orchestra/classes/samples/Mix-Audio.wav"
+#generate_mixed_audio(output_final_wav_file, duration=15.0)
