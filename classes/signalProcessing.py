@@ -89,9 +89,43 @@ def process_wav_files(input_directory, output_directory, desired_duration):
         sf.write(new_filepath, time_scaled_audio, sr)
         print(f"File elaborato e salvato come: {new_filepath}")
 
-input_directory = r"C:/Users/pierl\Downloads/TinySOL/TinySOL/audio/Strings/Violin/ordinario"
-output_directory = r"C:/Users/pierl/Desktop/MMI/tesi/robotic-orchestra/classes/samples/violin"
+#input_directory = r"C:/Users/pierl\Downloads/TinySOL/TinySOL/audio/Strings/Violin/ordinario"
+#output_directory = r"C:/Users/pierl/Desktop/MMI/tesi/robotic-orchestra/classes/samples/violin"
 
-final_duration = 2
+#final_duration = 2
 
-process_wav_files(input_directory, output_directory, final_duration)
+#process_wav_files(input_directory, output_directory, final_duration)
+
+def generate_mixed_audio(output_file, duration=20.0):
+    """
+    Genera un file audio che è la sovrapposizione di più file WAV 
+    che iniziano a momenti diversi (inventati) su una durata totale di 20 secondi.
+    
+    Args:
+        output_file (str): Path del file audio finale da salvare.
+        duration (float): Durata totale in secondi del file finale (default 20 secondi).
+    """
+    # Lista dei file audio di esempio (modifica con i tuoi file veri)
+    input_files = [r"C:/Users/pierl/Desktop/MMI/tesi/robotic-orchestra/classes/samples/Trombone/Tbn_34_1_ff.wav"] * 5  # Copia del file 5 volte per l'esempio
+    start_times = [1.0, 1.5, 3.0, 5.0, 7.5]  # I momenti di inizio per i file sovrapposti (esempio)
+    
+    # Creiamo un array di zeri per il file finale, della durata totale in campioni
+    sr = 22050  # Frequenza di campionamento, deve essere uguale per tutti i file audio
+    final_audio = np.zeros(int(duration * sr))  # Array finale per 20 secondi di durata
+
+    # Sovrapponiamo i file audio all'interno dell'array finale
+    for i, input_file in enumerate(input_files):
+        # Carica ogni file audio
+        audio, sr_file = librosa.load(input_file, sr=sr)  # Imposta la stessa frequenza di campionamento
+        start_sample = int(start_times[i] * sr)  # Calcola il campione di inizio in base al tempo
+        end_sample = start_sample + len(audio)  # Calcola la fine del file audio nel file finale
+        
+        # Aggiungi l'audio alla posizione corretta, sovrapponendolo
+        final_audio[start_sample:end_sample] += audio  # Sovrapposizione semplice (senza normalizzazione)
+
+    # Salva il file audio finale
+    sf.write(output_file, final_audio, sr)
+    print(f"Audio finale sovrapposto salvato in: {output_file}")
+
+output_final_wav_file = r"C:/Users/pierl/Desktop/MMI/tesi/robotic-orchestra/classes/samples/Mix-Audio.wav"
+generate_mixed_audio(output_final_wav_file, duration=15.0)
