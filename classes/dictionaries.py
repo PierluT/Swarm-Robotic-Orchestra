@@ -30,21 +30,21 @@ orchestra_to_midi_range = {
         #"Harp": list(range(24, 104))          # C1–G7
     },
     "Woodwinds": {
-        "Flute": list(range(59, 99)),         # B3–D7
+        "Fl": list(range(59, 98)),         # B3–D7
         #"Piccolo": list(range(74, 109)),      # D5–C8
-        "Oboe": list(range(50, 92)),          # B3–G6
+        "Ob": list(range(58, 92)),          # B3–G6
         #"English Horn": list(range(52, 85)),  # E3–C6
-        "Clarinet_Bb": list(range(52, 98)),      # E3–C7
+        "ClBb": list(range(52, 92)),      # E3–C7
         #"Bass Clarinet": list(range(38, 66)), # D2–F5
         #"Bassoon": list(range(35, 66)),       # B1–E5
         #"Contrabassoon": list(range(23, 60))  # B0–B3
     },
     "Brass": {
-        "Trumpet": list(range(54, 87)),            # F#3–D6
-        "Trombone": list(range(34, 73)),           # E2–F5
+        "TpC": list(range(54, 87)),            # F#3–D6
+        "Tbn": list(range(34, 73)),           # E2–F5
         #"Bass Trombone": list(range(36, 66)),      # C2–F4
         #"French Horn": list(range(41, 78)),        # F2–F5
-        "Tuba": list(range(30, 66))                # D1–F4
+        #"Tuba": list(range(30, 66))                # D1–F4
     },
     "Percussion": {
         #"Timpani": list(range(38, 61)),            # D2–C4

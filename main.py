@@ -59,10 +59,13 @@ def main():
     arena.draw_all_robots()
     supervisor.build_conductor_spartito()
     midi_class.write_csv(supervisor.conductor_spartito)
-    #midi_class.generate_audio_from_csv()
-    #arena.create_video(output_path= "video_simulation.mp4",audio_path = "final_output.wav", fps = 25, auto_open= True)
+    # return the paths of the wav files that i need
+    wav_files = midi_class.finding_wav_from_csv()
+    # Output dei file trovati
 
-    
+    midi_class.generate_audio_from_csv(wav_files)
+    arena.create_video(output_path= "video_simulation.mp4",audio_path = "final_output.wav", fps = 25, auto_open= True)
+
 
 if __name__ == "__main__":
         

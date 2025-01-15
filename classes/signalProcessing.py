@@ -106,7 +106,7 @@ def generate_mixed_audio(output_file, duration=20.0):
         duration (float): Durata totale in secondi del file finale (default 20 secondi).
     """
     # Lista dei file audio di esempio (modifica con i tuoi file veri)
-    input_files = [r"C:/Users/pierl/Desktop/MMI/tesi/robotic-orchestra/classes/samples/Trombone/Tbn_34_1_ff.wav"] * 5  # Copia del file 5 volte per l'esempio
+    input_files = [r""] * 5  # Copia del file 5 volte per l'esempio
     start_times = [1.0, 1.5, 3.0, 5.0, 7.5]  # I momenti di inizio per i file sovrapposti (esempio)
     
     # Creiamo un array di zeri per il file finale, della durata totale in campioni

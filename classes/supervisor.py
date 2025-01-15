@@ -55,7 +55,7 @@ class Supervisor:
     def create_dictionary_of_robots(self):  
         for n in range(self.number_of_robots):
             robot = Robot(number = n)
-            initial_random_note = random.randint(30,100)
+            initial_random_note = random.randint(34,70)
             # robot aspect?
             #initial_timbre = self.get_timbre_from_midi(initial_random_note)
             #robot.timbre = initial_timbre
