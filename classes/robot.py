@@ -238,20 +238,23 @@ class Robot:
         self.forwarded_message = entry
 
     def set_timbre_from_midi(self):
+        #print(" change instrument")
         matching_instruments = []
         for instruments in self.timbre_dictionary.values():
             for instrument, midi_range in instruments.items():
                 # Verify if the note that I'm playing is in the midi range of the instrument
-                if self.note.midinote in midi_range:  
+                if self.note.midinote in midi_range:
+                    #print(" found new instrument")
+                    #print(midi_range)  
                     matching_instruments.append(instrument)
 
         # If there are more than one corrispondent instrument, choose one randomly.
         if matching_instruments:
             choosen_timbre = random.choice(matching_instruments)
+            #print(choosen_timbre)
             self.timbre = choosen_timbre
-            #return random.choice(matching_instruments)
         else:
-            return "No matching instrument found" 
+             print("No matching instrument found") 
 
 
     # Every robot has a dictionary on what is the last note that others are playing.
