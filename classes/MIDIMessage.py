@@ -131,7 +131,7 @@ class MIDIMessage():
                 # Controlla se la riga contiene un valore di millisecondi valido
                 ms = int(parts[0]) if parts[0].isdigit() else 0  # Offset in millisecondi
                 delay = int(parts[7]) if parts[7].isdigit() else 0
-                print("delay "+ str(delay))
+                #print("delay "+ str(delay))
                 start_sample = int((ms / 1000 + delay ) * sr)  # Converti ms in campioni
 
                 # Carica il file WAV
