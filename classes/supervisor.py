@@ -29,12 +29,6 @@ class Supervisor:
         self.collision_margin = values_dictionary['radar']
         # dictionary of distance bewteen a robot and each others.
         self.distances = [[0 for _ in range(self.number_of_robots)] for _ in range(self.number_of_robots)]
-        # to have clock for comunications already happened and avoid infite message exchange.
-        self.clock_interval_dictionary = {}
-        # to have clock for notes comunications already happened and avoid infite message exchange.
-        self.clock_interval_notes_dictionary = {}
-        # value to control that phase message exchanges doesn't happens cpuntinously.
-        self.comuncation_clock_interval = values_dictionary['comunication_clock_interval']
         # value to relate phase update and robot steps.
         self.time_step = values_dictionary['time_step']
         # value to control that notes message exchanges doesn't happen cpuntinously. 
@@ -79,6 +73,7 @@ class Supervisor:
 
     # method to return the list of robots and assign a phase to each of them.
     def create_dictionary_of_robots(self):  
+        
         for n in range(self.number_of_robots):
             robot = Robot(number = n)
             initial_random_note = random.randint(34,70)

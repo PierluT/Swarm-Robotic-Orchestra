@@ -180,8 +180,6 @@ class Robot:
     def create_new_note(self, midi_value):
         note = Note( midinote = midi_value)
         self.note = note
-        # I store the midi
-        #self.previous_midinote = midi_value
 
     # mehtod to change the note if I'm not in harmony
     def change_note(self,best_scales):
@@ -310,9 +308,10 @@ class Robot:
 
 
     # method to write robot music sheet.
-    def add_note_to_spartito(self,ms):
+    def add_note_to_spartito(self,ms, simulation_number):
         
         spartito_entry = {
+            "simulation number": simulation_number,
             "ms": ms,
             "musician": self.number,
             "note": self.note.midinote,
@@ -327,7 +326,7 @@ class Robot:
     
     # method to control that robot enters only the forst time in the playing status.
     # ADD a control for playing note: if i started playing note I cannot change/stop the note for this round.
-    def control_playing_flag(self, millisecond):
+    def control_playing_flag(self, millisecond, simulation_number):
         if 0 <= self.phase < 1:
             # the first time that I enter means that I have to play.
             if not self.triggered_playing_flag:
@@ -336,7 +335,7 @@ class Robot:
                 self.colour = colours['blue']
                 self.last_played_ms = millisecond
                 # that has to be separated by the 0 cross phase.
-                self.add_note_to_spartito(millisecond)  
+                self.add_note_to_spartito(millisecond, simulation_number)  
             # Means that is not the first time that I enter in the condition, so I have to reset false.
             else:
                 self.playing_flag = False
@@ -350,13 +349,13 @@ class Robot:
                 self.colour = colours['green']
     
     # method to update internal robot phase.
-    def update_phase(self,millisecond):
+    def update_phase(self,millisecond,simulation_number):
         #current_ms = global_time + counter
         self.phase += (2 * np.pi / 4000)
         # normalization only if I reach 2pi then I go to 0.
         self.phase %= (2 * np.pi)
         # method to control if I have the permission to play.
-        self.control_playing_flag(millisecond)
+        self.control_playing_flag(millisecond,simulation_number)
     
     def get_phase_info(self):
         if self.recieved_message:
