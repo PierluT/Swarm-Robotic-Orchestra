@@ -12,19 +12,36 @@ class MIDIMessage():
     def __init__(self):
         self.music_csv_file = "music_data.csv"
         self.final_audio_file = 'final_output.wav'
-        self.current_file_directory = os.path.dirname(os.path.abspath(__file__))
+        self.directory = ""
 
-    def write_csv(self,conductor_spartito,csv_file_path):
-        directory = csv_file_path
-        if  os.path.exists(directory):  # Assicurarsi che la cartella esista
-            # Percorso completo per il file
-            music_csv_path = os.path.join(directory, self.music_csv_file)
-
-            with open(music_csv_path, mode="w", newline="") as file:
-                writer = csv.DictWriter(file, fieldnames=["ms", "musician", "note", "dur", "amp", "bpm","timbre","delay"])
-                writer.writeheader()  # Scrive l'intestazione del CSV
-                writer.writerows(conductor_spartito)  # Scrive tutte le righe
-    
+    def write_csv(self, conductor_spartito, csv_file_path):
+        self.directory = csv_file_path
+        music_csv_path = os.path.join(self.directory, self.music_csv_file)
+        
+        # Assicurati che la directory esista
+        os.makedirs(self.directory, exist_ok=True)
+        
+        # Determina se è necessario scrivere l'intestazione
+        first_iteration = not os.path.exists(music_csv_path)
+        
+        # Imposta la modalità di apertura del file
+        mode = "w" if first_iteration else "a"
+        
+        # Apri il file in modalità corretta
+        with open(music_csv_path, mode=mode, newline="") as file:
+            writer = csv.DictWriter(file, fieldnames=["simulation number", "ms", "musician", "note", "dur", "amp", "bpm", "timbre", "delay"])
+            
+            # Scrivi l'intestazione solo se necessario
+            if first_iteration:
+                writer.writeheader()
+            
+            # Scrivi le righe solo se ci sono dati
+            if conductor_spartito:
+                #print(f"Scrivendo {len(conductor_spartito)} righe nel file CSV...")
+                for row in conductor_spartito:
+                    print(row)  # Debug: stampa ogni riga (puoi rimuovere questa riga in produzione)
+                writer.writerows(conductor_spartito)
+            
     def finding_wav_from_csv(self):
         # Controlla se il file CSV esiste
         if not os.path.exists(self.music_csv_file):

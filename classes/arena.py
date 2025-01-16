@@ -25,8 +25,9 @@ class Arena:
         self.frame_counter = 0
         self.my_path = Path(__file__).parent
 
-    
+
     def clear_png_folder(self):
+        
         self.my_path = os.path.join(self.my_path, 'png')
 
         for filename in os.listdir(self.my_path):
@@ -56,14 +57,18 @@ class Arena:
         #print(f"Salvato frame: {filename}")
         self.frame_counter += 1
     
-    def load_robot_data(self,filename):
+    def load_robot_data(self,filename, simulation_number):
         self.robot_data.clear()
         # read data from csv file
         with open(filename, mode='r') as file:
             reader = csv.reader(file, delimiter=';')
-            next(reader)  # Salta l'intestazione
+
+            first_iteration = True
             for row in reader:
-                millisecond, robot_number, x, y,compass, phase, colour_str,status, midinote, pitch, timbre, delay = row
+                if first_iteration:
+                    first_iteration = False  # La prima volta salta l'intestazione
+                    continue
+                simulation_number, millisecond, robot_number, x, y,compass, phase, colour_str,status, midinote, pitch, timbre, delay = row
                 colour_str = colour_str.strip().strip('()')  # Rimuove parentesi e spazi extra
                 colour = tuple(map(int, colour_str.split(',')))
                 # Parsing del compasso
@@ -75,6 +80,7 @@ class Arena:
                         end_point = tuple(map(float, compass[1]))
                 
                 robot_info = {
+                    #"simulation number": simulation_number,
                     "millisecond": int(millisecond),
                     "robot_number": int(robot_number),
                     "x": float(x),
@@ -86,21 +92,23 @@ class Arena:
 
                 self.robot_data[int(millisecond)].append(robot_info)
 
-    def write_robot_data(self, writer, millisecond, robot):
-        # add info for midinote and window to plot info about consensous
+    def write_robot_data(self, writer,simulation_number, millisecond, robot):
+
         writer.writerow([
-        millisecond, 
-        robot.number, 
-        robot.x, 
-        robot.y,
-        robot.compass, 
-        robot.phase, 
-        robot.colour,
-        robot.moving_status,
-        robot.note.midinote,
-        robot.note.pitch,
-        robot.timbre,
-        robot.delay
+        
+            simulation_number,
+            millisecond, 
+            robot.number, 
+            robot.x, 
+            robot.y,
+            robot.compass, 
+            robot.phase, 
+            robot.colour,
+            robot.moving_status,
+            robot.note.midinote,
+            robot.note.pitch,
+            robot.timbre,
+            robot.delay
     ])
 
     def open_video_file(self,filepath):
@@ -181,19 +189,11 @@ class Arena:
             self.arena.fill(0)
             start_time = time.perf_counter()            
             for robot in robots:
-                    self.draw_robot(robot)
-            # I record the time after I drew them. 
-            #self.show_arena("Robot Simulation")
+                self.draw_robot(robot)
             end_time = time.perf_counter()
             draw_time = end_time - start_time
             self.draw_robots_time.append(draw_time)
-            # if int(millisecond) % 30 == 0:
             self.save_arena_as_png()
-            
-            # I print the average of time spent to draw each robot.
-            # print(f"Tempo per disegnare un frame: {draw_time*1000:.6f} ms")
-        average_time = sum(self.draw_robots_time) / len(self.draw_robots_time)
-        print(f" Tempo medio per disegnare un frame: {average_time*1000:.6f} ms" )
   
     def draw_robot(self,robot):
         #print(f"robot  numero: {robot.number}, Velocità X: {robot.vx}, Velocità Y: {robot.vy}")
