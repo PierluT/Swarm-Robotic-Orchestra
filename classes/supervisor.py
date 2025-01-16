@@ -2,6 +2,8 @@ import math
 import numpy as np
 import random
 import time
+import os
+import shutil
 from classes.robot import Robot
 from classes.file_reader import File_Reader
 from classes.dictionaries import orchestra_to_midi_range, music_formations
@@ -50,6 +52,30 @@ class Supervisor:
     def setup_robots(self):
         self.create_dictionary_of_robots()
         self.compute_initial_positions()
+    
+    # method to clean previous files and csv folders. 
+    def setup_csv_directory(self,csv_directory, csv_video_file_name):
+        # Controlla se la directory esiste
+        if not os.path.exists(csv_directory):
+            os.mkdir(csv_directory)  # Crea la directory se non esiste
+            print(f"Cartella {csv_directory} creata.")
+        else:
+            # Elimina tutto il contenuto della directory senza rimuovere la cartella stessa
+            for file_name in os.listdir(csv_directory):
+                file_path = os.path.join(csv_directory, file_name)
+                try:
+                    if os.path.isfile(file_path):  # Elimina solo i file
+                        os.remove(file_path)
+                    elif os.path.isdir(file_path):  # Se ci sono sottocartelle, rimuovile ricorsivamente
+                        shutil.rmtree(file_path)
+                except Exception as e:
+                    print(f"Errore durante la rimozione del file {file_path}: {e}")
+            
+            print(f"Tutti i file nella cartella {csv_directory} sono stati eliminati.")
+
+        # Percorso completo del file CSV
+        csv_file_directory = os.path.join(csv_directory, csv_video_file_name)
+        return csv_file_directory
 
     # method to return the list of robots and assign a phase to each of them.
     def create_dictionary_of_robots(self):  

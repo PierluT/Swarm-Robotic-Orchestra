@@ -13,13 +13,17 @@ class MIDIMessage():
         self.music_csv_file = "music_data.csv"
         self.final_audio_file = 'final_output.wav'
         self.current_file_directory = os.path.dirname(os.path.abspath(__file__))
-        #self.wav_folder = 'samples'
 
-    def write_csv(self,conductor_spartito):
-        with open(self.music_csv_file, mode="w", newline="") as file:
-            writer = csv.DictWriter(file, fieldnames=["ms", "musician", "note", "dur", "amp", "bpm","timbre","delay"])
-            writer.writeheader()  # Scrive l'intestazione del CSV
-            writer.writerows(conductor_spartito)  # Scrive tutte le righe
+    def write_csv(self,conductor_spartito,csv_file_path):
+        directory = csv_file_path
+        if  os.path.exists(directory):  # Assicurarsi che la cartella esista
+            # Percorso completo per il file
+            music_csv_path = os.path.join(directory, self.music_csv_file)
+
+            with open(music_csv_path, mode="w", newline="") as file:
+                writer = csv.DictWriter(file, fieldnames=["ms", "musician", "note", "dur", "amp", "bpm","timbre","delay"])
+                writer.writeheader()  # Scrive l'intestazione del CSV
+                writer.writerows(conductor_spartito)  # Scrive tutte le righe
     
     def finding_wav_from_csv(self):
         # Controlla se il file CSV esiste
