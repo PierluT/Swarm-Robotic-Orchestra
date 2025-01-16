@@ -28,9 +28,7 @@ class Arena:
     
     def clear_png_folder(self):
         self.my_path = os.path.join(self.my_path, 'png')
-        if os.path.exists(self.my_path):
-            print(f"La path '{self.my_path}' esiste.")
-            # Cancella il contenuto della cartella
+
         for filename in os.listdir(self.my_path):
             file_path = os.path.join(self.my_path, filename)
             try:
@@ -39,7 +37,7 @@ class Arena:
                     os.unlink(file_path)  # Rimuove file o link simbolici
                 elif os.path.isdir(file_path):
                     shutil.rmtree(file_path)  # Rimuove directory
-                print(f"Rimosso: {file_path}")
+                #print(f"Rimosso: {file_path}")
             except Exception as e:
                 print(f"Errore eliminando {file_path}: {e}")
 
@@ -75,6 +73,7 @@ class Arena:
                         compass = ast.literal_eval(compass_str_clean)
                         start_point = tuple(map(float, compass[0]))
                         end_point = tuple(map(float, compass[1]))
+                
                 robot_info = {
                     "millisecond": int(millisecond),
                     "robot_number": int(robot_number),
@@ -83,7 +82,8 @@ class Arena:
                     "compass": (start_point, end_point),
                     "phase": phase,
                     "colour": colour
-                }  
+                } 
+
                 self.robot_data[int(millisecond)].append(robot_info)
 
     def write_robot_data(self, writer, millisecond, robot):
