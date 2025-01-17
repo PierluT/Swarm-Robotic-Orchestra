@@ -6,7 +6,7 @@ import sys
 import os
 from pathlib import Path
 import csv
-import time
+import pandas as pd
 import shutil
 from classes.file_reader import File_Reader
 from collections import defaultdict
@@ -21,7 +21,6 @@ class Arena:
         self.height = values_dictionary['height_arena']
         self.arena = np.zeros((self.height, self.width, 3), np.uint8)
         self.robot_data = defaultdict(list)
-        self.draw_robots_time = []
         self.frame_counter = 0
         self.my_path = Path(__file__).parent
 
@@ -58,17 +57,16 @@ class Arena:
         self.frame_counter += 1
     
     def load_robot_data(self,filename, simulation_number):
-        self.robot_data.clear()
+        #self.robot_data.clear()
+        print("nome del file:"+ filename)
+        #print(os.path.abspath(filename))
         # read data from csv file
         with open(filename, mode='r') as file:
-            reader = csv.reader(file, delimiter=';')
-
-            first_iteration = True
-            for row in reader:
-                if first_iteration:
-                    first_iteration = False  # La prima volta salta l'intestazione
-                    continue
-                simulation_number, millisecond, robot_number, x, y,compass, phase, colour_str,status, midinote, pitch, timbre, delay = row
+            reader1 = csv.reader(file, delimiter=';')
+            next(reader1)
+            for row in reader1:
+                simulation_number, millisecond, robot_number, x, y,compass, phase, colour_str, midinote, pitch, timbre, delay = row
+                
                 colour_str = colour_str.strip().strip('()')  # Rimuove parentesi e spazi extra
                 colour = tuple(map(int, colour_str.split(',')))
                 # Parsing del compasso
@@ -80,7 +78,7 @@ class Arena:
                         end_point = tuple(map(float, compass[1]))
                 
                 robot_info = {
-                    #"simulation number": simulation_number,
+                    "simulation number": simulation_number,
                     "millisecond": int(millisecond),
                     "robot_number": int(robot_number),
                     "x": float(x),
@@ -91,7 +89,7 @@ class Arena:
                 } 
 
                 self.robot_data[int(millisecond)].append(robot_info)
-
+    
     def write_robot_data(self, writer,simulation_number, millisecond, robot):
 
         writer.writerow([
@@ -104,7 +102,6 @@ class Arena:
             robot.compass, 
             robot.phase, 
             robot.colour,
-            robot.moving_status,
             robot.note.midinote,
             robot.note.pitch,
             robot.timbre,
@@ -125,7 +122,7 @@ class Arena:
             print(f"Opening files is not supported on this OS via script. Please open {filepath} manually.")
 
 
-    def create_video(self, output_path="video.mp4", fps=25, audio_path=None, auto_open=False):
+    def create_video(self, output_path="video.mp4", fps=25, audio_path= None, auto_open=False):
         """
         Create a video from PNG images and optionally merge the provided audio.
 
@@ -175,24 +172,11 @@ class Arena:
         except subprocess.CalledProcessError as e:
             print(f"Error during video creation: {e}")
     
-    # method to print robot data that have to bechecked.
-    def print_robot_data(self):
-        for millisecond, robots in self.robot_data.items():
-            print(f" Millisecond {millisecond}:")
-            for robot in robots:
-                print(f"  Robot: {robot['robot_number']}, "
-                    f"X: {robot['x']}, Y: {robot['y']}, "
-                    f"Phase: {robot['phase']}, Colour: {robot['colour']}")
-    
-    def draw_all_robots(self):  
+    def draw_all_robots(self):
         for millisecond,robots in self.robot_data.items():
-            self.arena.fill(0)
-            start_time = time.perf_counter()            
+            self.arena.fill(0)           
             for robot in robots:
                 self.draw_robot(robot)
-            end_time = time.perf_counter()
-            draw_time = end_time - start_time
-            self.draw_robots_time.append(draw_time)
             self.save_arena_as_png()
   
     def draw_robot(self,robot):
@@ -208,4 +192,12 @@ class Arena:
         label_position = (int(robot['x']) - 10, int(robot['y']) - values_dictionary['radius'] - 10)  # Regola la posizione sopra il robot
         cv2.putText(self.arena, str(robot['robot_number']), label_position, 
                     cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 2)  # Testo bianco con spessore 2
-   
+
+
+
+
+"""""
+
+
+
+"""

@@ -183,12 +183,11 @@ class Robot:
 
     # mehtod to change the note if I'm not in harmony
     def change_note(self,best_scales):
-        #print(best_scales)
         change_probability = random.random()
         # I change note
         if change_probability < 0.7:
             print(f"r: {self.number} changes note")
-             # I found the closest scale
+            # I found the closest scale
             closest_scale = min(
                 best_scales,
                 key=lambda scale_name: min(
@@ -238,7 +237,7 @@ class Robot:
         self.forwarded_message = entry
 
     def set_timbre_from_midi(self):
-        #print(" change instrument")
+
         matching_instruments = []
         for instruments in self.timbre_dictionary.values():
             for instrument, midi_range in instruments.items():
