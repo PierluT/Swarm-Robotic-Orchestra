@@ -116,58 +116,59 @@ class MIDIMessage():
         return wave
     
     def generate_audio_from_csv(self,wav_files):
-        
-        # Controlla se il file CSV esiste
-        if not os.path.exists(self.final_csv_music_path):
-            raise FileNotFoundError(f"Il file CSV non esiste: {self.final_csv_music_path}")
-        # Leggi il CSV come lista di righe
-        with open(self.final_csv_music_path, 'r') as f:
-            lines = f.readlines()
-            last_line = lines[-1]
-            last_ms = int(last_line.split(',')[1])  # Estrai il primo valore ('ms') e convertilo in intero
-        #print(f"L'ultimo valore di ms è: {last_ms}")
-        
-        # Controlla se ci sono abbastanza file WAV rispetto alle righe del CSV
-        if len(lines[1:]) != len(wav_files):
-            print("Attenzione: il numero di righe nel CSV e il numero di file WAV non corrispondono!")
-        else:   
-            print("CSV e il numero di file WAV corrispondono!") 
-        
-        # sampling frequency
-        sr = 44100
-        audio_data = np.zeros(int(((last_ms + 1000) / 1000) * sr))
-        # Itera su righe del CSV e file WAV simultaneamente
-        for line, input_file in zip(lines[1:], wav_files):
             
-            # Processa la riga del CSV
-            parts = line.strip().split(',')
+            print("faccio l'audio")
+            # Controlla se il file CSV esiste
+            if not os.path.exists(self.final_csv_music_path):
+                raise FileNotFoundError(f"Il file CSV non esiste: {self.final_csv_music_path}")
+            # Leggi il CSV come lista di righe
+            with open(self.final_csv_music_path, 'r') as f:
+                lines = f.readlines()
+                last_line = lines[-1]
+                last_ms = int(last_line.split(',')[1])  # Estrai il primo valore ('ms') e convertilo in intero
+            #print(f"L'ultimo valore di ms è: {last_ms}")
             
-            try:
-                # Controlla se il file WAV esiste
-                if not os.path.exists(input_file):
-                    print(f"File WAV non trovato: {input_file}. Salto questa riga.")
-                    continue
+            # Controlla se ci sono abbastanza file WAV rispetto alle righe del CSV
+            if len(lines[1:]) != len(wav_files):
+                print("Attenzione: il numero di righe nel CSV e il numero di file WAV non corrispondono!")
+            else:   
+                print("CSV e il numero di file WAV corrispondono!") 
+            
+            # sampling frequency
+            sr = 44100
+            audio_data = np.zeros(int(((last_ms + 1000) / 1000) * sr))
+            # Itera su righe del CSV e file WAV simultaneamente
+            for line, input_file in zip(lines[1:], wav_files):
+                
+                # Processa la riga del CSV
+                parts = line.strip().split(',')
+                
+                try:
+                    # Controlla se il file WAV esiste
+                    if not os.path.exists(input_file):
+                        print(f"File WAV non trovato: {input_file}. Salto questa riga.")
+                        continue
 
-                # Controlla se la riga contiene un valore di millisecondi valido
-                ms = int(parts[1]) if parts[1].isdigit() else 0  # Offset in millisecondi
-                delay = int(parts[8]) if parts[8].isdigit() else 0
-                #print("delay "+ str(delay))
-                start_sample = int((ms / 1000 + delay ) * sr)  # Converti ms in campioni
+                    # Controlla se la riga contiene un valore di millisecondi valido
+                    ms = int(parts[1]) if parts[1].isdigit() else 0  # Offset in millisecondi
+                    delay = int(parts[8]) if parts[8].isdigit() else 0
+                    #print("delay "+ str(delay))
+                    start_sample = int((ms / 1000 + delay ) * sr)  # Converti ms in campioni
 
-                # Carica il file WAV
-                audio, sr_file = librosa.load(input_file, sr=sr)
+                    # Carica il file WAV
+                    audio, sr_file = librosa.load(input_file, sr=sr)
 
-                # Controlla la lunghezza del file WAV rispetto all'array di output
-                end_sample = start_sample + len(audio)
+                    # Controlla la lunghezza del file WAV rispetto all'array di output
+                    end_sample = start_sample + len(audio)
 
-                audio_data[start_sample:end_sample] += audio
+                    audio_data[start_sample:end_sample] += audio
 
-            except Exception as e:
-                print(f"Errore durante l'elaborazione della riga o del file {input_file}: {e}")
+                except Exception as e:
+                    print(f"Errore durante l'elaborazione della riga o del file {input_file}: {e}")
 
-    
-        sf.write(self.final_audio_file, audio_data, sr)
-        print(f"File audio finale generato: {self.final_audio_file}")
+        
+            sf.write(self.final_audio_file, audio_data, sr)
+            print(f"File audio finale generato: {self.final_audio_file}")
 
     
     def generate_metronome_click(self, sample_rate, click_duration=0.05, frequency=1000, amplitude=0.1):
