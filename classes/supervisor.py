@@ -59,6 +59,8 @@ class Supervisor:
         
         self.min_midinote = min_value
         self.max_midinote = max_value 
+        
+        return self.min_midinote, self.max_midinote
     
     def setup_robots(self):
         self.create_dictionary_of_robots()
@@ -96,10 +98,10 @@ class Supervisor:
 
     # method to return the list of robots and assign a phase to each of them.
     def create_dictionary_of_robots(self):  
-        self.compute_midi_range_values()
-        
+    
         for n in range(self.number_of_robots):
             robot = Robot(number = n)
+            robot.min_midinote, robot.max_midinote = self.compute_midi_range_values()
             initial_random_note = random.randint(self.min_midinote, self.max_midinote)
             robot.create_new_note(initial_random_note)
             robot.set_timbre_from_midi()

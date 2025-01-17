@@ -4,7 +4,7 @@ from classes.supervisor import Supervisor
 from classes.arena import Arena
 from classes.MIDIMessage import MIDIMessage
 
-# I pass parameters in the main, as f.ex number of simulations.           
+# I pass parameters in the main.           
 def main():
     parser = argparse.ArgumentParser(description=" Esempio di script con un intero e due booleani")
     parser.add_argument("int_param", type=int, help="Un parametro intero.")
@@ -12,8 +12,6 @@ def main():
     
     # Parsing dei parametri
     args = parser.parse_args()
-
-    # Associa i valori a variabili
     int_param = args.int_param
     bool_video_audio = args.bool_param1 
     
@@ -21,29 +19,24 @@ def main():
     supervisor = Supervisor([])
     midi_class = MIDIMessage()
     arena = Arena()
-    
     csv_path = supervisor.set_up_csv_directory()
     supervisor.clean_csv_directory()
     
     with open(csv_path , mode="w", newline="") as file:
         writer = csv.writer(file, delimiter=';')
-        # add note infos
         writer.writerow(["simulation number","ms", "robot number", "x", "y","compass", "phase", "colour","midinote", "pitch", "timbre", "delay"])
-        # Ciclo per eseguire le simulazioni
         for simulation_number in range(int_param):
-            
-            print(f"Esecuzione simulazione {simulation_number}...")
+            print(" ################################# ")
+            print(f"Execution number {simulation_number}")
             # CLEAN EVERYTHING BEFORE EXECUTION 
             # method to clean previous png files in order to not overlap them.
             arena.clean_png_folder()
-            # the method cleans previous csv files and folder and return the path where to write csv files. 
-            
             # method to set robot positions and initial random notes.
             supervisor.setup_robots()
             
-            for millisecond in range(0,360):
+            for millisecond in range(0,60000):
                 for robot in supervisor.dictionary_of_robots:
-                    robot.update_phase(millisecond, simulation_number)
+                    robot.update_phase(millisecond)
                             
                     # COMMUNICATION every 80 ms.   
                     if (millisecond % 80 == 0):
@@ -64,18 +57,17 @@ def main():
                         if robot.local_phase_map:
                             robot.update_phase_kuramoto_model()
                             
-                        robot.clean_buffers()
-                              
+                        robot.clean_buffers()    
                         arena.write_robot_data(writer, simulation_number, millisecond, robot) 
             
             
             supervisor.build_conductor_spartito()
-            midi_class.write_csv(supervisor.conductor_spartito)
+            midi_class.write_csv(supervisor.conductor_spartito,simulation_number)
             supervisor.dictionary_of_robots.clear()
             supervisor.conductor_spartito.clear()
     
     if bool_video_audio: 
-        # readers must be outside writer!!       
+        # VISUALIZATION PART       
         arena.load_robot_data(csv_path, simulation_number)
         arena.draw_all_robots()
         wav_files_list = midi_class.finding_wav_from_csv()
