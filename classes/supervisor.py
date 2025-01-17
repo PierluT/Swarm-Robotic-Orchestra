@@ -34,6 +34,9 @@ class Supervisor:
         # value to control that notes message exchanges doesn't happen cpuntinously. 
         # final music sheet that will be converted into audio file.
         self.conductor_spartito = []
+        # to found the minimum a maximum mid value.
+        self.min_midinote = 0
+        self.max_midinote = 0
         # to estimate phases convergence
         self.target_precision = 0.01
         # time interval for phases check 
@@ -43,12 +46,29 @@ class Supervisor:
         #self.timbre_dictionary = orchestra_to_midi_range
         self.music_formations = music_formations
     
+    def compute_midi_range_values(self):
+        
+        min_value = float('inf')  # Inizializza come infinito
+        max_value = float('-inf') # Inizializza come -infinito
+        
+        for section in orchestra_to_midi_range.values():
+            for instrument_range in section.values():
+                min_value = min(min_value, min(instrument_range))
+                max_value = max(max_value, max(instrument_range))
+        
+        self.min_midinote = min_value
+        self.max_midinote = max_value 
+        print("valore min: "+ str(self.min_midinote))
+        print("valore max: "+ str(self.max_midinote))
+
+    
     def setup_robots(self):
         self.create_dictionary_of_robots()
         self.compute_initial_positions()
     
     # method to clean previous files and csv folders. 
     def setup_csv_directory(self,csv_directory, csv_video_file_name):
+        
         # Controlla se la directory esiste
         if not os.path.exists(csv_directory):
             os.mkdir(csv_directory)  # Crea la directory se non esiste
@@ -69,14 +89,16 @@ class Supervisor:
 
         # Percorso completo del file CSV
         csv_file_directory = os.path.join(csv_directory, csv_video_file_name)
+        
         return csv_file_directory
 
     # method to return the list of robots and assign a phase to each of them.
     def create_dictionary_of_robots(self):  
+        self.compute_midi_range_values()
         
         for n in range(self.number_of_robots):
             robot = Robot(number = n)
-            initial_random_note = random.randint(34,70)
+            initial_random_note = random.randint(self.min_midinote, self.max_midinote)
             robot.create_new_note(initial_random_note)
             robot.set_timbre_from_midi()
             self.dictionary_of_robots.append(robot)
@@ -230,6 +252,7 @@ class Supervisor:
         # I sort the final music sheet considering ms.
         self.conductor_spartito.sort(key=lambda x: x["ms"])
 
+    
     def calculate_instrument_affinity(self):
         # Creiamo un dizionario per tenere traccia delle coppie di strumenti
         affinity_dict = defaultdict(lambda: defaultdict(int))
