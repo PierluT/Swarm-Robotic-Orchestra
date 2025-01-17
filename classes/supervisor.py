@@ -236,27 +236,22 @@ class Supervisor:
         # every 2 steps. a parameter that you can study.
         self.post_office(robot_to_parse)# logical 
         #self.check_phases_convergence()
-    
-    def nearest_timestep(self,ms):
-        """Round value to the nearest ms considering the step interval."""
-        return round(ms / self.time_step) * self.time_step
         
     # unifies spartito of all robots and sort them form a crhonological point of view.
     def build_conductor_spartito(self):
         self.conductor_spartito = []
+        
         for robot in self.dictionary_of_robots:
             
             adjusted_spartito = [
-            
-            {**entry, "ms": self.nearest_timestep(entry["ms"])}
+            entry  # Non applico nearest_timestep
             for entry in robot.my_spartito
-        ]
+            ]
             # Extend the full spartito with the player ones.
             self.conductor_spartito.extend(adjusted_spartito)
         # I sort the final music sheet considering ms.
         self.conductor_spartito.sort(key=lambda x: x["ms"])
 
-    
     def calculate_instrument_affinity(self):
         # Creiamo un dizionario per tenere traccia delle coppie di strumenti
         affinity_dict = defaultdict(lambda: defaultdict(int))
