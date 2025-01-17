@@ -12,11 +12,10 @@ class MIDIMessage():
     def __init__(self):
         self.music_csv_file = "music_data.csv"
         self.final_audio_file = 'final_output.wav'
-        self.directory = ""
+        self.directory = "csv"
         self.final_csv_music_path = ""
 
-    def write_csv(self, conductor_spartito, csv_file_path):
-        self.directory = csv_file_path
+    def write_csv(self, conductor_spartito):
         music_csv_path = os.path.join(self.directory, self.music_csv_file)
         
         # Assicurati che la directory esista
