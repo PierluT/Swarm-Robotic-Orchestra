@@ -21,21 +21,27 @@ def main():
     supervisor = Supervisor([])
     midi_class = MIDIMessage()
     arena = Arena()
-    arena.clear_png_folder()
-    # I create a new csv file.
-    csv_video_file_name = "video_maker.csv"
-    csv_directory = "csv"
-    csv_path = supervisor.setup_csv_directory(csv_directory, csv_video_file_name)
-
+    
+    csv_path = supervisor.set_up_csv_directory()
+    supervisor.clean_csv_directory()
+    
     with open(csv_path , mode="w", newline="") as file:
         writer = csv.writer(file, delimiter=';')
         # add note infos
         writer.writerow(["simulation number","ms", "robot number", "x", "y","compass", "phase", "colour","midinote", "pitch", "timbre", "delay"])
         # Ciclo per eseguire le simulazioni
         for simulation_number in range(int_param):
+            
             print(f"Esecuzione simulazione {simulation_number}...")
+            # CLEAN EVERYTHING BEFORE EXECUTION 
+            # method to clean previous png files in order to not overlap them.
+            arena.clean_png_folder()
+            # the method cleans previous csv files and folder and return the path where to write csv files. 
+            
+            # method to set robot positions and initial random notes.
             supervisor.setup_robots()
-            for millisecond in range(0,60000):
+            
+            for millisecond in range(0,360):
                 for robot in supervisor.dictionary_of_robots:
                     robot.update_phase(millisecond, simulation_number)
                             
@@ -64,7 +70,7 @@ def main():
             
             
             supervisor.build_conductor_spartito()
-            midi_class.write_csv(supervisor.conductor_spartito,csv_directory)
+            midi_class.write_csv(supervisor.conductor_spartito)
             supervisor.dictionary_of_robots.clear()
             supervisor.conductor_spartito.clear()
     
@@ -72,7 +78,6 @@ def main():
         # readers must be outside writer!!       
         arena.load_robot_data(csv_path, simulation_number)
         arena.draw_all_robots()
-        midi_class.write_csv(supervisor.conductor_spartito,csv_directory)
         wav_files_list = midi_class.finding_wav_from_csv()
         midi_class.generate_audio_from_csv(wav_files_list)
         # video generation audio included

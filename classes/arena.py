@@ -22,15 +22,12 @@ class Arena:
         self.arena = np.zeros((self.height, self.width, 3), np.uint8)
         self.robot_data = defaultdict(list)
         self.frame_counter = 0
-        self.my_path = Path(__file__).parent
+        self.png_folder = "png"    
 
+    def clean_png_folder(self):
 
-    def clear_png_folder(self):
-        
-        self.my_path = os.path.join(self.my_path, 'png')
-
-        for filename in os.listdir(self.my_path):
-            file_path = os.path.join(self.my_path, filename)
+        for filename in os.listdir(self.png_folder):
+            file_path = os.path.join(self.png_folder, filename)
             try:
                 # Rimuovi file o directory
                 if os.path.isfile(file_path) or os.path.islink(file_path):
@@ -51,7 +48,7 @@ class Arena:
     
     def save_arena_as_png(self):
         """Salva un frame dell'arena come PNG con nomi compatibili con FFmpeg."""
-        filename = os.path.join(self.my_path, f"frame{self.frame_counter:04d}.png")
+        filename = os.path.join(self.png_folder, f"frame{self.frame_counter:04d}.png")
         cv2.imwrite(filename, self.arena)
         #print(f"Salvato frame: {filename}")
         self.frame_counter += 1
