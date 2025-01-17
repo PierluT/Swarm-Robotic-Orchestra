@@ -132,45 +132,46 @@ class Arena:
                                If None, no audio is added.
         """
         try:
-            # Base FFmpeg command to convert PNG frames to a video
-            command = [
-                "ffmpeg",
-                "-y",  # Overwrite output if it exists
-                "-framerate", str(fps),
-                "-i", os.path.join(self.my_path, "frame%04d.png"),  # Input PNG frames
-            ]
+                # Base FFmpeg command to convert PNG frames to a video
+                command = [
+                    "ffmpeg",
+                    "-y",  # Overwrite output if it exists
+                    "-framerate", str(fps),
+                    "-i", os.path.join(self.my_path, "frame%04d.png"),  # Input PNG frames
+                ]
 
-            # If audio is provided, add it to the command
-            if audio_path:
-                command.extend([
-                    "-i", audio_path,  # Add the audio input
-                    "-c:v", "libx264",  # Encode video with libx264
-                    "-c:a", "aac",  # Encode audio with AAC
-                    "-shortest",  # End when the shortest stream ends
-                ])
-            else:
-                # If no audio, still need to encode video
-                command.extend([
-                    "-pix_fmt", "yuv420p",  # Pixel format for compatibility
-                    "-c:v", "libx264"
-                ])
+                # If audio is provided, add it to the command
+                if audio_path:
+                    
+                    command.extend([
+                        "-i", audio_path,  # Add the audio input
+                        "-c:v", "libx264",  # Encode video with libx264
+                        "-c:a", "aac",  # Encode audio with AAC
+                        "-shortest",  # End when the shortest stream ends
+                    ])
+                else:
+                    # If no audio, still need to encode video
+                    command.extend([
+                        "-pix_fmt", "yuv420p",  # Pixel format for compatibility
+                        "-c:v", "libx264"
+                    ])
 
-            # Always output YUV420p for wide compatibility
-            if audio_path:
-                command.extend(["-pix_fmt", "yuv420p"])
+                # Always output YUV420p for wide compatibility
+                if audio_path:
+                    command.extend(["-pix_fmt", "yuv420p"])
 
-            # Specify the output file at the end
-            command.append(output_path)
+                # Specify the output file at the end
+                command.append(output_path)
 
-            # Run the FFmpeg command
-            subprocess.run(command, check=True)
-            print(f"Video successfully created: {output_path}")
+                # Run the FFmpeg command
+                subprocess.run(command, check=True)
+                print(f"Video successfully created: {output_path}")
 
-            if auto_open:
-                self.open_video_file(output_path)
+                if auto_open:
+                    self.open_video_file(output_path)
 
         except subprocess.CalledProcessError as e:
-            print(f"Error during video creation: {e}")
+                print(f"Error during video creation: {e}")
     
     def draw_all_robots(self):
         for millisecond,robots in self.robot_data.items():

@@ -48,8 +48,8 @@ class Supervisor:
     
     def compute_midi_range_values(self):
         
-        min_value = float('inf')  # Inizializza come infinito
-        max_value = float('-inf') # Inizializza come -infinito
+        min_value = float('inf')  
+        max_value = float('-inf') 
         
         for section in orchestra_to_midi_range.values():
             for instrument_range in section.values():
@@ -58,9 +58,6 @@ class Supervisor:
         
         self.min_midinote = min_value
         self.max_midinote = max_value 
-        print("valore min: "+ str(self.min_midinote))
-        print("valore max: "+ str(self.max_midinote))
-
     
     def setup_robots(self):
         self.create_dictionary_of_robots()

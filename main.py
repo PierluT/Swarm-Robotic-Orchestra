@@ -8,16 +8,15 @@ from classes.MIDIMessage import MIDIMessage
 def main():
     parser = argparse.ArgumentParser(description=" Esempio di script con un intero e due booleani")
     parser.add_argument("int_param", type=int, help="Un parametro intero.")
-    parser.add_argument("bool_param1", type=lambda x: x.lower() in ("true", "1", "yes"), help="Il primo booleano (true/false).")
-    parser.add_argument("bool_param2", type=lambda x: x.lower() in ("true", "1", "yes"), help="Il secondo booleano (true/false).")
+    parser.add_argument("bool_param1", type=lambda x: x.lower() in ("true", "1", "yes"), help="boolean video and audio (true/false).")
     
     # Parsing dei parametri
     args = parser.parse_args()
 
     # Associa i valori a variabili
     int_param = args.int_param
-    bool_video = args.bool_param1
-    bool_audio = args.bool_param2  
+    bool_video_audio = args.bool_param1 
+    
     # intializations
     supervisor = Supervisor([])
     midi_class = MIDIMessage()
@@ -27,7 +26,6 @@ def main():
     csv_video_file_name = "video_maker.csv"
     csv_directory = "csv"
     csv_path = supervisor.setup_csv_directory(csv_directory, csv_video_file_name)
-    print(csv_path)
 
     with open(csv_path , mode="w", newline="") as file:
         writer = csv.writer(file, delimiter=';')
@@ -37,7 +35,7 @@ def main():
         for simulation_number in range(int_param):
             print(f"Esecuzione simulazione {simulation_number}...")
             supervisor.setup_robots()
-            for millisecond in range(0,80):
+            for millisecond in range(0,60000):
                 for robot in supervisor.dictionary_of_robots:
                     robot.update_phase(millisecond, simulation_number)
                             
@@ -65,18 +63,20 @@ def main():
                         arena.write_robot_data(writer, simulation_number, millisecond, robot) 
             
             
-            #supervisor.build_conductor_spartito()
-            #midi_class.write_csv(supervisor.conductor_spartito,csv_directory)
-            #supervisor.dictionary_of_robots.clear()
-            #supervisor.conductor_spartito.clear()
+            supervisor.build_conductor_spartito()
+            midi_class.write_csv(supervisor.conductor_spartito,csv_directory)
+            supervisor.dictionary_of_robots.clear()
+            supervisor.conductor_spartito.clear()
     
-    # readers must be outside writer!!       
-    #arena.load_robot_data(csv_path, simulation_number)
-    #arena.draw_all_robots()
-    #midi_class.write_csv(supervisor.conductor_spartito,csv_directory)
-    #wav_files_list = midi_class.finding_wav_from_csv()
-    #midi_class.generate_audio_from_csv(wav_files_list)
-    #arena.create_video(output_path= "video_simulation.mp4",audio_path = "final_output.wav", fps = 25, auto_open= True)
+    if bool_video_audio: 
+        # readers must be outside writer!!       
+        arena.load_robot_data(csv_path, simulation_number)
+        arena.draw_all_robots()
+        midi_class.write_csv(supervisor.conductor_spartito,csv_directory)
+        wav_files_list = midi_class.finding_wav_from_csv()
+        midi_class.generate_audio_from_csv(wav_files_list)
+        # video generation audio included
+        arena.create_video(output_path= "video_simulation.mp4", audio_path = "final_output.wav", fps = 25, auto_open= True)
 
 if __name__ == "__main__":
         

@@ -187,6 +187,7 @@ class Robot:
         # I change note
         if change_probability < 0.7:
             print(f"r: {self.number} changes note")
+            
             # I found the closest scale
             closest_scale = min(
                 best_scales,
@@ -201,11 +202,13 @@ class Robot:
                 self.scales[closest_scale],
                 key=lambda note: min(abs(self.note.pitch - note), 12 - abs(self.note.pitch - note))
             )
+            
             # movement range
             musical_interval = self.note.pitch - closest_note
-            if musical_interval > 1:
-                print(musical_interval)
+            #if musical_interval > 1:
+            print("intervallo: "+str(musical_interval))
             previous_note = self.note.midinote
+
             # change note
             self.note.midinote += musical_interval 
             self.note.pitch += musical_interval % 12
@@ -242,15 +245,13 @@ class Robot:
         for instruments in self.timbre_dictionary.values():
             for instrument, midi_range in instruments.items():
                 # Verify if the note that I'm playing is in the midi range of the instrument
-                if self.note.midinote in midi_range:
-                    #print(" found new instrument")
-                    #print(midi_range)  
+                if self.note.midinote in midi_range:  
                     matching_instruments.append(instrument)
 
         # If there are more than one corrispondent instrument, choose one randomly.
         if matching_instruments:
             choosen_timbre = random.choice(matching_instruments)
-            #print(choosen_timbre)
+            print(" found new instrument: " +str(choosen_timbre))
             self.timbre = choosen_timbre
         else:
              print("No matching instrument found") 
