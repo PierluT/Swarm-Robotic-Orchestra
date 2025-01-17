@@ -22,7 +22,7 @@ class Arena:
         self.arena = np.zeros((self.height, self.width, 3), np.uint8)
         self.robot_data = defaultdict(list)
         self.frame_counter = 0
-        self.png_folder = "png"    
+        self.png_folder = "png"   
 
     def clean_png_folder(self):
 
@@ -134,7 +134,7 @@ class Arena:
                     "ffmpeg",
                     "-y",  # Overwrite output if it exists
                     "-framerate", str(fps),
-                    "-i", os.path.join(self.my_path, "frame%04d.png"),  # Input PNG frames
+                    "-i", os.path.join(self.png_folder, "frame%04d.png"),  # Input PNG frames
                 ]
 
                 # If audio is provided, add it to the command

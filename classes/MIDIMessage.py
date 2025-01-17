@@ -15,7 +15,7 @@ class MIDIMessage():
         self.directory = "csv"
         self.final_csv_music_path = ""
 
-    def write_csv(self, conductor_spartito):
+    def write_csv(self, conductor_spartito, simulation_number):
         music_csv_path = os.path.join(self.directory, self.music_csv_file)
         
         # Assicurati che la directory esista
@@ -38,7 +38,10 @@ class MIDIMessage():
             
             # Scrivi le righe solo se ci sono dati
             if conductor_spartito:
-                #print(f"Scrivendo {len(conductor_spartito)} righe nel file CSV...")
+                for row in conductor_spartito:
+                    row["simulation number"] = simulation_number
+                
+                # write csv row
                 writer.writerows(conductor_spartito)
             
     def finding_wav_from_csv(self):
@@ -125,7 +128,7 @@ class MIDIMessage():
                 lines = f.readlines()
                 last_line = lines[-1]
                 last_ms = int(last_line.split(',')[1])  # Estrai il primo valore ('ms') e convertilo in intero
-            #print(f"L'ultimo valore di ms è: {last_ms}")
+            print(f"L'ultimo valore di ms è: {last_ms}")
             
             # Controlla se ci sono abbastanza file WAV rispetto alle righe del CSV
             if len(lines[1:]) != len(wav_files):

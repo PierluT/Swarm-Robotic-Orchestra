@@ -6,6 +6,7 @@ colours = {
 }
 
 major_scales = {
+    
     0: [0, 2, 4, 5, 7, 9, 11],    # Do maggiore (C Major)
     1: [1, 3, 5, 6, 8, 10, 0],    # Do# maggiore (C# Major)
     2: [2, 4, 6, 7, 9, 11, 1],    # Re maggiore (D Major)

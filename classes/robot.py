@@ -73,6 +73,9 @@ class Robot:
         self.timbre = ""
         self.timbre_dictionary = orchestra_to_midi_range
         self.delay = random.randint(0,3) 
+        # to found the minimum a maximum mid value.
+        self.min_midinote = 0
+        self.max_midinote = 0
 
     def __repr__(self):
         return f"Robot(number = {self.number}, coordinate x = {self.x}, y = {self.y}, phase = {self.phase})"
@@ -191,7 +194,7 @@ class Robot:
             # I found the closest scale
             closest_scale = min(
                 best_scales,
-                key=lambda scale_name: min(
+                key = lambda scale_name: min(
                     abs(self.note.pitch - note) if abs(self.note.pitch - note) <= 6 else 12 - abs(self.note.pitch - note)
                     for note in self.scales[scale_name]
                 )
@@ -200,18 +203,45 @@ class Robot:
             # found closest note into the closest scale.
             closest_note = min(
                 self.scales[closest_scale],
-                key=lambda note: min(abs(self.note.pitch - note), 12 - abs(self.note.pitch - note))
+                key = lambda note: min(abs(self.note.pitch - note), 12 - abs(self.note.pitch - note))
             )
-            
-            # movement range
-            musical_interval = self.note.pitch - closest_note
-            #if musical_interval > 1:
-            print("intervallo: "+str(musical_interval))
-            previous_note = self.note.midinote
 
-            # change note
-            self.note.midinote += musical_interval 
-            self.note.pitch += musical_interval % 12
+            diff = self.note.pitch - closest_note
+            if abs(diff) > 6:  # Se l'intervallo è più grande di un tritono (6 semitoni)
+                if diff > 0:
+                    diff -= 12  # Salta all'ottava precedente
+                else:
+                    diff += 12  # Salta all'ottava successiva
+        
+            # Movimento limitato al range dello strumento
+            musical_interval = diff
+            print("intervallo: " + str(musical_interval))
+            previous_note = self.note.midinote
+            if abs(musical_interval) == 12:
+                print(f"La nota è già corretta (intervallo: {musical_interval}). Nessun cambio necessario.")
+
+            # Cambia nota solo se rientra nel range
+            new_midinote = self.note.midinote + musical_interval
+            if self.min_midinote <= new_midinote <= self.max_midinote:
+                # change note
+                self.note.midinote += musical_interval 
+                self.note.pitch += musical_interval % 12
+            else:
+                print(f"Nota fuori range: {new_midinote}. Cambio ignorato.")
+                # Fallback: Trova la nota valida più vicina
+                valid_midinote = min(
+                    range(self.min_midinote, self.max_midinote + 1),
+                    key=lambda midinote: abs(midinote - new_midinote)
+                )
+
+                # Calcola l'intervallo corretto per il fallback
+                fallback_interval = valid_midinote - self.note.midinote
+
+                # Applica il cambio
+                self.note.midinote += fallback_interval
+                self.note.pitch = (self.note.pitch + fallback_interval) % 12
+
+                print(f"Nota cambiata al fallback: {self.note.midinote} (pitch: {self.note.pitch})")
             #print("robot n: "+ str(self.number)+ " changes from "+ str(previous_note)+ " to: "+ str(self.note.midinote))
             
             # control if the new note is in the range of my actual instrument
@@ -228,6 +258,7 @@ class Robot:
         else: 
             print(f"r: {self.number} kept the same note {self.previous_midinote} not in harmony")      
 
+    # message from each robot.
     def set_emitter_message(self):
         
         entry = {
@@ -238,7 +269,8 @@ class Robot:
             "delay": self.delay
         }
         self.forwarded_message = entry
-
+    
+    # method to set the timbre based on related note ranges.
     def set_timbre_from_midi(self):
 
         matching_instruments = []
@@ -251,7 +283,7 @@ class Robot:
         # If there are more than one corrispondent instrument, choose one randomly.
         if matching_instruments:
             choosen_timbre = random.choice(matching_instruments)
-            print(" found new instrument: " +str(choosen_timbre))
+            #print(" found new instrument: " +str(choosen_timbre))
             self.timbre = choosen_timbre
         else:
              print("No matching instrument found") 
@@ -308,10 +340,10 @@ class Robot:
 
 
     # method to write robot music sheet.
-    def add_note_to_spartito(self,ms, simulation_number):
+    def add_note_to_spartito(self,ms):
         
         spartito_entry = {
-            "simulation number": simulation_number,
+
             "ms": ms,
             "musician": self.number,
             "note": self.note.midinote,
@@ -326,7 +358,7 @@ class Robot:
     
     # method to control that robot enters only the forst time in the playing status.
     # ADD a control for playing note: if i started playing note I cannot change/stop the note for this round.
-    def control_playing_flag(self, millisecond, simulation_number):
+    def control_playing_flag(self, millisecond):
         if 0 <= self.phase < 1:
             # the first time that I enter means that I have to play.
             if not self.triggered_playing_flag:
@@ -335,7 +367,7 @@ class Robot:
                 self.colour = colours['blue']
                 self.last_played_ms = millisecond
                 # that has to be separated by the 0 cross phase.
-                self.add_note_to_spartito(millisecond, simulation_number)  
+                self.add_note_to_spartito(millisecond)  
             # Means that is not the first time that I enter in the condition, so I have to reset false.
             else:
                 self.playing_flag = False
@@ -349,13 +381,13 @@ class Robot:
                 self.colour = colours['green']
     
     # method to update internal robot phase.
-    def update_phase(self,millisecond,simulation_number):
+    def update_phase(self,millisecond):
         #current_ms = global_time + counter
         self.phase += (2 * np.pi / 4000)
         # normalization only if I reach 2pi then I go to 0.
         self.phase %= (2 * np.pi)
         # method to control if I have the permission to play.
-        self.control_playing_flag(millisecond,simulation_number)
+        self.control_playing_flag(millisecond)
     
     def get_phase_info(self):
         if self.recieved_message:
