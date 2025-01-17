@@ -189,7 +189,7 @@ class Robot:
         change_probability = random.random()
         # I change note
         if change_probability < 0.7:
-            print(f"r: {self.number} changes note")
+            #print(f"r: {self.number} changes note")
             
             # I found the closest scale
             closest_scale = min(
@@ -215,10 +215,10 @@ class Robot:
         
             # Movimento limitato al range dello strumento
             musical_interval = diff
-            print("intervallo: " + str(musical_interval))
+            #print("intervallo: " + str(musical_interval))
             previous_note = self.note.midinote
             if abs(musical_interval) == 12:
-                print(f"La nota è già corretta (intervallo: {musical_interval}). Nessun cambio necessario.")
+                print(f" AAAAAAAAAAAAAAAAAAAA NOTA CORRETTA intervallo: {musical_interval})")
 
             # Cambia nota solo se rientra nel range
             new_midinote = self.note.midinote + musical_interval
