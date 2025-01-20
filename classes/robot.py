@@ -182,8 +182,8 @@ class Robot:
         self.flag_included_proper_midinote = False 
     
     # general method to create note
-    def create_new_note(self, midi_value):
-        note = Note( midinote = midi_value)
+    def create_new_note(self, midi_value, bpm, duration):
+        note = Note( midinote = midi_value, bpm = bpm, duration = duration)
         self.note = note
 
     # mehtod to change the note if I'm not in harmony
