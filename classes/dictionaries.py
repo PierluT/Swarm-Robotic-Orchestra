@@ -5,6 +5,7 @@ colours = {
     'blue': (255,0,0)
 }
 
+
 major_scales = {
     
     0: [0, 2, 4, 5, 7, 9, 11],    # Do maggiore (C Major)

@@ -6,6 +6,7 @@ import os
 import shutil
 from classes.robot import Robot
 from classes.file_reader import File_Reader
+from classes.tempo import TimeSignature
 from classes.dictionaries import orchestra_to_midi_range, music_formations
 from collections import defaultdict
 
@@ -29,8 +30,6 @@ class Supervisor:
         self.collision_margin = values_dictionary['radar']
         # dictionary of distance bewteen a robot and each others.
         self.distances = [[0 for _ in range(self.number_of_robots)] for _ in range(self.number_of_robots)]
-        # value to relate phase update and robot steps.
-        self.time_step = values_dictionary['time_step']
         # value to control that notes message exchanges doesn't happen cpuntinously. 
         # final music sheet that will be converted into audio file.
         self.conductor_spartito = []
@@ -43,6 +42,7 @@ class Supervisor:
         self.last_check_time = time.time()
         # this value is the ability of a robot to see thing around it.
         self.sensor = values_dictionary['sensor']
+        self.initial_bpm = values_dictionary['bpm']
         #self.timbre_dictionary = orchestra_to_midi_range
         self.music_formations = music_formations
         self.csv_folder = "csv"
@@ -94,17 +94,34 @@ class Supervisor:
                     print(f"Errore durante la rimozione del file {file_path}: {e}")
             
         print(f"Tutti i file nella cartella {self.csv_folder} sono stati eliminati.")       
-        
+
+    def compute_kuramoto_value(self):
+        # time length of a beat: 60 seconds / bpm (beat per minute)
+        seconds_in_a_beat = 60 / self.initial_bpm
+        ts = TimeSignature()
+        #print(" tempo signature: "+str(ts.time_signature_combiantion))
+        number_of_beats, denominator = ts.time_signature_combiantion
+        kuramoto_value = 1000 * (seconds_in_a_beat * number_of_beats)
+        return number_of_beats, kuramoto_value, seconds_in_a_beat
 
     # method to return the list of robots and assign a phase to each of them.
     def create_dictionary_of_robots(self):  
-    
+        number_of_beats, kuramoto_value, seconds_in_a_beat = self.compute_kuramoto_value()
+        print(" numeratore: "+ str(number_of_beats))
+        print("kuramoto value: "+ str(kuramoto_value))
+        print(" bpm: "+ str(self.initial_bpm))
+        print("seconds in a beat: "+str(seconds_in_a_beat))
+        delay_array = list(range(number_of_beats))
+        
         for n in range(self.number_of_robots):
-            robot = Robot(number = n)
+            robot = Robot(number = n, phase_period = kuramoto_value, delay_values = delay_array, sb = seconds_in_a_beat)
+            # to compute minimum and maximum midinote value
             robot.min_midinote, robot.max_midinote = self.compute_midi_range_values()
             initial_random_note = random.randint(self.min_midinote, self.max_midinote)
             robot.create_new_note(initial_random_note)
+            # to associate a timbre to the note
             robot.set_timbre_from_midi()
+            # the supervisor has a complete dictionary of all the robots.
             self.dictionary_of_robots.append(robot)
 
     # method to set the intial positions of the robots, in order to avoid overlap.
@@ -168,8 +185,7 @@ class Supervisor:
 
         return self.distances 
 
-     # method to send and receive messages.
-    # DIFFERENTIATE LOGIC AND PYSICS, so handle differently collision and post office
+    # method to send and receive messages.
     def post_office(self,initial_robot):
         initial_robot.set_emitter_message()
         for j in range(initial_robot.number +1, len(self.distances)):
@@ -181,7 +197,7 @@ class Supervisor:
                 robot2_chat = self.dictionary_of_robots[j]
                 self.handle_communication(robot1_chat, robot2_chat)
     
-    # method to handle phase communication
+    # method to handle phase communication.
     def handle_communication(self,robot1, robot2):
         robot2.set_emitter_message()
         robot2.recieved_message.append(robot1.forwarded_message)
@@ -229,13 +245,6 @@ class Supervisor:
             
             return converging
         return None  # Nessun controllo effettuato
-    
-    
-    def collision_and_message_control(self,robot_to_parse):
-        self.make_matrix_control(robot_to_parse)# physical
-        # every 2 steps. a parameter that you can study.
-        self.post_office(robot_to_parse)# logical 
-        #self.check_phases_convergence()
         
     # unifies spartito of all robots and sort them form a crhonological point of view.
     def build_conductor_spartito(self):
@@ -282,21 +291,3 @@ class Supervisor:
     
         return affinity_matrix
     
-
-
-"""""
-def get_timbre_from_midi(self,note):
-        matching_instruments = []
-
-        # Scorri i gruppi di strumenti nell'orchestra
-        for instruments in self.timbre_dictionary.values():
-            for instrument, midi_range in instruments.items():
-                if note in midi_range:  # Verifica se il numero è nel range MIDI dello strumento
-                    matching_instruments.append(instrument)
-
-        # Se ci sono strumenti corrispondenti, scegline uno a caso
-        if matching_instruments:
-            return random.choice(matching_instruments)
-        else:
-            return "No matching instrument found"  # Se nessuno strumento corrisponde
-"""
