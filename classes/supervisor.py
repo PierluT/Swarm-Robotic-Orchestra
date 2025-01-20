@@ -102,6 +102,8 @@ class Supervisor:
         #print(" tempo signature: "+str(ts.time_signature_combiantion))
         number_of_beats, denominator = ts.time_signature_combiantion
         kuramoto_value = 1000 * (seconds_in_a_beat * number_of_beats)
+        # By now I set the notes length as the beat seoconds duration. Then
+        # I will have to change with the possible length available durations.
         return number_of_beats, kuramoto_value, seconds_in_a_beat
 
     # method to return the list of robots and assign a phase to each of them.
@@ -118,7 +120,7 @@ class Supervisor:
             # to compute minimum and maximum midinote value
             robot.min_midinote, robot.max_midinote = self.compute_midi_range_values()
             initial_random_note = random.randint(self.min_midinote, self.max_midinote)
-            robot.create_new_note(initial_random_note)
+            robot.create_new_note(initial_random_note, bpm = self.initial_bpm, duration = seconds_in_a_beat)
             # to associate a timbre to the note
             robot.set_timbre_from_midi()
             # the supervisor has a complete dictionary of all the robots.

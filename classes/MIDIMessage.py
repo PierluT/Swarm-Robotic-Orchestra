@@ -73,7 +73,7 @@ class MIDIMessage():
         for index, row in enumerate(data):
             instrument = row[timbre_index]  # Timbro
             midi_note = int(row[note_index])  # Nota MIDI
-            duration = int(row[dur_index])  # Durata
+            duration = int(float(row[dur_index]))  # Durata
             file_pattern = f"{instrument}_{midi_note}_{int(duration)}"
 
             # Directory dello strumento
@@ -105,20 +105,9 @@ class MIDIMessage():
                 
     
         return matched_files
-
-    # convert a MIDI note into frequency.
-    def midi_to_freq(self,midi_note):
-        return 440.0 * (2 ** ((midi_note + 69 - 69) / 12.0))
-    
-    # to generate a sinusoidal wave.
-    def generate_wave(self,freq,duration, amplitude, sample_rate = 44100):
-        t = np.linspace(0, duration, int(sample_rate * duration), endpoint= False)
-        wave = amplitude * np.sin(2* np.pi * freq * t)
-        return wave
     
     def generate_audio_from_csv(self,wav_files):
-            
-            print("faccio l'audio")
+
             # Controlla se il file CSV esiste
             if not os.path.exists(self.final_csv_music_path):
                 raise FileNotFoundError(f"Il file CSV non esiste: {self.final_csv_music_path}")
