@@ -190,12 +190,3 @@ class Arena:
         label_position = (int(robot['x']) - 10, int(robot['y']) - values_dictionary['radius'] - 10)  # Regola la posizione sopra il robot
         cv2.putText(self.arena, str(robot['robot_number']), label_position, 
                     cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 2)  # Testo bianco con spessore 2
-
-
-
-
-"""""
-
-
-
-"""

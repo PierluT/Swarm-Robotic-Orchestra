@@ -14,7 +14,7 @@ def main():
     args = parser.parse_args()
     int_param = args.int_param
     bool_video_audio = args.bool_param1 
-    
+    #beat_tempo = 60
     # intializations
     supervisor = Supervisor([])
     midi_class = MIDIMessage()
@@ -44,10 +44,13 @@ def main():
                             
                     # ROBOT STEP
                     if (millisecond % 40 == 0):
-                        #  KNOWLEDGE PART
+                        
+                        # KNOWLEDGE PART
                         distances_to_check = supervisor.make_matrix_control(robot)
                         robot.get_note_info()
                         robot.get_phase_info()
+                        robot.get_timbre_info()
+                        
                         # ACTION PART
                         robot.move_robot(distances_to_check)
 
@@ -56,6 +59,11 @@ def main():
                                 
                         if robot.local_phase_map:
                             robot.update_phase_kuramoto_model()
+                        
+                        #if robot.local_timbre_map:
+                            #print(" dizionario timbri aggiornato")
+                            # swarm timbre logic to implement
+                            #robot.update_timbre()
                             
                         robot.clean_buffers()    
                         arena.write_robot_data(writer, simulation_number, millisecond, robot) 

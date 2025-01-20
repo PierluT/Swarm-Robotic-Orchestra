@@ -14,13 +14,13 @@ values_dictionary = file_reader_valuse.read_configuration_file()
 
 class Robot:
     
-    def __init__(self,number):
+    def __init__(self, number, phase_period, delay_values, sb):
         self.number = number
         self.radius = values_dictionary['radius']
         self.rectangleArea_width = values_dictionary['width_arena']
         self.rectangleArea_heigth = values_dictionary['height_arena']
         self.radar_radius = values_dictionary['radar']
-        self.N = values_dictionary['robot_number']
+        #self.N = values_dictionary['robot_number']
         self.colour = colours['green']
         self.velocity = float(values_dictionary['velocity'])
         self.vx = random.choice([-1, 1]) * self.velocity
@@ -34,7 +34,7 @@ class Robot:
         self.phase = np.random.uniform(0, 2 * np.pi)
         self.clock_frequency = 0.25
         self.K = 1
-        self.T = datetime.timedelta(seconds=4)
+        self.T = datetime.timedelta(seconds = 4)
         # buffers for incoming and emmiting messages. 
         self.recieved_message = []
         self.forwarded_message = []
@@ -42,8 +42,6 @@ class Robot:
         self.recieved_note = []
         self.forwarded_note = []
         self.last_played_ms = 0
-        # time step for phase communication.
-        self.time_step = values_dictionary['time_step']
         # flags for controlling the moment to play.
         self.playing_flag = False
         self.triggered_playing_flag = False
@@ -68,14 +66,18 @@ class Robot:
         self.my_spartito = []
         # dictionary for recieved notes
         self.local_music_map = defaultdict(list)
+        # dictionary for recieved timbre
+        self.local_timbre_map = defaultdict(list)
         # dictionary for recieved phases
         self.local_phase_map = defaultdict(list) 
         self.timbre = ""
         self.timbre_dictionary = orchestra_to_midi_range
-        self.delay = random.randint(0,3) 
+        self.delay = random.choice(delay_values) 
         # to found the minimum a maximum mid value.
         self.min_midinote = 0
         self.max_midinote = 0
+        self.phase_denominator = phase_period
+        self.sb = sb
 
     def __repr__(self):
         return f"Robot(number = {self.number}, coordinate x = {self.x}, y = {self.y}, phase = {self.phase})"
@@ -288,7 +290,6 @@ class Robot:
         else:
              print("No matching instrument found") 
 
-
     # Every robot has a dictionary on what is the last note that others are playing.
     # With this structure I can predict the next note to play consulting music scales dictionary.
     # last 4 notes for every of my neighbourghs whom I reach treshold.
@@ -312,7 +313,24 @@ class Robot:
             while len(self.local_music_map) > self.max_music_neighbourgs:
                 oldest_robot = next(iter(self.local_music_map))
                 del self.local_music_map[oldest_robot]
+    
+    # timbre dictionary with the same functions of notes dictionary
+    def get_timbre_info(self):
+        if self.recieved_message:
+            for entry in self.recieved_message:
+                if isinstance(entry, dict):
+                    robot_number = entry.get("robot number")
+                    timbre = entry.get("timbre")
 
+                    if robot_number is not None and timbre is not None:
+                        if robot_number not in self.local_timbre_map:
+                            self.local_timbre_map[robot_number] = deque(maxlen=self.max_notes_per_neighbourg)
+                        
+                        self.local_timbre_map[robot_number].append(timbre)
+            
+            while len(self.local_timbre_map) > self.max_music_neighbourgs:
+                oldest_timbre = next(iter(self.local_timbre_map))
+                del self.local_timbre_map[oldest_timbre]
 
     # method to print note messages. 
     def print_musical_buffers(self):
@@ -337,8 +355,6 @@ class Robot:
         }
         print(f"Robot {self.number} dictionary of others' last played notes: {clean_map}")
 
-
-
     # method to write robot music sheet.
     def add_note_to_spartito(self,ms):
         
@@ -357,7 +373,6 @@ class Robot:
         self.my_spartito.append(spartito_entry)
     
     # method to control that robot enters only the forst time in the playing status.
-    # ADD a control for playing note: if i started playing note I cannot change/stop the note for this round.
     def control_playing_flag(self, millisecond):
         if 0 <= self.phase < 1:
             # the first time that I enter means that I have to play.
@@ -374,7 +389,10 @@ class Robot:
                 self.colour = colours['blue']
         # Means that my phase doesn't allow me to play.
         else:
-            if( (millisecond - self.last_played_ms) > (1000 * self.note.dur)):
+            # to control that the robot doesn't start to play the note before the ned of previous one.
+            # first term: elapsed amount of time from last played ms and current millisecond.
+            # second term: beats multiplied per ms in a second divided all by beats in a second, in order to obtain 
+            if( (millisecond - self.last_played_ms) >  (1000 * self.sb)):
                 # add a condition that the else condition happens only after the end of the note.
                 self.triggered_playing_flag = False
                 self.playing_flag = False
@@ -383,7 +401,7 @@ class Robot:
     # method to update internal robot phase.
     def update_phase(self,millisecond):
         #current_ms = global_time + counter
-        self.phase += (2 * np.pi / 4000)
+        self.phase += (2 * np.pi / self.phase_denominator)
         # normalization only if I reach 2pi then I go to 0.
         self.phase %= (2 * np.pi)
         # method to control if I have the permission to play.
@@ -411,18 +429,6 @@ class Robot:
         
         # Dopo aver elaborato le fasi, svuota la mappa locale
         self.local_phase_map.clear()
-
-    # robot updates itself in terms of position and phase.
-    def step(self,millisecond):
-        self.moving_status_selection()
-        self.moveRobot()
-        # fill music buffer
-        self.update_local_music_map()
-        if self.local_music_map:
-            self.update_note()
-        
-        for i in range(self.time_step):
-            self.update_phase(millisecond,i)
-        self.compute_robot_compass()      
+  
 
 

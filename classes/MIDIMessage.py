@@ -106,7 +106,6 @@ class MIDIMessage():
     
         return matched_files
 
-
     # convert a MIDI note into frequency.
     def midi_to_freq(self,midi_note):
         return 440.0 * (2 ** ((midi_note + 69 - 69) / 12.0))
@@ -128,7 +127,7 @@ class MIDIMessage():
                 lines = f.readlines()
                 last_line = lines[-1]
                 last_ms = int(last_line.split(',')[1])  # Estrai il primo valore ('ms') e convertilo in intero
-            print(f"L'ultimo valore di ms è: {last_ms}")
+            #print(f"L'ultimo valore di ms è: {last_ms}")
             
             # Controlla se ci sono abbastanza file WAV rispetto alle righe del CSV
             if len(lines[1:]) != len(wav_files):
@@ -152,8 +151,9 @@ class MIDIMessage():
                         continue
 
                     # Controlla se la riga contiene un valore di millisecondi valido
-                    ms = int(parts[1]) if parts[1].isdigit() else 0  # Offset in millisecondi
-                    delay = int(parts[8]) if parts[8].isdigit() else 0
+                    ms = int(parts[1]) if parts[1].isdigit() else 0  # Offset in ms
+                    delay = int(parts[8]) if parts[8].isdigit() else 0 # offset in delay
+                    duration = int(parts[4]) if parts[4].isdigit() else 0
                     #print("delay "+ str(delay))
                     start_sample = int((ms / 1000 + delay ) * sr)  # Converti ms in campioni
 
