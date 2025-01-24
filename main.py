@@ -1,5 +1,6 @@
 import csv
 import argparse
+import sys
 from classes.supervisor import Supervisor
 from classes.arena import Arena
 from classes.MIDIMessage import MIDIMessage
@@ -14,7 +15,14 @@ def main():
     args = parser.parse_args()
     int_param = args.int_param
     bool_video_audio = args.bool_param1 
-    #beat_tempo = 60
+
+    # Controllo della condizione
+    if int_param > 1 and bool_video_audio:
+        print("Errore: se il parametro intero è maggiore di 1, il booleano deve essere False.")
+        sys.exit(1)  # Terminare il programma con codice di errore 1
+
+    print(f"Parametri accettati: int_param={int_param}, bool_video_audio={bool_video_audio}")
+
     # intializations
     supervisor = Supervisor([])
     midi_class = MIDIMessage()

@@ -9,6 +9,7 @@ class Note:
          self.dur = duration
          self.bpm = bpm
          self.pitch = self.midinote % 12  
+         self.dynamic = ""
     
     def __repr__(self):
         return "\n\t".join([ 
@@ -21,7 +22,7 @@ class TimeSignature:
 
     def __init__(self):
         # how many beats in a bar
-        self.numerator_time_signature = [2, 3, 4]
+        self.numerator_time_signature = [4]
         # duration of the bar. This value is related to the phase denominator.
         self.denominator_time_signature = [4]
         self.time_signature_combiantion = random.choice(self.get_time_signature_combinations())

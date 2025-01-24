@@ -17,108 +17,101 @@ class MIDIMessage():
 
     def write_csv(self, conductor_spartito, simulation_number):
         music_csv_path = os.path.join(self.directory, self.music_csv_file)
-        
-        # Assicurati che la directory esista
+
         os.makedirs(self.directory, exist_ok=True)
         
-        # Determina se è necessario scrivere l'intestazione
+        # if it necessary to write first row
         first_iteration = not os.path.exists(music_csv_path)
         
-        # Imposta la modalità di apertura del file
+        # mode w writes the file, mode a appends vaues on the file.
         mode = "w" if first_iteration else "a"
-        
-        # Apri il file in modalità corretta
+
         with open(music_csv_path, mode=mode, newline="") as file:
             writer = csv.DictWriter(file, fieldnames=["simulation number", "ms", "musician", "note", "dur", "amp", "bpm", "timbre", "delay"])
             
-            # Scrivi l'intestazione solo se necessario
             if first_iteration:
                 writer.writeheader()
                 self.final_csv_music_path = music_csv_path
-            
-            # Scrivi le righe solo se ci sono dati
             if conductor_spartito:
                 for row in conductor_spartito:
                     row["simulation number"] = simulation_number
-                
-                # write csv row
                 writer.writerows(conductor_spartito)
             
     def finding_wav_from_csv(self):
-
-        # Controlla se il file CSV esiste
+        
         if not os.path.exists(self.final_csv_music_path):
             raise FileNotFoundError(f"Il file CSV non esiste: {self.music_csv_file}")
 
-        # Leggi il file CSV con readlines()
         with open(self.final_csv_music_path, 'r') as f:
             lines = f.readlines()
 
-        # Estrai l'intestazione e i dati
-        header = lines[0].strip().split(',')  # Intestazione come lista
-        data = [line.strip().split(',') for line in lines[1:]]  # Dati come liste
+        header = lines[0].strip().split(',')  # first row
+        data = [line.strip().split(',') for line in lines[1:]]  # data
 
-        # Indici delle colonne
         timbre_index = header.index('timbre')
         note_index = header.index('note')
         dur_index = header.index('dur')
+        delay_index = header.index('delay')
 
-        # Dizionario per salvare i percorsi dei file trovati
+        # dictionary to found needed WAV files.
         matched_files = []
         wav_folder_name = 'samples'
         self.directory = Path(__file__).parent
         samples_directory = os.path.join(self.directory,wav_folder_name)
         
-        # Itera sui dati
         for index, row in enumerate(data):
-            instrument = row[timbre_index]  # Timbro
-            midi_note = int(row[note_index])  # Nota MIDI
-            duration = int(float(row[dur_index]))  # Durata
-            file_pattern = f"{instrument}_{midi_note}_{int(duration)}"
-
-            # Directory dello strumento
+            instrument = row[timbre_index]  # timbre
+            midi_note = int(row[note_index])  # MIDI note
+            raw_duration = float(row[dur_index])
+            delay = int(row[delay_index])  # delay value
+            
+            # Correzione della durata
+            if raw_duration < 1:
+                duration = str(int(raw_duration * 10)).zfill(2)  # Esempio: 0.5 -> 05
+            else:
+                duration = str(int(raw_duration))
+                    # I want the strong accent on the first beat 
+            
+            if delay == 0:
+                dynamic = "ff"
+            else:
+                dynamic = "mf"  
+            #file_pattern = f"{instrument}_{midi_note}_{duration}"
+            file_pattern = f"{instrument}_{midi_note}_{duration}_{dynamic}"
+            print(file_pattern)
             instrument_folder = os.path.join(samples_directory, instrument)
-            #print("path cartella strumento: " +str(instrument_folder))
             
             if not os.path.exists(instrument_folder):
                 print(f"Cartella strumento non trovata: {instrument_folder}")
                 continue
             
-            # Cerca i file corrispondenti nella directory dello strumento
+            # search for the files in the instrument directory
             matching_files = [
                 f for f in os.listdir(instrument_folder) 
                 if f.startswith(file_pattern) and f.endswith(".wav")
             ]
-            
-            # Gestione dei risultati
+
             if len(matching_files) == 0:
                 print(f"Nessun file WAV trovato per: {instrument}, {midi_note}, {duration}")
-                #matched_files = None  # Nessun file trovato
             
             elif len(matching_files) > 1:
-                matched_files.append(os.path.join(instrument_folder, matching_files[0]))  # Prendi il primo
-                #print(f"Più file WAV trovati per: {instrument}, {midi_note}, {duration}, scegliendo il primo.")
-                
+                matched_files.append(os.path.join(instrument_folder, matching_files[0]))  # by now takes the first one, has to implement amp behaviour.
                 
             else:
-                matched_files.append(os.path.join(instrument_folder, matching_files[0]))  # Prendi il primo
+                matched_files.append(os.path.join(instrument_folder, matching_files[0]))  # by now takes the first one, has to implement amp behaviour.
                 
     
         return matched_files
     
     def generate_audio_from_csv(self,wav_files):
-
-            # Controlla se il file CSV esiste
             if not os.path.exists(self.final_csv_music_path):
                 raise FileNotFoundError(f"Il file CSV non esiste: {self.final_csv_music_path}")
-            # Leggi il CSV come lista di righe
             with open(self.final_csv_music_path, 'r') as f:
                 lines = f.readlines()
                 last_line = lines[-1]
-                last_ms = int(last_line.split(',')[1])  # Estrai il primo valore ('ms') e convertilo in intero
-            #print(f"L'ultimo valore di ms è: {last_ms}")
+                last_ms = int(last_line.split(',')[1])  # extract the last ms value to set final WAV file length.
             
-            # Controlla se ci sono abbastanza file WAV rispetto alle righe del CSV
+            # Controlif the number of WAV files and csv rows information is equal.
             if len(lines[1:]) != len(wav_files):
                 print("Attenzione: il numero di righe nel CSV e il numero di file WAV non corrispondono!")
             else:   
@@ -127,29 +120,21 @@ class MIDIMessage():
             # sampling frequency
             sr = 44100
             audio_data = np.zeros(int(((last_ms + 1000) / 1000) * sr))
-            # Itera su righe del CSV e file WAV simultaneamente
             for line, input_file in zip(lines[1:], wav_files):
-                
-                # Processa la riga del CSV
                 parts = line.strip().split(',')
                 
                 try:
-                    # Controlla se il file WAV esiste
                     if not os.path.exists(input_file):
                         print(f"File WAV non trovato: {input_file}. Salto questa riga.")
                         continue
-
-                    # Controlla se la riga contiene un valore di millisecondi valido
                     ms = int(parts[1]) if parts[1].isdigit() else 0  # Offset in ms
                     delay = int(parts[8]) if parts[8].isdigit() else 0 # offset in delay
                     duration = int(parts[4]) if parts[4].isdigit() else 0
                     #print("delay "+ str(delay))
-                    start_sample = int((ms / 1000 + delay ) * sr)  # Converti ms in campioni
+                    start_sample = int((ms / 1000 + delay ) * sr) # converts ms in samples
 
-                    # Carica il file WAV
+                    # load WAV file
                     audio, sr_file = librosa.load(input_file, sr=sr)
-
-                    # Controlla la lunghezza del file WAV rispetto all'array di output
                     end_sample = start_sample + len(audio)
 
                     audio_data[start_sample:end_sample] += audio
