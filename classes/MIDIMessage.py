@@ -78,7 +78,6 @@ class MIDIMessage():
                 dynamic = "mf"  
             #file_pattern = f"{instrument}_{midi_note}_{duration}"
             file_pattern = f"{instrument}_{midi_note}_{duration}_{dynamic}"
-            print(file_pattern)
             instrument_folder = os.path.join(samples_directory, instrument)
             
             if not os.path.exists(instrument_folder):

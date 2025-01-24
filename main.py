@@ -46,11 +46,11 @@ def main():
                 for robot in supervisor.dictionary_of_robots:
                     robot.update_phase(millisecond)
                             
-                    # COMMUNICATION every 80 ms.   
+                    # COMUNICATION every 80 ms.   
                     if (millisecond % 80 == 0):
                         supervisor.post_office(robot)
                             
-                    # ROBOT STEP
+                    # ROBOT STEP every 40 ms.
                     if (millisecond % 40 == 0):
                         
                         # KNOWLEDGE PART
@@ -58,6 +58,7 @@ def main():
                         robot.get_note_info()
                         robot.get_phase_info()
                         robot.get_timbre_info()
+                        robot.get_delay_info()
                         
                         # ACTION PART
                         robot.move_robot(distances_to_check)
@@ -69,13 +70,14 @@ def main():
                             robot.update_phase_kuramoto_model()
                         
                         #if robot.local_timbre_map:
-                            #print(" dizionario timbri aggiornato")
-                            # swarm timbre logic to implement
                             #robot.update_timbre()
+                        
+                        #if robot.local_delay_map:
+                            # method to change the timbre/delay we play.
+                            #print(" delay aggiornato")
                             
                         robot.clean_buffers()    
                         arena.write_robot_data(writer, simulation_number, millisecond, robot) 
-            
             
             supervisor.build_conductor_spartito()
             midi_class.write_csv(supervisor.conductor_spartito,simulation_number)
