@@ -29,8 +29,7 @@ class Supervisor:
         # value for collision
         self.collision_margin = values_dictionary['radar']
         # dictionary of distance bewteen a robot and each others.
-        self.distances = [[0 for _ in range(self.number_of_robots)] for _ in range(self.number_of_robots)]
-        # value to control that notes message exchanges doesn't happen cpuntinously. 
+        self.distances = [[0 for _ in range(self.number_of_robots)] for _ in range(self.number_of_robots)] 
         # final music sheet that will be converted into audio file.
         self.conductor_spartito = []
         # to found the minimum a maximum mid value.
@@ -43,10 +42,10 @@ class Supervisor:
         # this value is the ability of a robot to see thing around it.
         self.sensor = values_dictionary['sensor']
         self.initial_bpm = values_dictionary['bpm']
-        #self.timbre_dictionary = orchestra_to_midi_range
         self.music_formations = music_formations
         self.csv_folder = "csv"
     
+    # method to compute iteratively the min and max midinote value that robot can play.
     def compute_midi_range_values(self):
         
         min_value = float('inf')  
@@ -69,12 +68,10 @@ class Supervisor:
     def set_up_csv_directory(self):
         csv_video_file_name = "video_maker.csv"
         csv_directory = "csv"
-        # Controlla se la directory esiste
         if not os.path.exists(csv_directory):
-            os.mkdir(csv_directory)  # Crea la directory se non esiste
+            # creates directory if doesn't exist.
+            os.mkdir(csv_directory)  
             print(f"Cartella {csv_directory} creata.")
-        
-        # Percorso completo del file CSV
         csv_file_directory = os.path.join(csv_directory, csv_video_file_name)
         
         return csv_file_directory
@@ -82,13 +79,13 @@ class Supervisor:
     # method to clean previous files and csv folders. 
     def clean_csv_directory(self):
         
-        # Elimina tutto il contenuto della directory senza rimuovere la cartella stessa
+        # remove all the files contained in the directory.
         for file_name in os.listdir(self.csv_folder):
             file_path = os.path.join(self.csv_folder, file_name)
             try:
-                if os.path.isfile(file_path):  # Elimina solo i file
+                if os.path.isfile(file_path):  
                     os.remove(file_path)
-                elif os.path.isdir(file_path):  # Se ci sono sottocartelle, rimuovile ricorsivamente
+                elif os.path.isdir(file_path):  
                     shutil.rmtree(file_path)
             except Exception as e:
                     print(f"Errore durante la rimozione del file {file_path}: {e}")
@@ -96,10 +93,8 @@ class Supervisor:
         print(f"Tutti i file nella cartella {self.csv_folder} sono stati eliminati.")       
 
     def compute_kuramoto_value(self):
-        # time length of a beat: 60 seconds / bpm (beat per minute)
         seconds_in_a_beat = 60 / self.initial_bpm
         ts = TimeSignature()
-        #print(" tempo signature: "+str(ts.time_signature_combiantion))
         number_of_beats, denominator = ts.time_signature_combiantion
         kuramoto_value = 1000 * (seconds_in_a_beat * number_of_beats)
         # By now I set the notes length as the beat seoconds duration. Then
@@ -117,11 +112,11 @@ class Supervisor:
         
         for n in range(self.number_of_robots):
             robot = Robot(number = n, phase_period = kuramoto_value, delay_values = delay_array, sb = seconds_in_a_beat)
-            # to compute minimum and maximum midinote value
+            # to compute minimum and maximum midinote value.
             robot.min_midinote, robot.max_midinote = self.compute_midi_range_values()
             initial_random_note = random.randint(self.min_midinote, self.max_midinote)
             robot.create_new_note(initial_random_note, bpm = self.initial_bpm, duration = seconds_in_a_beat)
-            # to associate a timbre to the note
+            # to associate a timbre to the note.
             robot.set_timbre_from_midi()
             # the supervisor has a complete dictionary of all the robots.
             self.dictionary_of_robots.append(robot)
@@ -143,8 +138,6 @@ class Supervisor:
             while True:  
                 x_position_to_check = robot_to_check.compute_initial_x_position()
                 y_position_to_check = robot_to_check.compute_initial_y_position()
-                
-                #print("x random da validare: " + str(x_position_to_check) + " y random da validare: " + str(y_position_to_check))
                 # Flag to control overlaps
                 overlap_found = False  
                 for valid_robot in valid_initial_positions:
@@ -153,7 +146,6 @@ class Supervisor:
                     
                     if distance_between_origins <= distance_between_radars:
                         overlap_found = True  
-                        #print("coordinata x sbagliata: " + str(x_position_to_check) + " coordinata y sbagliata: " + str(y_position_to_check))
                         # Break in case overlap found
                         break  
 
@@ -178,7 +170,7 @@ class Supervisor:
         
         for j in range(initial_robot.number + 1, self.number_of_robots):
                 robot_b = self.dictionary_of_robots[j]
-                # Calcola la distanza tra robot_a e robot_b
+                # compute the distance between robots.
                 distance_between_robots = self.compute_distance(initial_robot, robot_b)
                 # I store only the values that teh robot is able to read.
                 if distance_between_robots <= self.sensor:
@@ -192,7 +184,6 @@ class Supervisor:
         initial_robot.set_emitter_message()
         for j in range(initial_robot.number +1, len(self.distances)):
             distance_to_check = self.distances[initial_robot.number][j]
-            
             # block to handle phase communication between robots.
             if distance_to_check <= self.threshold: 
                 robot1_chat = self.dictionary_of_robots[initial_robot.number]
@@ -246,7 +237,7 @@ class Supervisor:
                 print("Le fasi non stanno convergendo.")
             
             return converging
-        return None  # Nessun controllo effettuato
+        return None  
         
     # unifies spartito of all robots and sort them form a crhonological point of view.
     def build_conductor_spartito(self):
@@ -264,30 +255,22 @@ class Supervisor:
         self.conductor_spartito.sort(key=lambda x: x["ms"])
 
     def calculate_instrument_affinity(self):
-        # Creiamo un dizionario per tenere traccia delle coppie di strumenti
         affinity_dict = defaultdict(lambda: defaultdict(int))
-        
-        # Conta il numero di apparizioni di ogni strumento
         instrument_count = defaultdict(int)
-        
-        # Itera su tutte le formazioni
         for formation, instruments in music_formations.items():
-            # Incrementa il conteggio di ogni strumento
             for instrument in instruments:
                 instrument_count[instrument] += 1
-            # Calcola l'affinità per ogni coppia di strumenti in una formazione
+            # Compute affinity for every instrument that appears in the fomration dictionary.
             for i in range(len(instruments)):
                 for j in range(i + 1, len(instruments)):
                     instrument1 = instruments[i]
                     instrument2 = instruments[j]
                     affinity_dict[instrument1][instrument2] += 1
-                    affinity_dict[instrument2][instrument1] += 1  # L'affinità è simmetrica
-        
-        # Calcoliamo la matrice di affinità
+                    affinity_dict[instrument2][instrument1] += 1  
         affinity_matrix = {}
         for instrument1, instrument_dict in affinity_dict.items():
             affinity_matrix[instrument1] = {}
-            total_pairs = len(music_formations)  # Totale delle formazioni
+            total_pairs = len(music_formations)  
             for instrument2, count in instrument_dict.items():
                 affinity_matrix[instrument1][instrument2] = count / total_pairs
     

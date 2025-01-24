@@ -6,7 +6,7 @@ import random
 import datetime
 from collections import defaultdict, deque
 from classes.file_reader import File_Reader
-from classes.dictionaries import colours,major_scales,orchestra_to_midi_range
+from classes.dictionaries import colours,major_scales,major_pentatonic_scales, whole_tone_scales, orchestra_to_midi_range
 from classes.tempo import Note
 
 file_reader_valuse = File_Reader()
@@ -16,11 +16,12 @@ class Robot:
     
     def __init__(self, number, phase_period, delay_values, sb):
         self.number = number
+        # value for robot set.
         self.radius = values_dictionary['radius']
         self.rectangleArea_width = values_dictionary['width_arena']
         self.rectangleArea_heigth = values_dictionary['height_arena']
+        # value for collision
         self.radar_radius = values_dictionary['radar']
-        #self.N = values_dictionary['robot_number']
         self.colour = colours['green']
         self.velocity = float(values_dictionary['velocity'])
         self.vx = random.choice([-1, 1]) * self.velocity
@@ -34,7 +35,6 @@ class Robot:
         self.phase = np.random.uniform(0, 2 * np.pi)
         self.clock_frequency = 0.25
         self.K = 1
-        self.T = datetime.timedelta(seconds = 4)
         # buffers for incoming and emmiting messages. 
         self.recieved_message = []
         self.forwarded_message = []
@@ -141,17 +141,15 @@ class Robot:
             
             # Check if the distance is below the collision threshold
             if distance <= collision_threshold:
-                #print(f"Robot {self.number} is colliding with Robot {other_robot_index} (distance: {distance:.2f})")
                 self.change_direction_y_axes()
             
     def change_direction(self):
-        # Cambia direzione con un angolo casuale
-        angle = random.uniform(0, 2 * math.pi)  # Angolo casuale in radianti
-        speed = math.sqrt(self.vx**2 + self.vy**2)  # Mantieni la velocità costante
-        self.vx = speed * math.cos(angle)  # Nuova componente X
-        self.vy = speed * math.sin(angle)  # Nuova componente Y
+        # change direction with casual angle
+        angle = random.uniform(0, 2 * math.pi)  
+        speed = math.sqrt(self.vx**2 + self.vy**2) 
+        self.vx = speed * math.cos(angle) 
+        self.vy = speed * math.sin(angle)  
    
-
     def update_note(self):
         # extract only notes from my dictionary
         notes_to_check = [note[0] for note in self.local_music_map.values()]
@@ -181,7 +179,7 @@ class Robot:
             
         self.flag_included_proper_midinote = False 
     
-    # general method to create note
+    # method to create the first note.
     def create_new_note(self, midi_value, bpm, duration):
         note = Note( midinote = midi_value, bpm = bpm, duration = duration)
         self.note = note
@@ -209,20 +207,18 @@ class Robot:
             )
 
             diff = self.note.pitch - closest_note
-            if abs(diff) > 6:  # Se l'intervallo è più grande di un tritono (6 semitoni)
+            # if the interval is bigger than 6 semitones.
+            if abs(diff) > 6:  
                 if diff > 0:
-                    diff -= 12  # Salta all'ottava precedente
+                    diff -= 12  
                 else:
-                    diff += 12  # Salta all'ottava successiva
-        
-            # Movimento limitato al range dello strumento
+                    diff += 12  
             musical_interval = diff
-            #print("intervallo: " + str(musical_interval))
             previous_note = self.note.midinote
             if abs(musical_interval) == 12:
                 print(f" AAAAAAAAAAAAAAAAAAAA NOTA CORRETTA intervallo: {musical_interval})")
 
-            # Cambia nota solo se rientra nel range
+            # change note only if it's within the range.
             new_midinote = self.note.midinote + musical_interval
             if self.min_midinote <= new_midinote <= self.max_midinote:
                 # change note
@@ -230,21 +226,18 @@ class Robot:
                 self.note.pitch += musical_interval % 12
             else:
                 print(f"Nota fuori range: {new_midinote}. Cambio ignorato.")
-                # Fallback: Trova la nota valida più vicina
+                # Fallback: founds the closest note.
                 valid_midinote = min(
                     range(self.min_midinote, self.max_midinote + 1),
                     key=lambda midinote: abs(midinote - new_midinote)
                 )
 
-                # Calcola l'intervallo corretto per il fallback
+                # compute correct interval for the fallback.
                 fallback_interval = valid_midinote - self.note.midinote
-
-                # Applica il cambio
                 self.note.midinote += fallback_interval
                 self.note.pitch = (self.note.pitch + fallback_interval) % 12
 
                 print(f"Nota cambiata al fallback: {self.note.midinote} (pitch: {self.note.pitch})")
-            #print("robot n: "+ str(self.number)+ " changes from "+ str(previous_note)+ " to: "+ str(self.note.midinote))
             
             # control if the new note is in the range of my actual instrument
             for instrument_group, instruments in self.timbre_dictionary.items():
@@ -299,17 +292,15 @@ class Robot:
                 if isinstance(entry, dict):  # Assicura che l'elemento sia un dizionario
                     robot_number = entry.get("robot number")
                     note = entry.get("note")
-                    
-                    # Processa solo i messaggi che contengono una nota
                     if robot_number is not None and note is not None:
-                        # Se il robot non è nel dizionario, inizializza una coda per le sue note
+                        # If the robot is not in the dictionar, initilize it.
                         if robot_number not in self.local_music_map:
                             self.local_music_map[robot_number] = deque(maxlen=self.max_notes_per_neighbourg)
 
-                        # Aggiungi la nuova nota alla coda del robot
+                        # add a new note in the robot queue.
                         self.local_music_map[robot_number].append(note)
             
-            # Se il dizionario supera il numero massimo di robot, rimuovi il più vecchio
+            # if the dictionary reaches maximum limit, remove the oldest data on it.
             while len(self.local_music_map) > self.max_music_neighbourgs:
                 oldest_robot = next(iter(self.local_music_map))
                 del self.local_music_map[oldest_robot]
@@ -372,7 +363,7 @@ class Robot:
 
         self.my_spartito.append(spartito_entry)
     
-    # method to control that robot enters only the forst time in the playing status.
+    # method to control that robot enters only the first time in the playing status.
     def control_playing_flag(self, millisecond):
         if 0 <= self.phase < 1:
             # the first time that I enter means that I have to play.
@@ -389,9 +380,9 @@ class Robot:
                 self.colour = colours['blue']
         # Means that my phase doesn't allow me to play.
         else:
-            # to control that the robot doesn't start to play the note before the ned of previous one.
+            # to control that the robot doesn't start to play the note before the end of previous one.
             # first term: elapsed amount of time from last played ms and current millisecond.
-            # second term: beats multiplied per ms in a second divided all by beats in a second, in order to obtain 
+            # second term: beats multiplied per ms in a second divided all by beats in a second.
             if( (millisecond - self.last_played_ms) >  (1000 * self.sb)):
                 # add a condition that the else condition happens only after the end of the note.
                 self.triggered_playing_flag = False
@@ -400,7 +391,6 @@ class Robot:
     
     # method to update internal robot phase.
     def update_phase(self,millisecond):
-        #current_ms = global_time + counter
         self.phase += (2 * np.pi / self.phase_denominator)
         # normalization only if I reach 2pi then I go to 0.
         self.phase %= (2 * np.pi)
@@ -409,25 +399,23 @@ class Robot:
     
     def get_phase_info(self):
         if self.recieved_message:
-            for entry in self.recieved_message:  # Itera direttamente sui dizionari nel buffer
-                if isinstance(entry, dict):  # Assicura che l'elemento sia un dizionario
+            for entry in self.recieved_message:  
+                if isinstance(entry, dict):  
                     robot_number = entry.get("robot number")
                     phase_value = entry.get("phase")
-                    
-                    # Processa solo i messaggi che contengono una fase
                     if robot_number is not None and phase_value is not None:
                         self.local_phase_map[robot_number].append(phase_value)
 
     # Method for Kuramoto model
     def update_phase_kuramoto_model(self):
-        # Itera su tutte le fasi ricevute e applica il modello di Kuramoto
+        # Iterate on all the recieved phases and apply Kuramoto model.
         for robot_number, phases in self.local_phase_map.items():
             for recieved_phase in phases:
                 self.phase += self.K * np.sin(recieved_phase - self.phase)
-                # Normalizzazione della fase
+                # phase normalization.
                 self.phase %= (2 * np.pi)
         
-        # Dopo aver elaborato le fasi, svuota la mappa locale
+        # clear the dictionary after computing values.
         self.local_phase_map.clear()
   
 

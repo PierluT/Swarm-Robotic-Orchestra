@@ -11,22 +11,53 @@ major_scales = {
     0: [0, 2, 4, 5, 7, 9, 11],    # Do maggiore (C Major)
     1: [1, 3, 5, 6, 8, 10, 0],    # Do# maggiore (C# Major)
     2: [2, 4, 6, 7, 9, 11, 1],    # Re maggiore (D Major)
-    #3: [3, 5, 7, 8, 10, 0, 2],    # Re# maggiore (D# Major)
+    3: [3, 5, 7, 8, 10, 0, 2],    # Re# maggiore (D# Major)
     4: [4, 6, 8, 9, 11, 1, 3],    # Mi maggiore (E Major)
-    #5: [5, 7, 9, 10, 0, 2, 4],    # Fa maggiore (F Major)
+    5: [5, 7, 9, 10, 0, 2, 4],    # Fa maggiore (F Major)
     6: [6, 8, 10, 11, 1, 3, 5],   # Fa# maggiore (F# Major)
     7: [7, 9, 11, 0, 2, 4, 6],    # Sol maggiore (G Major)
-    #8: [8, 10, 0, 1, 3, 5, 7],    # Sol# maggiore (G# Major)
+    8: [8, 10, 0, 1, 3, 5, 7],    # Sol# maggiore (G# Major)
     9: [9, 11, 1, 2, 4, 6, 8],    # La maggiore (A Major)
-    #10: [10, 0, 2, 3, 5, 7, 9],   # La# maggiore (A# Major)
-    #11: [11, 1, 3, 4, 6, 8, 10],  # Si maggiore (B Major)
+    10: [10, 0, 2, 3, 5, 7, 9],   # La# maggiore (A# Major)
+    11: [11, 1, 3, 4, 6, 8, 10],  # Si maggiore (B Major)
+}
+
+
+major_pentatonic_scales = {
+    0:  [0, 2, 4, 7, 9],     # C major pentatonic
+    1:  [1, 3, 5, 8, 10],    # C# / Db major pentatonic
+    2:  [2, 4, 6, 9, 11],    # D major pentatonic
+    3:  [3, 5, 7, 10, 0],    # D# / Eb
+    4:  [4, 6, 8, 11, 1],    # E major pentatonic
+    5:  [5, 7, 9, 0, 2],     # F major pentatonic
+    6:  [6, 8, 10, 1, 3],    # F# / Gb
+    7:  [7, 9, 11, 2, 4],    # G major pentatonic
+    8:  [8, 10, 0, 3, 5],    # G# / Ab
+    9:  [9, 11, 1, 4, 6],    # A major pentatonic
+    10: [10, 0, 2, 5, 7],    # A# / Bb
+    11: [11, 1, 3, 6, 8],    # B major pentatonic
+}
+
+whole_tone_scales = {
+    0:  [0, 2, 4, 6, 8, 10],    # C whole-tone
+    1:  [1, 3, 5, 7, 9, 11],    # C# whole-tone
+    2:  [2, 4, 6, 8, 10, 0],    # D whole-tone
+    3:  [3, 5, 7, 9, 11, 1],    # D# whole-tone
+    4:  [4, 6, 8, 10, 0, 2],    # E whole-tone
+    5:  [5, 7, 9, 11, 1, 3],    # F whole-tone
+    6:  [6, 8, 10, 0, 2, 4],    # F# whole-tone
+    7:  [7, 9, 11, 1, 3, 5],    # G whole-tone
+    8:  [8, 10, 0, 2, 4, 6],    # G# whole-tone
+    9:  [9, 11, 1, 3, 5, 7],    # A whole-tone
+    10: [10, 0, 2, 4, 6, 8],    # A# whole-tone
+    11: [11, 1, 3, 5, 7, 9],    # B whole-tone
 }
 
 orchestra_to_midi_range = {
 
     "Strings": {
         # violin
-        "Vn": list(range(55, 100)),       # G3–A7
+        "Vn": list(range(55, 100)),      
         # viola
         "Va": list(range(48, 96)),         # C3–E6
         # violoncello

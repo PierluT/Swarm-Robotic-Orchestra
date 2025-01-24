@@ -71,10 +71,6 @@ def process_wav_files(input_directory, output_directory, desired_duration):
             # Se non è decimale, lascia il numero invariato
             safe_duration = str(int(desired_duration))  # Usa solo la parte intera
         
-        # Ora prendiamo solo la dinamica senza la "N" o la "R" finale
-        # Ad esempio "pp", "mf", "ff"
-        #dynamic_value = dynamic
-        
         # Nuovo nome del file con durata desiderata inclusa
         new_filename = f"{acronym}_{midi_value}_{safe_duration}_{dynamic}.wav"
         new_filepath = os.path.join(output_directory, new_filename)
@@ -88,9 +84,18 @@ def process_wav_files(input_directory, output_directory, desired_duration):
         # Salva il file modificato nella directory di output
         sf.write(new_filepath, time_scaled_audio, sr)
         print(f"File elaborato e salvato come: {new_filepath}")
+        
+        # Verifica che la durata ottenuta corrisponda a quella desiderata
+        processed_audio, sr_new = librosa.load(new_filepath, sr=None)
+        output_duration = librosa.get_duration(y=processed_audio, sr=sr_new)
+        
+        # Confronto tra durata desiderata e ottenuta
+        if not np.isclose(output_duration, desired_duration, atol=0.01):  # Tolleranza di 10 ms
+            print(f"ATTENZIONE: La durata del file {new_filename} non corrisponde a quella desiderata!")
+            print(f"Durata desiderata: {desired_duration}s, durata ottenuta: {output_duration}s.")
 
 input_directory = r"C:/Users/pierl\Downloads/TinySOL/TinySOL/audio/Winds/Sax_Alto/ordinario"
-output_directory = r"C:/Users/pierl/Desktop/MMI/tesi/robotic-orchestra/classes/samples/ASax"
+output_directory = r"C:/Users/pierl/Desktop/samples/ASax"
 
 final_duration = 0.5
 
