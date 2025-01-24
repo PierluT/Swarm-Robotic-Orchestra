@@ -104,10 +104,10 @@ class Supervisor:
     # method to return the list of robots and assign a phase to each of them.
     def create_dictionary_of_robots(self):  
         number_of_beats, kuramoto_value, seconds_in_a_beat = self.compute_kuramoto_value()
-        print(" numeratore: "+ str(number_of_beats))
-        print("kuramoto value: "+ str(kuramoto_value))
-        print(" bpm: "+ str(self.initial_bpm))
-        print("seconds in a beat: "+str(seconds_in_a_beat))
+        #print(" numeratore: "+ str(number_of_beats))
+        #print("kuramoto value: "+ str(kuramoto_value))
+        #print(" bpm: "+ str(self.initial_bpm))
+        #print("seconds in a beat: "+str(seconds_in_a_beat))
         delay_array = list(range(number_of_beats))
         
         for n in range(self.number_of_robots):
@@ -193,8 +193,8 @@ class Supervisor:
     # method to handle phase communication.
     def handle_communication(self,robot1, robot2):
         robot2.set_emitter_message()
-        robot2.recieved_message.append(robot1.forwarded_message)
-        robot1.recieved_message.append(robot2.forwarded_message)
+        robot2.recieved_message.append(robot1.forwarded_message.copy())
+        robot1.recieved_message.append(robot2.forwarded_message.copy())
 
     # method to update robot positions
     def update_positions(self,initial_robot):

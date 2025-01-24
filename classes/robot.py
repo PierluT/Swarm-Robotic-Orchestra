@@ -51,10 +51,10 @@ class Robot:
         self.stop_counter = 0
         self.moving_counter = 0
         # MUSIC VARIABLES
-        self.scales = major_scales
+        self.scales = major_pentatonic_scales
         self.note = ""
         #self.id_note_counter = 0
-        self.max_music_neighbourgs = 6
+        self.max_music_neighbourgs = 4
         self.max_notes_per_neighbourg = 1
         # variable to control the previous midinote I played
         self.previous_midinote = 0
@@ -68,6 +68,8 @@ class Robot:
         self.local_music_map = defaultdict(list)
         # dictionary for recieved timbre
         self.local_timbre_map = defaultdict(list)
+        # dictionary for recieved delays
+        self.local_delay_map = defaultdict(list)
         # dictionary for recieved phases
         self.local_phase_map = defaultdict(list) 
         self.timbre = ""
@@ -322,6 +324,25 @@ class Robot:
             while len(self.local_timbre_map) > self.max_music_neighbourgs:
                 oldest_timbre = next(iter(self.local_timbre_map))
                 del self.local_timbre_map[oldest_timbre]
+    
+    # delay dictionary with the same functions of notes dictionary
+    def get_delay_info(self):
+        if self.recieved_message:
+            for entry in self.recieved_message:
+                if isinstance(entry, dict):
+                    #print("halooooo")
+                    robot_number = entry.get("robot number")
+                    delay = entry.get("delay")
+
+                    if robot_number is not None and delay is not None:
+                        if robot_number not in self.local_delay_map:
+                            self.local_delay_map[robot_number] = deque(maxlen=self.max_notes_per_neighbourg)
+                        #print("halo")
+                        self.local_delay_map[robot_number].append(delay)
+            
+            while len(self.local_delay_map) > self.max_music_neighbourgs:
+                oldest_timbre = next(iter(self.local_delay_map))
+                del self.local_delay_map[oldest_timbre]
 
     # method to print note messages. 
     def print_musical_buffers(self):
@@ -335,16 +356,6 @@ class Robot:
             print("r: " + str(self.number) + " recieved note: ")
             for entry in self.recieved_note:
                 print(f"\t Note details: {entry['note'].midinote}")
-    
-    # method to print the internal dictionary of the robot 
-    def print_local_music_dictionary(self):
-        
-        clean_map = {
-            # converts deque into list
-            robot_id: list(notes)  
-            for robot_id, notes in self.local_music_map.items()
-        }
-        print(f"Robot {self.number} dictionary of others' last played notes: {clean_map}")
 
     # method to write robot music sheet.
     def add_note_to_spartito(self,ms):
