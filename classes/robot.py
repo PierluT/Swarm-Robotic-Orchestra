@@ -14,7 +14,7 @@ values_dictionary = file_reader_valuse.read_configuration_file()
 
 class Robot:
     
-    def __init__(self, number, phase_period, delay_values, sb):
+    def __init__(self, number, phase_period, delay_values, sb, time_signature):
         self.number = number
         # value for robot set.
         self.radius = values_dictionary['radius']
@@ -54,7 +54,7 @@ class Robot:
         self.scales = major_pentatonic_scales
         self.note = ""
         #self.id_note_counter = 0
-        self.max_music_neighbourgs = 4
+        self.max_music_neighbourgs = 5
         self.max_notes_per_neighbourg = 1
         # variable to control the previous midinote I played
         self.previous_midinote = 0
@@ -80,9 +80,11 @@ class Robot:
         self.max_midinote = 0
         self.phase_denominator = phase_period
         self.sb = sb
+        # by now time signature is a value known from the robot
+        self.time_signature = time_signature
 
     def __repr__(self):
-        return f"Robot(number = {self.number}, coordinate x = {self.x}, y = {self.y}, phase = {self.phase})"
+        return f"Robot(number = {self.number}, phase = {self.phase})"
 
     
     def compute_initial_x_position(self):
@@ -369,7 +371,8 @@ class Robot:
             "amp": self.note.amp,
             "bpm": self.note.bpm,
             "timbre": self.timbre,
-            "delay": self.delay
+            "delay": self.delay,
+            #"harmonicity": self.harmony
         }
 
         self.my_spartito.append(spartito_entry)

@@ -99,11 +99,11 @@ class Supervisor:
         kuramoto_value = 1000 * (seconds_in_a_beat * number_of_beats)
         # By now I set the notes length as the beat seoconds duration. Then
         # I will have to change with the possible length available durations.
-        return number_of_beats, kuramoto_value, seconds_in_a_beat
+        return number_of_beats, kuramoto_value, seconds_in_a_beat, ts.time_signature_combiantion
 
     # method to return the list of robots and assign a phase to each of them.
     def create_dictionary_of_robots(self):  
-        number_of_beats, kuramoto_value, seconds_in_a_beat = self.compute_kuramoto_value()
+        number_of_beats, kuramoto_value, seconds_in_a_beat, t_s = self.compute_kuramoto_value()
         #print(" numeratore: "+ str(number_of_beats))
         #print("kuramoto value: "+ str(kuramoto_value))
         #print(" bpm: "+ str(self.initial_bpm))
@@ -111,7 +111,8 @@ class Supervisor:
         delay_array = list(range(number_of_beats))
         
         for n in range(self.number_of_robots):
-            robot = Robot(number = n, phase_period = kuramoto_value, delay_values = delay_array, sb = seconds_in_a_beat)
+            robot = Robot(number = n, phase_period = kuramoto_value, delay_values = delay_array, sb = seconds_in_a_beat, time_signature = t_s)
+            print(robot)
             # to compute minimum and maximum midinote value.
             robot.min_midinote, robot.max_midinote = self.compute_midi_range_values()
             initial_random_note = random.randint(self.min_midinote, self.max_midinote)
@@ -185,7 +186,8 @@ class Supervisor:
         for j in range(initial_robot.number +1, len(self.distances)):
             distance_to_check = self.distances[initial_robot.number][j]
             # block to handle phase communication between robots.
-            if distance_to_check <= self.threshold: 
+            if distance_to_check <= self.threshold:
+                print("comunication "+ str(initial_robot.number))
                 robot1_chat = self.dictionary_of_robots[initial_robot.number]
                 robot2_chat = self.dictionary_of_robots[j]
                 self.handle_communication(robot1_chat, robot2_chat)
