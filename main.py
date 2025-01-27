@@ -42,8 +42,10 @@ def main():
             # method to set robot positions and initial random notes.
             supervisor.setup_robots()
             
-            for millisecond in range(0,60000):
+            for millisecond in range(0,160):
                 for robot in supervisor.dictionary_of_robots:
+                    # KNOWLEDGE PART
+                    distances_to_check = supervisor.make_matrix_control(robot)
                     robot.update_phase(millisecond)
                             
                     # COMUNICATION every 80 ms.   
@@ -52,9 +54,8 @@ def main():
                             
                     # ROBOT STEP every 40 ms.
                     if (millisecond % 40 == 0):
-                        
-                        # KNOWLEDGE PART
-                        distances_to_check = supervisor.make_matrix_control(robot)
+                        #print( distances_to_check)
+                        #supervisor.print_distance_matrix()
                         robot.get_note_info()
                         robot.get_phase_info()
                         robot.get_timbre_info()
@@ -78,7 +79,7 @@ def main():
                             
                         robot.clean_buffers()    
                         arena.write_robot_data(writer, simulation_number, millisecond, robot) 
-            
+
             supervisor.build_conductor_spartito()
             midi_class.write_csv(supervisor.conductor_spartito,simulation_number)
             supervisor.dictionary_of_robots.clear()

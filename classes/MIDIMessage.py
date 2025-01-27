@@ -113,8 +113,6 @@ class MIDIMessage():
             # Controlif the number of WAV files and csv rows information is equal.
             if len(lines[1:]) != len(wav_files):
                 print("Attenzione: il numero di righe nel CSV e il numero di file WAV non corrispondono!")
-            else:   
-                print("CSV e il numero di file WAV corrispondono!") 
             
             # sampling frequency
             sr = 44100
