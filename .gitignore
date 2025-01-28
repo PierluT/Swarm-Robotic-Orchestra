@@ -1,6 +1,7 @@
 # Ignora la cartella delle immagini
 png
 plots
+csv
 
 # Ignora la cartella della libreria Python
 *robotic-orchestra-venv/

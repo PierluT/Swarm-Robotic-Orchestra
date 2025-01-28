@@ -28,7 +28,6 @@ def main():
     midi_class = MIDIMessage()
     arena = Arena()
     csv_path = supervisor.set_up_csv_directory(int_param)
-    #supervisor.clean_csv_directory()
     
     with open(csv_path , mode="w", newline="") as file:
         writer = csv.writer(file, delimiter=';')
@@ -45,7 +44,8 @@ def main():
             for millisecond in range(0,60000):
                 for robot in supervisor.dictionary_of_robots:
                     robot.update_phase(millisecond)
-                    # KNOWLEDGE PART
+                    
+                    # POSITIONS MATRIX
                     if (millisecond % 40 == 0):
                         distances_to_check = supervisor.make_matrix_control(robot)
   

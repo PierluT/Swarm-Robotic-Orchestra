@@ -2,18 +2,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import os
 import numpy as np
-from classes import File_Reader
-
-general_csv_file = os.path.join("csv", "video_maker.csv")
-# Carica il file CSV
-df = pd.read_csv(general_csv_file, delimiter=';')
-
-file_reader_valuse = File_Reader()
-values_dictionary = file_reader_valuse.read_configuration_file()
-
-arena_area = values_dictionary['width_arena'] * values_dictionary['height_arena']
-number_of_robots = values_dictionary['robot_number']
-threshold = values_dictionary['threshold']
+import seaborn as sns
+import glob
 
 def phase_synchrony(sim_data):
     
@@ -47,23 +37,73 @@ def phase_synchrony(sim_data):
 
     return synchrony_values 
 
-# Ottieni i numeri univoci delle simulazioni
-simulation_numbers = df['simulation number'].unique()
-    
-# Itera su ogni simulazione
-for sim_number in simulation_numbers:
-    # Filtra i dati per la simulazione corrente
-    sim_data = df[df['simulation number'] == sim_number]
-    synchrony = phase_synchrony(sim_data)
-    # Estrai i valori di tempo e ∆Θ(t)
-    ms_values, delta_theta_values = zip(*synchrony)
-    # Plot della sincronizzazione
-    plt.plot(ms_values, delta_theta_values, label=f'Simulation {sim_number}')
+# Cerca tutti i file video.csv nelle sottocartelle di "csv"
+csv_files = glob.glob("csv/**/video.csv", recursive=True)
 
-# Configurazione del grafico
-plt.xlabel('Time (ms)')
-plt.ylabel('Phase Synchrony ∆Θ(t)')
-plt.title('Phase Synchrony Over Time')
-plt.legend()
+# Lista per salvare tutti i dati
+all_results = []
+
+# Debug: Verifica che siano stati trovati file
+print(f"Files trovati: {len(csv_files)}")
+
+for file_path in csv_files:
+    # Estrai il nome della cartella superiore (dove si trova il file)
+    folder_name = os.path.basename(os.path.dirname(file_path))
+    
+    # Estrarre il numero di robot dal nome della cartella
+    parts = folder_name.split("R_N")
+    if len(parts) > 1:
+        num_robots = int(parts[1].split("_")[0])  # Prende il numero dopo "R_N"
+    else:
+        continue  # Se il nome non è nel formato giusto, salta il file
+
+    # Leggi il CSV
+    df = pd.read_csv(file_path, delimiter=';')
+    df['simulation number'] = df['simulation number'].astype(int)
+
+    # Analizza ogni simulazione nel file
+    simulation_numbers = df['simulation number'].unique()
+    
+    for sim_number in simulation_numbers:
+        sim_data = df[df['simulation number'] == sim_number]
+        synchrony = phase_synchrony(sim_data)
+        
+        # Raggruppiamo i dati per intervalli di tempo (6000 ms per ogni intervallo)
+        for ms, delta_theta in synchrony:
+            time_interval = (ms // 6000) * 6000  # Rende l'intervallo di tempo una cifra divisibile per 6000
+            time_interval_seconds = time_interval / 1000  # Conversione in secondi
+            all_results.append({
+                'Time Interval (s)': time_interval_seconds,
+                'Phase Synchrony (∆Θ)': delta_theta,
+                'Num Robots': num_robots
+            })
+
+# Creare un DataFrame aggregato
+results_df = pd.DataFrame(all_results)
+
+# Verifica se la colonna 'Time Interval (s)' esiste
+if 'Time Interval (s)' not in results_df.columns:
+    print("La colonna 'Time Interval (s)' non è presente nel DataFrame!")
+else:
+    print(f"Le colonne nel DataFrame: {results_df.columns}")
+
+# Debug: Verifica che ci siano effettivamente più configurazioni di robot
+print(f"Numero di righe nel DataFrame: {len(results_df)}")
+print(f"Valori unici di 'Num Robots': {results_df['Num Robots'].unique()}")
+
+# Definire i colori personalizzati per i gruppi
+palette = {5: 'blue', 10: 'orange', 15: 'green'}
+
+# BOX PLOT: Confronto tra numero di robot e sincronizzazione di fase
+plt.figure(figsize=(12, 6))
+sns.boxplot(x='Time Interval (s)', y='Phase Synchrony (∆Θ)', hue='Num Robots', data=results_df, palette=palette)
+plt.title('Evoluzione della Sincronizzazione di Fase in funzione dell\'Intervallo Temporale')
+plt.xlabel('Intervallo Temporale (s)')
+plt.ylabel('Sincronizzazione di Fase (∆Θ)')
 plt.grid(True)
+plt.legend(title='Numero di Robot', loc='upper right')
+plt.xticks(rotation=45)  # Ruotare le etichette dell'asse x per una migliore visibilità
 plt.show()
+
+# Esportare i dati aggregati per ulteriori analisi (opzionale)
+results_df.to_csv("synchrony_analysis_time_intervals_seconds.csv", index=False)
