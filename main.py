@@ -27,8 +27,8 @@ def main():
     supervisor = Supervisor([])
     midi_class = MIDIMessage()
     arena = Arena()
-    csv_path = supervisor.set_up_csv_directory()
-    supervisor.clean_csv_directory()
+    csv_path = supervisor.set_up_csv_directory(int_param)
+    #supervisor.clean_csv_directory()
     
     with open(csv_path , mode="w", newline="") as file:
         writer = csv.writer(file, delimiter=';')
@@ -42,18 +42,20 @@ def main():
             # method to set robot positions and initial random notes.
             supervisor.setup_robots()
             
-            for millisecond in range(0,160):
+            for millisecond in range(0,60000):
                 for robot in supervisor.dictionary_of_robots:
-                    # KNOWLEDGE PART
-                    distances_to_check = supervisor.make_matrix_control(robot)
                     robot.update_phase(millisecond)
-                            
+                    # KNOWLEDGE PART
+                    if (millisecond % 40 == 0):
+                        distances_to_check = supervisor.make_matrix_control(robot)
+  
                     # COMUNICATION every 80 ms.   
                     if (millisecond % 80 == 0):
                         supervisor.post_office(robot)
                             
                     # ROBOT STEP every 40 ms.
                     if (millisecond % 40 == 0):
+                        #distances_to_check = supervisor.make_matrix_control(robot)
                         #print( distances_to_check)
                         #supervisor.print_distance_matrix()
                         robot.get_note_info()
@@ -81,7 +83,7 @@ def main():
                         arena.write_robot_data(writer, simulation_number, millisecond, robot) 
 
             supervisor.build_conductor_spartito()
-            midi_class.write_csv(supervisor.conductor_spartito,simulation_number)
+            midi_class.write_csv(supervisor.conductor_spartito,simulation_number, csv_path)
             supervisor.dictionary_of_robots.clear()
             supervisor.conductor_spartito.clear()
     

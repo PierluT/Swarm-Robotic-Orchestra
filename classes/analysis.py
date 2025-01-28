@@ -2,15 +2,25 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import os
 import numpy as np
+from classes import File_Reader
 
 general_csv_file = os.path.join("csv", "video_maker.csv")
 # Carica il file CSV
 df = pd.read_csv(general_csv_file, delimiter=';')
 
+file_reader_valuse = File_Reader()
+values_dictionary = file_reader_valuse.read_configuration_file()
+
+arena_area = values_dictionary['width_arena'] * values_dictionary['height_arena']
+number_of_robots = values_dictionary['robot_number']
+threshold = values_dictionary['threshold']
+
 def phase_synchrony(sim_data):
+    
     """
     Compute phase synchronization ∆Θ(t) for a dataset.
     """
+    
     ms_values = sim_data['ms'].unique()
     synchrony_values = []
 

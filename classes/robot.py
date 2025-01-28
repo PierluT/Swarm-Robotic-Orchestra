@@ -177,7 +177,7 @@ class Robot:
                 self.flag_included_proper_midinote = True
                 #print("robot :"+ str(self.number)+ " is already in harmony")
         if not self.flag_included_proper_midinote:
-            print("note robot :"+ str(self.number)+" not included in the best scales")
+            #print("note robot :"+ str(self.number)+" not included in the best scales")
             # function change 70-30 to call it or not.
             self.change_note(best_scales) 
             
@@ -229,7 +229,7 @@ class Robot:
                 self.note.midinote += musical_interval 
                 self.note.pitch += musical_interval % 12
             else:
-                print(f"Nota fuori range: {new_midinote}. Cambio ignorato.")
+                #print(f"Nota fuori range: {new_midinote}. Cambio ignorato.")
                 # Fallback: founds the closest note.
                 valid_midinote = min(
                     range(self.min_midinote, self.max_midinote + 1),
@@ -241,7 +241,7 @@ class Robot:
                 self.note.midinote += fallback_interval
                 self.note.pitch = (self.note.pitch + fallback_interval) % 12
 
-                print(f"Nota cambiata al fallback: {self.note.midinote} (pitch: {self.note.pitch})")
+                #print(f"Nota cambiata al fallback: {self.note.midinote} (pitch: {self.note.pitch})")
             
             # control if the new note is in the range of my actual instrument
             for instrument_group, instruments in self.timbre_dictionary.items():
@@ -249,13 +249,13 @@ class Robot:
                     current_range = instruments[self.timbre]
 
                     if self.note.midinote not in current_range:
-                        print(f"Note {self.note.midinote} is out of range for {self.timbre}. Reassigning timbre...")
+                        #print(f"Note {self.note.midinote} is out of range for {self.timbre}. Reassigning timbre...")
                         self.set_timbre_from_midi()
-                    else:
-                        print(f"Note {self.note.midinote} is within range for {self.timbre}.")
+                    #else:
+                        #print(f"Note {self.note.midinote} is within range for {self.timbre}.")
 
-        else: 
-            print(f"r: {self.number} kept the same note {self.previous_midinote} not in harmony")      
+        #else: 
+            #print(f"r: {self.number} kept the same note {self.previous_midinote} not in harmony")      
 
     # message from each robot.
     def set_emitter_message(self):
@@ -284,8 +284,8 @@ class Robot:
             choosen_timbre = random.choice(matching_instruments)
             #print(" found new instrument: " +str(choosen_timbre))
             self.timbre = choosen_timbre
-        else:
-             print("No matching instrument found") 
+        #else:
+             #print("No matching instrument found") 
 
     # Every robot has a dictionary on what is the last note that others are playing.
     # With this structure I can predict the next note to play consulting music scales dictionary.

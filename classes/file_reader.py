@@ -23,7 +23,6 @@ class File_Reader:
                 
                 configuration_dictionary[parameters.strip()] = values
 
-            #print(configuration_dictionary)
             return configuration_dictionary
 
          

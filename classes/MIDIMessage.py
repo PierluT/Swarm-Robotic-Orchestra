@@ -6,32 +6,37 @@ import pandas as pd
 from scipy.io.wavfile import write
 from pathlib import Path
 import soundfile as sf
+from classes.file_reader import File_Reader
+
+file_reader_valuse = File_Reader()
+values_dictionary = file_reader_valuse.read_configuration_file()
 
 class MIDIMessage():
     
     def __init__(self):
-        self.music_csv_file = "music_data.csv"
-        self.final_audio_file = 'final_output.wav'
-        self.directory = "csv"
+        self.music_csv_file = "music.csv"
         self.final_csv_music_path = ""
+        self.final_audio_file = 'final_output.wav'
 
-    def write_csv(self, conductor_spartito, simulation_number):
-        music_csv_path = os.path.join(self.directory, self.music_csv_file)
-
-        os.makedirs(self.directory, exist_ok=True)
+    def write_csv(self, conductor_spartito, simulation_number, csv_path):
+        # I recieve the csv folder path from supervisor, but I have to remove video.csv
+        csv_directory = os.path.dirname(csv_path)
+        self.final_csv_music_path = os.path.join(csv_directory, self.music_csv_file)
+        print(self.final_csv_music_path)
+        #os.makedirs(self.directory, exist_ok=True)
         
         # if it necessary to write first row
-        first_iteration = not os.path.exists(music_csv_path)
+        first_iteration = not os.path.exists(self.final_csv_music_path)
         
         # mode w writes the file, mode a appends vaues on the file.
         mode = "w" if first_iteration else "a"
 
-        with open(music_csv_path, mode=mode, newline="") as file:
-            writer = csv.DictWriter(file, fieldnames=["simulation number", "ms", "musician", "note", "dur", "amp", "bpm", "timbre", "delay"])
+        with open(self.final_csv_music_path, mode= mode, newline = '') as file:
+            writer = csv.DictWriter(file, fieldnames=["simulation number", "ms", "musician", "note", "dur", "amp", "bpm", "timbre", "delay"], delimiter=';')
             
             if first_iteration:
                 writer.writeheader()
-                self.final_csv_music_path = music_csv_path
+                self.final_csv_music_path = self.final_csv_music_path
             if conductor_spartito:
                 for row in conductor_spartito:
                     row["simulation number"] = simulation_number
@@ -45,8 +50,8 @@ class MIDIMessage():
         with open(self.final_csv_music_path, 'r') as f:
             lines = f.readlines()
 
-        header = lines[0].strip().split(',')  # first row
-        data = [line.strip().split(',') for line in lines[1:]]  # data
+        header = lines[0].strip().split(';')  # first row
+        data = [line.strip().split(';') for line in lines[1:]]  # data
 
         timbre_index = header.index('timbre')
         note_index = header.index('note')
@@ -108,7 +113,7 @@ class MIDIMessage():
             with open(self.final_csv_music_path, 'r') as f:
                 lines = f.readlines()
                 last_line = lines[-1]
-                last_ms = int(last_line.split(',')[1])  # extract the last ms value to set final WAV file length.
+                last_ms = int(last_line.split(';')[1])  # extract the last ms value to set final WAV file length.
             
             # Controlif the number of WAV files and csv rows information is equal.
             if len(lines[1:]) != len(wav_files):
@@ -118,7 +123,7 @@ class MIDIMessage():
             sr = 44100
             audio_data = np.zeros(int(((last_ms + 1000) / 1000) * sr))
             for line, input_file in zip(lines[1:], wav_files):
-                parts = line.strip().split(',')
+                parts = line.strip().split(';')
                 
                 try:
                     if not os.path.exists(input_file):
