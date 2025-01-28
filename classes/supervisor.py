@@ -20,6 +20,7 @@ class Supervisor:
         # boundaries of rectangle area
         self.rectangleArea_width = values_dictionary['width_arena']
         self.rectangleArea_heigth = values_dictionary['height_arena']
+        self.arena_area = self.rectangleArea_width * self.rectangleArea_heigth
         # number of robots in the arena
         self.number_of_robots = values_dictionary['robot_number']
         # dictionary of created robots
@@ -43,7 +44,7 @@ class Supervisor:
         self.sensor = values_dictionary['sensor']
         self.initial_bpm = values_dictionary['bpm']
         self.music_formations = music_formations
-        self.csv_folder = "csv"
+        self.csv_folder = ""
     
     # method to compute iteratively the min and max midinote value that robot can play.
     def compute_midi_range_values(self):
@@ -65,16 +66,28 @@ class Supervisor:
         self.create_dictionary_of_robots()
         self.compute_initial_positions()
     
-    def set_up_csv_directory(self):
-        csv_video_file_name = "video_maker.csv"
+    def set_up_csv_directory(self,simulation_number):
+        s_n = simulation_number
+        #csv_file_name = f"s_n{s_n}r_n{self.number_of_robots}_thr{self.threshold}_area{self.arena_area}.csv"
         csv_directory = "csv"
+        csv_folder = f"S_N{s_n}R_N{self.number_of_robots}_Thr{self.threshold}_Area{self.arena_area}"
+        csv_video_file_name = "video.csv"
+        
         if not os.path.exists(csv_directory):
             # creates directory if doesn't exist.
             os.mkdir(csv_directory)  
             print(f"Cartella {csv_directory} creata.")
-        csv_file_directory = os.path.join(csv_directory, csv_video_file_name)
         
-        return csv_file_directory
+        csv_folder_directory = os.path.join(csv_directory,csv_folder)
+
+        if not os.path.exists(csv_folder_directory):
+            # creates directory if doesn't exist.
+            os.mkdir(csv_folder_directory)  
+            print(f"Cartella {csv_folder_directory} creata.")
+        
+        csv_final_path = os.path.join(csv_folder_directory,csv_video_file_name)
+
+        return csv_final_path
     
     # method to clean previous files and csv folders. 
     def clean_csv_directory(self):
@@ -112,7 +125,6 @@ class Supervisor:
         
         for n in range(self.number_of_robots):
             robot = Robot(number = n, phase_period = kuramoto_value, delay_values = delay_array, sb = seconds_in_a_beat, time_signature = t_s)
-            print(robot)
             # to compute minimum and maximum midinote value.
             robot.min_midinote, robot.max_midinote = self.compute_midi_range_values()
             initial_random_note = random.randint(self.min_midinote, self.max_midinote)
@@ -187,7 +199,6 @@ class Supervisor:
             distance_to_check = self.distances[initial_robot.number][j]
             # block to handle phase communication between robots.
             if distance_to_check <= self.threshold:
-                print("comunication "+ str(initial_robot.number))
                 robot1_chat = self.dictionary_of_robots[initial_robot.number]
                 robot2_chat = self.dictionary_of_robots[j]
                 self.handle_communication(robot1_chat, robot2_chat)
