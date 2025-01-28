@@ -81,6 +81,7 @@ class DataAnalyzer:
         plt.xticks(rotation=45)  # Ruotare le etichette dell'asse x per una migliore visibilità
         #plt.show()
         # Creare la cartella "plot" se non esiste
+        
         plot_directory = "plot"
         if not os.path.exists(plot_directory):
             os.makedirs(plot_directory)
