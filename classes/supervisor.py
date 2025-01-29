@@ -76,14 +76,12 @@ class Supervisor:
         if not os.path.exists(csv_directory):
             # creates directory if doesn't exist.
             os.mkdir(csv_directory)  
-            print(f"Cartella {csv_directory} creata.")
         
         csv_folder_directory = os.path.join(csv_directory,csv_folder)
 
         if not os.path.exists(csv_folder_directory):
             # creates directory if doesn't exist.
             os.mkdir(csv_folder_directory)  
-            print(f"Cartella {csv_folder_directory} creata.")
         
         csv_final_path = os.path.join(csv_folder_directory,csv_video_file_name)
 

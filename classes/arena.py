@@ -102,7 +102,8 @@ class Arena:
             robot.note.midinote,
             robot.note.pitch,
             robot.timbre,
-            robot.delay
+            robot.delay,
+            robot.harmony
     ])
 
     def open_video_file(self,filepath):

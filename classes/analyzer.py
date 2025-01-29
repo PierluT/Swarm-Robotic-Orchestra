@@ -6,28 +6,29 @@ import seaborn as sns
 import glob
 
 class DataAnalyzer:
-
-    def __init__(self,analysis_function = None):
-    
-        self.csv_directory = "csv"
+    def __init__(self, analysis_function=None):
+        self.csv_directory = "csv/phase_synchrony/threshold_values"
         self.time_conversion_factor = 1000
         self.interval_size = 6000
         self.analysis_function = analysis_function  # Funzione di analisi generica
         self.results_df = None
 
     def get_csv_files(self):
-        """Trova tutti i file CSV nella directory 'csv'."""
+        """Trova tutti i file CSV nella directory specificata."""
         return glob.glob(f"{self.csv_directory}/**/video.csv", recursive=True)
 
-    def extract_robot_number(self, file_path):
-        """Estrae il numero di robot dal nome della cartella del file CSV."""
+    def extract_threshold_value(self, file_path):
+        """Estrae il valore della soglia dal nome della cartella del file CSV."""
         folder_name = os.path.basename(os.path.dirname(file_path))
-        parts = folder_name.split("R_N")
+        parts = folder_name.split("_Thr")
         if len(parts) > 1:
-            return int(parts[1].split("_")[0])  # Prende il numero dopo "R_N"
+            try:
+                return float(parts[1].split("_")[0])  # Prende il valore della soglia dopo "_Thr"
+            except ValueError:
+                return None
         return None
 
-    def process_simulation(self, df, num_robots):
+    def process_simulation(self, df, threshold):
         """Processa i dati di simulazione, applicando la funzione di analisi e aggregando i risultati."""
         all_results = []
         simulation_numbers = df['simulation number'].unique()
@@ -36,17 +37,17 @@ class DataAnalyzer:
             sim_data = df[df['simulation number'] == sim_number]
             # Usa la funzione di analisi generica passata all'inizio
             analysis_results = self.analysis_function(sim_data)
-            
+
             for ms, value in analysis_results:
-                # Rende l'intervallo di tempo divisibile per 6000
-                time_interval = (ms // self.interval_size) * self.interval_size  
+                # Rende l'intervallo di tempo divisibile per interval_size
+                time_interval = (ms // self.interval_size) * self.interval_size
                 time_interval_seconds = time_interval / self.time_conversion_factor  # Conversione in secondi
                 all_results.append({
                     'Time Interval (s)': time_interval_seconds,
-                    'Value': value,  # Il valore analizzato (sincronizzazione o altro)
-                    'Num Robots': num_robots
+                    'Value': value,  # Il valore analizzato
+                    'Threshold': threshold
                 })
-        
+
         return all_results
 
     def aggregate_results(self):
@@ -55,44 +56,46 @@ class DataAnalyzer:
         csv_files = self.get_csv_files()
 
         for file_path in csv_files:
-            num_robots = self.extract_robot_number(file_path)
-            if num_robots is None:
+            threshold = self.extract_threshold_value(file_path)
+            if threshold is None:
                 continue
 
             df = pd.read_csv(file_path, delimiter=';')
             df['simulation number'] = df['simulation number'].astype(int)
 
-            simulation_results = self.process_simulation(df, num_robots)
+            simulation_results = self.process_simulation(df, threshold)
             all_results.extend(simulation_results)
-        
+
         self.results_df = pd.DataFrame(all_results)
 
     def plot_boxplot(self, value_label='Value'):
         """Crea il boxplot per visualizzare l'evoluzione dei valori analizzati nel tempo."""
-        palette = {5: 'blue', 10: 'orange', 15: 'green'}
-
         plt.figure(figsize=(12, 6))
-        sns.boxplot(x='Time Interval (s)', y=value_label, hue='Num Robots', data=self.results_df, palette=palette)
+        sns.boxplot(
+            x='Time Interval (s)', 
+            y=value_label, 
+            hue='Threshold', 
+            data=self.results_df, 
+            palette='viridis'  # Colori graduali per i valori di soglia
+        )
         plt.title('Phase synchrony evolution')
-        plt.xlabel('Time interval (s)')
+        plt.xlabel('Time Interval (s)')
         plt.ylabel(f'{value_label} (∆Θ o altro)')
         plt.grid(True)
-        plt.legend(title='Groups', loc='upper right')
-        plt.xticks(rotation=45)  # Ruotare le etichette dell'asse x per una migliore visibilità
-        #plt.show()
+        plt.legend(title='Threshold', loc='upper right')
+        plt.xticks(rotation=45)
+
         # Creare la cartella "plot" se non esiste
-        
         plot_directory = "plot"
         if not os.path.exists(plot_directory):
             os.makedirs(plot_directory)
 
         # Salva il grafico nella cartella "plot"
-        plot_filename = os.path.join(plot_directory, "synchrony_plot.png")
+        plot_filename = os.path.join(plot_directory, "threshold_analysis_plot.png")
         plt.savefig(plot_filename)
 
         # Mostra il grafico
         plt.show()
-
 
     def analyze(self):
         """Metodo principale che esegue l'intero processo di analisi e crea il boxplot."""
@@ -105,48 +108,46 @@ class DataAnalyzer:
         else:
             print(f"Le colonne nel DataFrame: {self.results_df.columns}")
 
-        # Debug: Verifica che ci siano effettivamente più configurazioni di robot
+        # Debug: Verifica che ci siano effettivamente più configurazioni di soglie
         print(f"Numero di righe nel DataFrame: {len(self.results_df)}")
-        print(f"Valori unici di 'Num Robots': {self.results_df['Num Robots'].unique()}")
+        print(f"Valori unici di 'Threshold': {self.results_df['Threshold'].unique()}")
 
         # Crea il boxplot
         self.plot_boxplot()
 
         # Esporta i dati aggregati per ulteriori analisi (opzionale)
-        #self.results_df.to_csv("analysis_results.csv", index=False)
+        #self.results_df.to_csv("threshold_analysis_results.csv", index=False)
 
 
 def phase_synchrony(sim_data):
-    
-        """
-        Compute phase synchronization ∆Θ(t) for a dataset.
-        """
-        
-        ms_values = sim_data['ms'].unique()
-        synchrony_values = []
+    """
+    Compute phase synchronization ∆Θ(t) for a dataset.
+    """
+    ms_values = sim_data['ms'].unique()
+    synchrony_values = []
 
-        for ms in ms_values:
-            current_data = sim_data[sim_data['ms'] == ms]
-            phases = current_data['phase'].values
-            M = len(phases)
+    for ms in ms_values:
+        current_data = sim_data[sim_data['ms'] == ms]
+        phases = current_data['phase'].values
+        M = len(phases)
 
-            # compute ∆Θ(t)
-            total_diff = 0
-            num_pairs = 0
+        # compute ∆Θ(t)
+        total_diff = 0
+        num_pairs = 0
 
-            for i in range(M):
-                for j in range(i + 1, M):
-                    diff = abs(phases[i] - phases[j])
-                    cyclic_diff = min(diff, 2 * np.pi - diff)  # Normalizza in [0, π]
-                    total_diff += cyclic_diff 
-                    num_pairs += 1
-            
-            # Value normalization
-            max_diff = num_pairs * np.pi  # Massima differenza possibile
-            delta_theta = (total_diff / max_diff) if num_pairs > 0 else 0
-            synchrony_values.append((ms, delta_theta))
+        for i in range(M):
+            for j in range(i + 1, M):
+                diff = abs(phases[i] - phases[j])
+                cyclic_diff = min(diff, 2 * np.pi - diff)  # Normalizza in [0, π]
+                total_diff += cyclic_diff
+                num_pairs += 1
 
-        return synchrony_values
+        # Value normalization
+        max_diff = num_pairs * np.pi  # Massima differenza possibile
+        delta_theta = (total_diff / max_diff) if num_pairs > 0 else 0
+        synchrony_values.append((ms, delta_theta))
+
+    return synchrony_values
 
 analyzer = DataAnalyzer(analysis_function = phase_synchrony)
 analyzer.analyze()    

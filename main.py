@@ -31,7 +31,7 @@ def main():
     
     with open(csv_path , mode="w", newline="") as file:
         writer = csv.writer(file, delimiter=';')
-        writer.writerow(["simulation number","ms", "robot number", "x", "y","compass", "phase", "colour","midinote", "pitch", "timbre", "delay"])
+        writer.writerow(["simulation number","ms", "robot number", "x", "y","compass", "phase", "colour","midinote", "pitch", "timbre", "delay", "harmony"])
         for simulation_number in range(int_param):
             print(" ################################# ")
             print(f"Execution number {simulation_number}")
@@ -46,15 +46,15 @@ def main():
                     robot.update_phase(millisecond)
                     
                     # POSITIONS MATRIX
-                    if (millisecond % 40 == 0):
+                    if (millisecond % 40 == 0 and millisecond != 0):
                         distances_to_check = supervisor.make_matrix_control(robot)
   
                     # COMUNICATION every 80 ms.   
-                    if (millisecond % 80 == 0):
+                    if (millisecond % 80 == 0 and millisecond != 0):
                         supervisor.post_office(robot)
                             
                     # ROBOT STEP every 40 ms.
-                    if (millisecond % 40 == 0):
+                    if (millisecond % 40 == 0 and millisecond != 0):
                         #distances_to_check = supervisor.make_matrix_control(robot)
                         #print( distances_to_check)
                         #supervisor.print_distance_matrix()

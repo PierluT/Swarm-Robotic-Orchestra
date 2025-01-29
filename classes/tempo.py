@@ -8,13 +8,15 @@ class Note:
          self.amp = 1
          self.dur = duration
          self.bpm = bpm
-         self.pitch = self.midinote % 12  
+         self.pitch = self.midinote % 12 
+         self.octave = (self.midinote - 12) // 12
          self.dynamic = ""
     
     def __repr__(self):
         return "\n\t".join([ 
                                 "midinote: %d"%self.midinote,
-                                "pitch: %.1f"%self.pitch
+                                "pitch: %.1f"%self.pitch,
+                                "octave: %d" % self.octave
                                 ])
                                 #"amplitude: %.1f"%self.amp
 
