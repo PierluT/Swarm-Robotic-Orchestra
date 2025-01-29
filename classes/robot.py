@@ -51,18 +51,18 @@ class Robot:
         self.stop_counter = 0
         self.moving_counter = 0
         # MUSIC VARIABLES
-        self.scales = major_pentatonic_scales
+        self.scales = major_scales
         self.note = ""
         #self.id_note_counter = 0
-        self.max_music_neighbourgs = 5
+        self.max_music_neighbourgs = 4
         self.max_notes_per_neighbourg = 1
         # variable to control the previous midinote I played
         self.previous_midinote = 0
         # variable to control if in the previous iteraction I play in a common scale with neirghbourgs.
-        self.harmony = False
         self.scale_name = None
         self.probable_scales = []
         self.flag_included_proper_midinote = False
+        self.harmony = False
         self.my_spartito = []
         # dictionary for recieved notes
         self.local_music_map = defaultdict(list)
@@ -157,6 +157,7 @@ class Robot:
     def update_note(self):
         # extract only notes from my dictionary
         notes_to_check = [note[0] for note in self.local_music_map.values()]
+        
         mas = 0
         scale_matches = {}
         for scale_name, scale_notes in self.scales.items():
@@ -165,8 +166,8 @@ class Robot:
 
             # found the scale with major number of common notes.
             max_matches = max(scale_matches.values())
-            mas = max_matches
-        best_scales = [scale_name for scale_name, match_count in scale_matches.items() if match_count == mas]
+            #mas = max_matches
+        best_scales = [scale_name for scale_name, match_count in scale_matches.items() if match_count == max_matches]
 
         # control if my note is included in one of the probable scales:
         for scale in best_scales:
@@ -175,11 +176,14 @@ class Robot:
             if self.note.pitch in scale_notes:
                  # put a flag if the note that I play is included in one of the best scales found for the harmony.
                 self.flag_included_proper_midinote = True
+                self.harmony = True
                 #print("robot :"+ str(self.number)+ " is already in harmony")
         if not self.flag_included_proper_midinote:
             #print("note robot :"+ str(self.number)+" not included in the best scales")
             # function change 70-30 to call it or not.
             self.change_note(best_scales) 
+            #print(self.note)
+
             
         self.flag_included_proper_midinote = False 
     
@@ -187,19 +191,18 @@ class Robot:
     def create_new_note(self, midi_value, bpm, duration):
         note = Note( midinote = midi_value, bpm = bpm, duration = duration)
         self.note = note
+        #print("pitch: "+str(self.note.pitch))
 
     # mehtod to change the note if I'm not in harmony
     def change_note(self,best_scales):
         change_probability = random.random()
         # I change note
         if change_probability < 0.7:
-            #print(f"r: {self.number} changes note")
-            
             # I found the closest scale
             closest_scale = min(
                 best_scales,
                 key = lambda scale_name: min(
-                    abs(self.note.pitch - note) if abs(self.note.pitch - note) <= 6 else 12 - abs(self.note.pitch - note)
+                    (self.note.pitch - note) if abs(self.note.pitch - note) <= 6 else 12 - abs(self.note.pitch - note)
                     for note in self.scales[scale_name]
                 )
             )
@@ -209,53 +212,32 @@ class Robot:
                 self.scales[closest_scale],
                 key = lambda note: min(abs(self.note.pitch - note), 12 - abs(self.note.pitch - note))
             )
-
-            diff = self.note.pitch - closest_note
-            # if the interval is bigger than 6 semitones.
-            if abs(diff) > 6:  
-                if diff > 0:
-                    diff -= 12  
-                else:
-                    diff += 12  
-            musical_interval = diff
-            previous_note = self.note.midinote
-            if abs(musical_interval) == 12:
-                print(f" AAAAAAAAAAAAAAAAAAAA NOTA CORRETTA intervallo: {musical_interval})")
-
-            # change note only if it's within the range.
-            new_midinote = self.note.midinote + musical_interval
-            if self.min_midinote <= new_midinote <= self.max_midinote:
-                # change note
-                self.note.midinote += musical_interval 
-                self.note.pitch += musical_interval % 12
-            else:
-                #print(f"Nota fuori range: {new_midinote}. Cambio ignorato.")
-                # Fallback: founds the closest note.
-                valid_midinote = min(
-                    range(self.min_midinote, self.max_midinote + 1),
-                    key=lambda midinote: abs(midinote - new_midinote)
-                )
-
-                # compute correct interval for the fallback.
-                fallback_interval = valid_midinote - self.note.midinote
-                self.note.midinote += fallback_interval
-                self.note.pitch = (self.note.pitch + fallback_interval) % 12
-
-                #print(f"Nota cambiata al fallback: {self.note.midinote} (pitch: {self.note.pitch})")
             
-            # control if the new note is in the range of my actual instrument
-            for instrument_group, instruments in self.timbre_dictionary.items():
-                if self.timbre in instruments:
-                    current_range = instruments[self.timbre]
+            # Calcolo la differenza tra la nota suonata e la nota più vicina
+            midi_diff = closest_note - self.note.pitch
 
-                    if self.note.midinote not in current_range:
-                        #print(f"Note {self.note.midinote} is out of range for {self.timbre}. Reassigning timbre...")
-                        self.set_timbre_from_midi()
-                    #else:
-                        #print(f"Note {self.note.midinote} is within range for {self.timbre}.")
+            # Se la differenza è maggiore di 6, correggo il salto
+            if abs(midi_diff) > 6:
+                # Se la differenza è maggiore di 6, normalizzo il salto
+                midi_diff = midi_diff - (12 if midi_diff > 0 else -12)
+                print("here")
 
-        #else: 
-            #print(f"r: {self.number} kept the same note {self.previous_midinote} not in harmony")      
+            # Aggiusto il midinote in base alla differenza
+            self.note.midinote += midi_diff
+
+            # Aggiorno il pitch alla nota più vicina
+            self.note.pitch = closest_note
+
+            # Stampa per il debug
+            #print("pitch: " + str(self.note.pitch))
+            #print("midinote: " + str(self.note.midinote))
+            print(self.note)
+
+                            
+        if self.note.pitch > 11:
+            print("NOOOOOOOOOOOOOOOOO")
+            
+
 
     # message from each robot.
     def set_emitter_message(self):
@@ -268,6 +250,7 @@ class Robot:
             "delay": self.delay
         }
         self.forwarded_message = entry
+        #print("nota "+str(self.note.pitch))
     
     # method to set the timbre based on related note ranges.
     def set_timbre_from_midi(self):
@@ -299,15 +282,17 @@ class Robot:
                     if robot_number is not None and note is not None:
                         # If the robot is not in the dictionar, initilize it.
                         if robot_number not in self.local_music_map:
-                            self.local_music_map[robot_number] = deque(maxlen=self.max_notes_per_neighbourg)
+                            self.local_music_map[robot_number] = deque(maxlen = self.max_notes_per_neighbourg)
 
                         # add a new note in the robot queue.
                         self.local_music_map[robot_number].append(note)
+        
             
             # if the dictionary reaches maximum limit, remove the oldest data on it.
             while len(self.local_music_map) > self.max_music_neighbourgs:
                 oldest_robot = next(iter(self.local_music_map))
                 del self.local_music_map[oldest_robot]
+            #print(self.local_music_map)
     
     # timbre dictionary with the same functions of notes dictionary
     def get_timbre_info(self):
@@ -372,7 +357,6 @@ class Robot:
             "bpm": self.note.bpm,
             "timbre": self.timbre,
             "delay": self.delay,
-            #"harmonicity": self.harmony
         }
 
         self.my_spartito.append(spartito_entry)
@@ -434,3 +418,97 @@ class Robot:
   
 
 
+"""""
+# mehtod to change the note if I'm not in harmony
+    def change_note(self,best_scales):
+        change_probability = random.random()
+        # I change note
+        if change_probability < 0.7:
+            # I found the closest scale
+            closest_scale = min(
+                best_scales,
+                key = lambda scale_name: min(
+                    abs(self.note.pitch - note) if abs(self.note.pitch - note) <= 6 else 12 - abs(self.note.pitch - note)
+                    for note in self.scales[scale_name]
+                )
+            )
+
+            # found closest note into the closest scale.
+            closest_note = min(
+                self.scales[closest_scale],
+                key = lambda note: min(abs(self.note.pitch - note), 12 - abs(self.note.pitch - note))
+            )
+            #print("pitch "+ str(self.note.pitch))
+            
+            diff = self.note.pitch - closest_note
+            #print("music interval: "+ str(diff))
+            # if the interval is bigger than 6 semitones.
+            if abs(diff) > 6:  
+                if diff > 0:
+                    diff -= 12  
+                else:
+                    diff += 12  
+            musical_interval = diff
+            previous_note = self.note.midinote
+            
+            if abs(musical_interval) == 12:
+                print(f" AAAAAAAAAAAAAAAAAAAA NOTA CORRETTA intervallo: {musical_interval})")
+
+            # change note only if it's within the range.
+            new_midinote = self.note.midinote + musical_interval
+            if self.min_midinote <= new_midinote <= self.max_midinote:
+                # change note
+                self.note.midinote += musical_interval 
+                self.note.pitch += musical_interval % 12
+            else:
+                #print(f"Nota fuori range: {new_midinote}. Cambio ignorato.")
+                # Fallback: founds the closest note.
+                valid_midinote = min(
+                    range(self.min_midinote, self.max_midinote + 1),
+                    key=lambda midinote: abs(midinote - new_midinote)
+                )
+
+                # compute correct interval for the fallback.
+                fallback_interval = valid_midinote - self.note.midinote
+                self.note.midinote += fallback_interval
+                self.note.pitch = (self.note.pitch + fallback_interval) % 12
+
+                #print(f"Nota cambiata al fallback: {self.note.midinote} (pitch: {self.note.pitch})")
+            
+            # control if the new note is in the range of my actual instrument
+            for instrument_group, instruments in self.timbre_dictionary.items():
+                if self.timbre in instruments:
+                    current_range = instruments[self.timbre]
+
+                    if self.note.midinote not in current_range:
+                        #print(f"Note {self.note.midinote} is out of range for {self.timbre}. Reassigning timbre...")
+                        self.set_timbre_from_midi()
+                    #else:
+                        #print(f"Note {self.note.midinote} is within range for {self.timbre}.")  
+
+
+
+
+                        
+            
+            
+            #print("diff "+ str(diff))
+            if diff == 1:
+                self.note.pitch -= diff
+                self.note.pitch = self.note.pitch % 12
+                #print("nuova nota: "+ str(self.note.pitch))
+            if diff == -1:
+                self.note.pitch += diff
+                self.note.pitch = self.note.pitch % 12
+                #print("nuova nota 2: "+ str(self.note.pitch))
+            # Stampa la differenza solo se è maggiore di 1
+            if abs(diff) > 6:
+                print("played note: "+str(self.note.pitch))
+                print("closest note: "+str(closest_note))
+                jump = abs(diff) - 12
+                print("jump "+str(jump))
+                self.note.pitch += jump 
+                self.note.pitch = self.note.pitch % 12
+                print("JUMP: "+ str(self.note.pitch))
+
+"""

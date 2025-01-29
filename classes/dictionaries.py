@@ -25,17 +25,17 @@ major_scales = {
 
 major_pentatonic_scales = {
     0:  [0, 2, 4, 7, 9],     # C major pentatonic
-    1:  [1, 3, 5, 8, 10],    # C# / Db major pentatonic
+    #1:  [1, 3, 5, 8, 10],    # C# / Db major pentatonic
     2:  [2, 4, 6, 9, 11],    # D major pentatonic
-    3:  [3, 5, 7, 10, 0],    # D# / Eb
+    #3:  [3, 5, 7, 10, 0],    # D# / Eb
     4:  [4, 6, 8, 11, 1],    # E major pentatonic
-    5:  [5, 7, 9, 0, 2],     # F major pentatonic
+    #5:  [5, 7, 9, 0, 2],     # F major pentatonic
     6:  [6, 8, 10, 1, 3],    # F# / Gb
-    7:  [7, 9, 11, 2, 4],    # G major pentatonic
+    #7:  [7, 9, 11, 2, 4],    # G major pentatonic
     8:  [8, 10, 0, 3, 5],    # G# / Ab
-    9:  [9, 11, 1, 4, 6],    # A major pentatonic
+    #9:  [9, 11, 1, 4, 6],    # A major pentatonic
     10: [10, 0, 2, 5, 7],    # A# / Bb
-    11: [11, 1, 3, 6, 8],    # B major pentatonic
+    #11: [11, 1, 3, 6, 8],    # B major pentatonic
 }
 
 whole_tone_scales = {
