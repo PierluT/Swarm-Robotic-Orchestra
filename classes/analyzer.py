@@ -7,7 +7,7 @@ import glob
 
 class DataAnalyzer:
     def __init__(self, analysis_function=None):
-        self.csv_directory = "csv/phase_synchrony/threshold_values"
+        self.csv_directory = "csv/harmony_consensous/robot_numbers_values"
         self.time_conversion_factor = 1000
         self.interval_size = 6000
         self.analysis_function = analysis_function  # Funzione di analisi generica
@@ -17,18 +17,15 @@ class DataAnalyzer:
         """Trova tutti i file CSV nella directory specificata."""
         return glob.glob(f"{self.csv_directory}/**/video.csv", recursive=True)
 
-    def extract_threshold_value(self, file_path):
-        """Estrae il valore della soglia dal nome della cartella del file CSV."""
+    def extract_robot_number(self, file_path):
+        """Estrae il numero di robot dal nome della cartella del file CSV."""
         folder_name = os.path.basename(os.path.dirname(file_path))
-        parts = folder_name.split("_Thr")
+        parts = folder_name.split("R_N")
         if len(parts) > 1:
-            try:
-                return float(parts[1].split("_")[0])  # Prende il valore della soglia dopo "_Thr"
-            except ValueError:
-                return None
+            return int(parts[1].split("_")[0])  # Prende il numero dopo "R_N"
         return None
 
-    def process_simulation(self, df, threshold):
+    def process_simulation(self, df, num_robots):
         """Processa i dati di simulazione, applicando la funzione di analisi e aggregando i risultati."""
         all_results = []
         simulation_numbers = df['simulation number'].unique()
@@ -45,7 +42,7 @@ class DataAnalyzer:
                 all_results.append({
                     'Time Interval (s)': time_interval_seconds,
                     'Value': value,  # Il valore analizzato
-                    'Threshold': threshold
+                    'Num Robots': num_robots
                 })
 
         return all_results
@@ -56,14 +53,14 @@ class DataAnalyzer:
         csv_files = self.get_csv_files()
 
         for file_path in csv_files:
-            threshold = self.extract_threshold_value(file_path)
-            if threshold is None:
+            num_robots = self.extract_robot_number(file_path)
+            if num_robots is None:
                 continue
 
             df = pd.read_csv(file_path, delimiter=';')
             df['simulation number'] = df['simulation number'].astype(int)
 
-            simulation_results = self.process_simulation(df, threshold)
+            simulation_results = self.process_simulation(df, num_robots)
             all_results.extend(simulation_results)
 
         self.results_df = pd.DataFrame(all_results)
@@ -71,18 +68,20 @@ class DataAnalyzer:
     def plot_boxplot(self, value_label='Value'):
         """Crea il boxplot per visualizzare l'evoluzione dei valori analizzati nel tempo."""
         plt.figure(figsize=(12, 6))
+        
         sns.boxplot(
             x='Time Interval (s)', 
             y=value_label, 
-            hue='Threshold', 
+            hue='Num Robots',  # Differenzia i gruppi in base al numero di robot
             data=self.results_df, 
-            palette='viridis'  # Colori graduali per i valori di soglia
+            palette='Set1'  # Colori diversi per i gruppi
         )
-        plt.title('Phase synchrony evolution')
+
+        plt.title('Harmony Consensus Evolution')
         plt.xlabel('Time Interval (s)')
-        plt.ylabel(f'{value_label} (∆Θ o altro)')
+        plt.ylabel(f'{value_label} (H(t) o altro)')
         plt.grid(True)
-        plt.legend(title='Threshold', loc='upper right')
+        plt.legend(title='Num Robots', loc='upper right')
         plt.xticks(rotation=45)
 
         # Creare la cartella "plot" se non esiste
@@ -91,7 +90,7 @@ class DataAnalyzer:
             os.makedirs(plot_directory)
 
         # Salva il grafico nella cartella "plot"
-        plot_filename = os.path.join(plot_directory, "threshold_analysis_plot.png")
+        plot_filename = os.path.join(plot_directory, "robot_number_analysis_plot.png")
         plt.savefig(plot_filename)
 
         # Mostra il grafico
@@ -108,16 +107,37 @@ class DataAnalyzer:
         else:
             print(f"Le colonne nel DataFrame: {self.results_df.columns}")
 
-        # Debug: Verifica che ci siano effettivamente più configurazioni di soglie
+        # Debug: Verifica che ci siano effettivamente più configurazioni di numero di robot
         print(f"Numero di righe nel DataFrame: {len(self.results_df)}")
-        print(f"Valori unici di 'Threshold': {self.results_df['Threshold'].unique()}")
+        #print(f"Valori unici di 'Num Robots': {self.results_df['Num Robots'].unique()}")
 
         # Crea il boxplot
         self.plot_boxplot()
 
-        # Esporta i dati aggregati per ulteriori analisi (opzionale)
-        #self.results_df.to_csv("threshold_analysis_results.csv", index=False)
+def harmony_consensus(sim_data):
+    """
+    Compute harmony consensus H(t) for a dataset.
+    H(t) is the proportion of robots whose pitches belong to at least a single common scale.
+    """
+    ms_values = sim_data['ms'].unique()
+    harmony_values = []
 
+    for ms in ms_values:
+        current_data = sim_data[sim_data['ms'] == ms]
+        M = len(current_data)
+
+        if M == 0:
+            continue
+
+        # Conta quanti robot hanno harmony = True
+        harmony_count = current_data['harmony'].sum()  # Conta i True (che sono considerati come 1)
+        
+        # Normalizzazione tra 1/M e 1
+        H_t = max(1/M, harmony_count / M)
+        
+        harmony_values.append((ms, H_t))
+
+    return harmony_values
 
 def phase_synchrony(sim_data):
     """
@@ -149,6 +169,8 @@ def phase_synchrony(sim_data):
 
     return synchrony_values
 
+
 analyzer = DataAnalyzer(analysis_function = phase_synchrony)
-analyzer.analyze()    
-    
+#analyzer.analyze()    
+#print(analyzer.get_csv_files())
+print(analyzer.extract_robot_number(analyzer.get_csv_files())) 
