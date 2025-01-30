@@ -235,8 +235,6 @@ class Robot:
         if self.note.pitch > 11:
             print("NOOOOOOOOOOOOOOOOO")
             
-
-
     # message from each robot.
     def set_emitter_message(self):
         
