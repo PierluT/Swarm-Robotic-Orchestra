@@ -231,9 +231,7 @@ class Robot:
             # Stampa per il debug
             #print("pitch: " + str(self.note.pitch))
             #print("midinote: " + str(self.note.midinote))
-            print(self.note)
-
-                            
+            #print(self.note)
         if self.note.pitch > 11:
             print("NOOOOOOOOOOOOOOOOO")
             
