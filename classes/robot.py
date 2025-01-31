@@ -14,7 +14,7 @@ values_dictionary = file_reader_valuse.read_configuration_file()
 
 class Robot:
     
-    def __init__(self, number, phase_period, delay_values, sb, time_signature):
+    def __init__(self, number, phase_period, delay_values, sb, time_signature, threshold):
         self.number = number
         # value for robot set.
         self.radius = values_dictionary['radius']
@@ -82,6 +82,11 @@ class Robot:
         self.sb = sb
         # by now time signature is a value known from the robot
         self.time_signature = time_signature
+        self.number_of_beats = time_signature[0]
+        self.beat_phase = 0
+        self.beat_phase_denominator = phase_period / self.number_of_beats
+        self.beat_counter = 1
+        self.threshold = threshold
 
     def __repr__(self):
         return f"Robot(number = {self.number}, phase = {self.phase})"
@@ -344,7 +349,6 @@ class Robot:
     def add_note_to_spartito(self,ms):
         
         spartito_entry = {
-
             "ms": ms,
             "musician": self.number,
             "note": self.note.midinote,
@@ -412,99 +416,43 @@ class Robot:
         # clear the dictionary after computing values.
         self.local_phase_map.clear()
   
+    def update_beat_phase(self, millisecond):
+        self.beat_phase += (2 * np.pi / self.beat_phase_denominator) 
+        # normalization only if I reach 2pi then I go to 0.
+        self.beat_phase %= (2 * np.pi)
+        self.control_beat_flag(millisecond)
+    
+    def control_beat_flag(self, millisecond):
+        if 0 <= self.beat_phase < 0.001:
 
+            # Incrementa il contatore
+            if self.beat_counter < self.number_of_beats:  # Finché il contatore non supera il massimo
+                self.beat_counter += 1
+            else:  # Quando raggiungiamo il massimo, resettiamo a 1
+                self.beat_counter = 1
 
 """""
-# mehtod to change the note if I'm not in harmony
-    def change_note(self,best_scales):
-        change_probability = random.random()
-        # I change note
-        if change_probability < 0.7:
-            # I found the closest scale
-            closest_scale = min(
-                best_scales,
-                key = lambda scale_name: min(
-                    abs(self.note.pitch - note) if abs(self.note.pitch - note) <= 6 else 12 - abs(self.note.pitch - note)
-                    for note in self.scales[scale_name]
-                )
-            )
+  def control_beat_flag(self, millisecond):
+        # Solo quando siamo nell'intervallo di beat desiderato (0 <= beat_phase < 0.2)
+        if 0 <= self.beat_phase < 0.2:  
+            # Verifica se il contatore è al massimo e resetta correttamente
+            #print(f"Beat phase: {self.beat_phase}, Beat counter before: {self.beat_counter}")
 
-            # found closest note into the closest scale.
-            closest_note = min(
-                self.scales[closest_scale],
-                key = lambda note: min(abs(self.note.pitch - note), 12 - abs(self.note.pitch - note))
-            )
-            #print("pitch "+ str(self.note.pitch))
-            
-            diff = self.note.pitch - closest_note
-            #print("music interval: "+ str(diff))
-            # if the interval is bigger than 6 semitones.
-            if abs(diff) > 6:  
-                if diff > 0:
-                    diff -= 12  
-                else:
-                    diff += 12  
-            musical_interval = diff
-            previous_note = self.note.midinote
-            
-            if abs(musical_interval) == 12:
-                print(f" AAAAAAAAAAAAAAAAAAAA NOTA CORRETTA intervallo: {musical_interval})")
+            if self.beat_counter == 0:  # Se il contatore è 0, lo iniziamo correttamente a 1
+                self.beat_counter = 1  
+            else:  # Ogni volta che entriamo nell'intervallo incrementiamo il contatore
+                self.beat_counter += 1
 
-            # change note only if it's within the range.
-            new_midinote = self.note.midinote + musical_interval
-            if self.min_midinote <= new_midinote <= self.max_midinote:
-                # change note
-                self.note.midinote += musical_interval 
-                self.note.pitch += musical_interval % 12
-            else:
-                #print(f"Nota fuori range: {new_midinote}. Cambio ignorato.")
-                # Fallback: founds the closest note.
-                valid_midinote = min(
-                    range(self.min_midinote, self.max_midinote + 1),
-                    key=lambda midinote: abs(midinote - new_midinote)
-                )
+            # Reset solo quando raggiungiamo il numero massimo di battiti
+            if self.beat_counter > self.number_of_beats:
+                self.beat_counter = 1
 
-                # compute correct interval for the fallback.
-                fallback_interval = valid_midinote - self.note.midinote
-                self.note.midinote += fallback_interval
-                self.note.pitch = (self.note.pitch + fallback_interval) % 12
-
-                #print(f"Nota cambiata al fallback: {self.note.midinote} (pitch: {self.note.pitch})")
-            
-            # control if the new note is in the range of my actual instrument
-            for instrument_group, instruments in self.timbre_dictionary.items():
-                if self.timbre in instruments:
-                    current_range = instruments[self.timbre]
-
-                    if self.note.midinote not in current_range:
-                        #print(f"Note {self.note.midinote} is out of range for {self.timbre}. Reassigning timbre...")
-                        self.set_timbre_from_midi()
-                    #else:
-                        #print(f"Note {self.note.midinote} is within range for {self.timbre}.")  
-
-
-
-
-                        
-            
-            
-            #print("diff "+ str(diff))
-            if diff == 1:
-                self.note.pitch -= diff
-                self.note.pitch = self.note.pitch % 12
-                #print("nuova nota: "+ str(self.note.pitch))
-            if diff == -1:
-                self.note.pitch += diff
-                self.note.pitch = self.note.pitch % 12
-                #print("nuova nota 2: "+ str(self.note.pitch))
-            # Stampa la differenza solo se è maggiore di 1
-            if abs(diff) > 6:
-                print("played note: "+str(self.note.pitch))
-                print("closest note: "+str(closest_note))
-                jump = abs(diff) - 12
-                print("jump "+str(jump))
-                self.note.pitch += jump 
-                self.note.pitch = self.note.pitch % 12
-                print("JUMP: "+ str(self.note.pitch))
-
+            #print(f"Beat counter after: {self.beat_counter}")
 """
+                    
+    
+
+
+
+
+

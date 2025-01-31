@@ -94,16 +94,17 @@ class Arena:
             simulation_number,
             millisecond, 
             robot.number, 
-            robot.x, 
-            robot.y,
-            robot.compass, 
-            robot.phase, 
-            robot.colour,
-            robot.note.midinote,
-            robot.note.pitch,
-            robot.timbre,
-            robot.delay,
-            robot.harmony
+            #robot.x, 
+            #robot.y,
+            #robot.compass, 
+            robot.beat_phase, 
+            robot.beat_counter,
+            #robot.colour,
+            #robot.note.midinote,
+            #robot.note.pitch,
+            #robot.timbre,
+            #robot.delay,
+            #robot.harmony
     ])
 
     def open_video_file(self,filepath):

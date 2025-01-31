@@ -31,7 +31,7 @@ def main():
     
     with open(csv_path , mode="w", newline="") as file:
         writer = csv.writer(file, delimiter=';')
-        writer.writerow(["simulation number","ms", "robot number", "x", "y","compass", "phase", "colour","midinote", "pitch", "timbre", "delay", "harmony"])
+        writer.writerow(["simulation number","ms", "robot number","beat phase","beat counter"])
         for simulation_number in range(int_param):
             print(" ################################# ")
             print(f"Execution number {simulation_number}")
@@ -41,9 +41,25 @@ def main():
             # method to set robot positions and initial random notes.
             supervisor.setup_robots()
             
-            for millisecond in range(0,60000):
+            for millisecond in range(0,8000):
                 for robot in supervisor.dictionary_of_robots:
-                    robot.update_phase(millisecond)
+                    robot.update_beat_phase(millisecond)
+                    #print("beat phase denominator: "+ str(robot.beat_phase_denominator))
+                    #print("number of beats: "+ str(robot.number_of_beats))
+                    #print("total bar phase: "+ str(robot.phase_denominator))
+                    #print()
+                    if (millisecond % 40 == 0):
+                        arena.write_robot_data(writer, simulation_number, millisecond, robot)
+                    
+
+
+if __name__ == "__main__":
+        
+        main()
+
+"""""
+
+robot.update_phase(millisecond)
                     
                     # POSITIONS MATRIX
                     if (millisecond % 40 == 0 and millisecond != 0):
@@ -62,7 +78,9 @@ def main():
                         robot.get_phase_info()
                         robot.get_timbre_info()
                         robot.get_delay_info()
-                        
+                        print("bla")
+                        print(robot.phase_denominator)
+                        print(robot.beat_phase_denominator)
                         # ACTION PART
                         robot.move_robot(distances_to_check)
 
@@ -86,7 +104,6 @@ def main():
             midi_class.write_csv(supervisor.conductor_spartito,simulation_number, csv_path)
             supervisor.dictionary_of_robots.clear()
             supervisor.conductor_spartito.clear()
-    
     if bool_video_audio: 
         # VISUALIZATION PART       
         arena.load_robot_data(csv_path, simulation_number)
@@ -95,19 +112,6 @@ def main():
         midi_class.generate_audio_from_csv(wav_files_list)
         # video generation audio included
         arena.create_video(output_path= "video_simulation.mp4", audio_path = "final_output.wav", fps = 25, auto_open= True)
-
-if __name__ == "__main__":
-        
-        main()
-
-"""""
-affinity_matrix = supervisor.calculate_instrument_affinity()
-
-    # Visualizza la matrice di affinità
-    for instrument1, instrument_dict in affinity_matrix.items():
-        print(f"{instrument1}:")
-        for instrument2, affinity in instrument_dict.items():
-            print(f"  {instrument2}: {affinity:.2f}")
 """
 
 

@@ -103,18 +103,20 @@ class Supervisor:
             
         print(f"Tutti i file nella cartella {self.csv_folder} sono stati eliminati.")       
 
-    def compute_kuramoto_value(self):
+    def compute_phase_value(self):
         seconds_in_a_beat = 60 / self.initial_bpm
         ts = TimeSignature()
         number_of_beats, denominator = ts.time_signature_combiantion
-        kuramoto_value = 1000 * (seconds_in_a_beat * number_of_beats)
+        phase_value = 1000 * (seconds_in_a_beat * number_of_beats)
         # By now I set the notes length as the beat seoconds duration. Then
         # I will have to change with the possible length available durations.
-        return number_of_beats, kuramoto_value, seconds_in_a_beat, ts.time_signature_combiantion
+        return number_of_beats, phase_value, seconds_in_a_beat, ts.time_signature_combiantion
 
     # method to return the list of robots and assign a phase to each of them.
     def create_dictionary_of_robots(self):  
-        number_of_beats, kuramoto_value, seconds_in_a_beat, t_s = self.compute_kuramoto_value()
+        number_of_beats, phase_value, seconds_in_a_beat, t_s = self.compute_phase_value()
+        k = 10  # Millisecondi di margine
+        threshold = (2 * math.pi / phase_value) * k
         #print(" numeratore: "+ str(number_of_beats))
         #print("kuramoto value: "+ str(kuramoto_value))
         #print(" bpm: "+ str(self.initial_bpm))
@@ -122,7 +124,7 @@ class Supervisor:
         delay_array = list(range(number_of_beats))
         
         for n in range(self.number_of_robots):
-            robot = Robot(number = n, phase_period = kuramoto_value, delay_values = delay_array, sb = seconds_in_a_beat, time_signature = t_s)
+            robot = Robot(number = n, phase_period = phase_value, delay_values = delay_array, sb = seconds_in_a_beat, time_signature = t_s, threshold = threshold)
             # to compute minimum and maximum midinote value.
             robot.min_midinote, robot.max_midinote = self.compute_midi_range_values()
             initial_random_note = random.randint(self.min_midinote, self.max_midinote)
