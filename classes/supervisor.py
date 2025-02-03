@@ -119,10 +119,11 @@ class Supervisor:
         #print("kuramoto value: "+ str(kuramoto_value))
         #print(" bpm: "+ str(self.initial_bpm))
         #print("seconds in a beat: "+str(seconds_in_a_beat))
-        delay_array = list(range(number_of_beats))
+        beats_array = list(range(1, number_of_beats +1))
+        print(beats_array)
         
         for n in range(self.number_of_robots):
-            robot = Robot(number = n, phase_period = phase_bar_value, delay_values = delay_array, sb = seconds_in_a_beat, time_signature = t_s)
+            robot = Robot(number = n, phase_period = phase_bar_value, delay_values = beats_array, sb = seconds_in_a_beat, time_signature = t_s)
             robot.compute_beat_threshold()
             # to compute minimum and maximum midinote value.
             robot.min_midinote, robot.max_midinote = self.compute_midi_range_values()
