@@ -14,7 +14,7 @@ values_dictionary = file_reader_valuse.read_configuration_file()
 
 class Robot:
     
-    def __init__(self, number, phase_period, delay_values, sb, time_signature):
+    def __init__(self, number, phase_period, delay_values, sb, time_signature, neighbors_number):
         self.number = number
         # value for robot set.
         self.radius = values_dictionary['radius']
@@ -56,6 +56,7 @@ class Robot:
         #self.id_note_counter = 0
         self.max_music_neighbourgs = 4
         self.max_notes_per_neighbourg = 1
+        self.max_beats_per_neighbourg = 1
         # variable to control the previous midinote I played
         self.previous_midinote = 0
         # variable to control if in the previous iteraction I play in a common scale with neirghbourgs.
@@ -69,7 +70,7 @@ class Robot:
         # dictionary for recieved timbre
         self.local_timbre_map = defaultdict(list)
         # dictionary for recieved delays
-        self.local_delay_map = defaultdict(list)
+        self.local_beat_map = defaultdict(list)
         # dictionary for recieved phases
         self.local_phase_map = defaultdict(list) 
         self.timbre = ""
@@ -89,6 +90,7 @@ class Robot:
         self.beat_counter = random.choice(delay_values)
         self.first_beat_control_flag = True
         self.threshold = 0
+        self.neighbors_number = neighbors_number - 1
 
     def __repr__(self):
         return f"Robot(number = {self.number}, phase = {self.phase})"
@@ -260,7 +262,7 @@ class Robot:
             "phase": self.phase,
             "note": self.note.pitch,
             "timbre": self.timbre,
-            "delay": self.delay
+            "beat": self.beat_counter,
         }
         self.forwarded_message = entry
         #print("nota "+str(self.note.pitch))
@@ -326,23 +328,20 @@ class Robot:
                 del self.local_timbre_map[oldest_timbre]
     
     # delay dictionary with the same functions of notes dictionary
-    def get_delay_info(self):
+    def get_beat_info(self):
         if self.recieved_message:
             for entry in self.recieved_message:
                 if isinstance(entry, dict):
-                    #print("halooooo")
                     robot_number = entry.get("robot number")
-                    delay = entry.get("delay")
+                    beat = entry.get("beat")
 
-                    if robot_number is not None and delay is not None:
-                        if robot_number not in self.local_delay_map:
-                            self.local_delay_map[robot_number] = deque(maxlen=self.max_notes_per_neighbourg)
-                        #print("halo")
-                        self.local_delay_map[robot_number].append(delay)
-            
-            while len(self.local_delay_map) > self.max_music_neighbourgs:
-                oldest_timbre = next(iter(self.local_delay_map))
-                del self.local_delay_map[oldest_timbre]
+                    if robot_number is not None and beat is not None:
+                        # Inizializza la mappa per il robot se non esiste
+                        if robot_number not in self.local_beat_map:
+                            self.local_beat_map[robot_number] = beat  # Memorizza solo l'ultimo beat
+
+                        # Aggiorna il beat del robot con il più recente
+                        self.local_beat_map[robot_number] = beat
 
     # method to print note messages. 
     def print_musical_buffers(self):

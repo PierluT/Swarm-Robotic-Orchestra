@@ -12,5 +12,6 @@ csv
 # Escludi i file audio
 *.wav
 *.gif
+*.csv
 
 
