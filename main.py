@@ -41,7 +41,7 @@ def main():
             # method to set robot positions and initial random notes.
             supervisor.setup_robots()
             
-            for millisecond in range(0,8000):
+            for millisecond in range(0,9000):
                 for robot in supervisor.dictionary_of_robots:
                     robot.update_beat_phase(millisecond)
                     #print("beat phase denominator: "+ str(robot.beat_phase_denominator))
@@ -50,6 +50,8 @@ def main():
                     #print()
                     if (millisecond % 40 == 0):
                         arena.write_robot_data(writer, simulation_number, millisecond, robot)
+            
+            supervisor.dictionary_of_robots.clear()
                     
 
 

@@ -14,7 +14,7 @@ values_dictionary = file_reader_valuse.read_configuration_file()
 
 class Robot:
     
-    def __init__(self, number, phase_period, delay_values, sb, time_signature, threshold):
+    def __init__(self, number, phase_period, delay_values, sb, time_signature):
         self.number = number
         # value for robot set.
         self.radius = values_dictionary['radius']
@@ -78,7 +78,7 @@ class Robot:
         # to found the minimum a maximum mid value.
         self.min_midinote = 0
         self.max_midinote = 0
-        self.phase_denominator = phase_period
+        self.bar_phase_denominator = phase_period
         self.sb = sb
         # by now time signature is a value known from the robot
         self.time_signature = time_signature
@@ -86,7 +86,8 @@ class Robot:
         self.beat_phase = 0
         self.beat_phase_denominator = phase_period / self.number_of_beats
         self.beat_counter = 1
-        self.threshold = threshold
+        self.first_beat_control_flag = True
+        self.threshold = 0
 
     def __repr__(self):
         return f"Robot(number = {self.number}, phase = {self.phase})"
@@ -99,6 +100,16 @@ class Robot:
     def compute_initial_y_position(self):  
         possible_y_coordinate = random.randint(int(self.radar_radius + 10), int(self.rectangleArea_heigth - self.radar_radius - 10))
         return possible_y_coordinate
+    
+    def compute_beat_threshold(self):
+        
+        if self.sb == 0.5:
+            self.threshold = 0.001
+        if self.sb == 1:
+            self.threshold = 0.01
+        if self.sb == 2:
+            self.threshold = 0.1
+
 
     def compute_robot_compass(self):
         magnitude = math.sqrt(self.vx**2 + self.vy**2)
@@ -389,7 +400,7 @@ class Robot:
     
     # method to update internal robot phase.
     def update_phase(self,millisecond):
-        self.phase += (2 * np.pi / self.phase_denominator)
+        self.phase += (2 * np.pi / self.bar_phase_denominator)
         # normalization only if I reach 2pi then I go to 0.
         self.phase %= (2 * np.pi)
         # method to control if I have the permission to play.
@@ -423,13 +434,15 @@ class Robot:
         self.control_beat_flag(millisecond)
     
     def control_beat_flag(self, millisecond):
-        if 0 <= self.beat_phase < 0.001:
+        
+        if 0 <= self.beat_phase < self.threshold and not self.first_beat_control_flag:
 
-            # Incrementa il contatore
-            if self.beat_counter < self.number_of_beats:  # Finché il contatore non supera il massimo
+            if self.beat_counter < self.number_of_beats:  
                 self.beat_counter += 1
-            else:  # Quando raggiungiamo il massimo, resettiamo a 1
+            else: 
                 self.beat_counter = 1
+        
+        self.first_beat_control_flag = False
 
 """""
   def control_beat_flag(self, millisecond):
