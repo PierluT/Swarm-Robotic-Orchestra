@@ -433,16 +433,33 @@ class Robot:
         self.beat_phase %= (2 * np.pi)
         self.control_beat_flag(millisecond)
     
-    def control_beat_flag(self, millisecond):
+    def update_beat_firefly(self):
         
+        beat_values = list(self.local_beat_map.values())
+
+        # Calcolare la media arrotondata dei beat ricevuti
+        avg_beat = round(sum(beat_values) / len(beat_values))
+
+        # Regolazione del battito
+        if self.beat_counter < avg_beat:
+            self.beat_counter += 1
+        elif self.beat_counter > avg_beat:
+            self.beat_counter -= 1
+    
+    def control_beat_flag(self, millisecond):       
+        # condition to control the beat counter. the boolean control is to not count
+        # double in the first iteration, but will be removed with initial random phase.
         if 0 <= self.beat_phase < self.threshold and not self.first_beat_control_flag:
 
             if self.beat_counter < self.number_of_beats:  
                 self.beat_counter += 1
             else: 
                 self.beat_counter = 1
-        
         self.first_beat_control_flag = False
+
+        if self.beat_counter == 1:
+            self.add_note_to_spartito(millisecond)
+
 
                     
     
