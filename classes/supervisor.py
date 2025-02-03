@@ -120,10 +120,9 @@ class Supervisor:
         #print(" bpm: "+ str(self.initial_bpm))
         #print("seconds in a beat: "+str(seconds_in_a_beat))
         beats_array = list(range(1, number_of_beats +1))
-        print(beats_array)
         
         for n in range(self.number_of_robots):
-            robot = Robot(number = n, phase_period = phase_bar_value, delay_values = beats_array, sb = seconds_in_a_beat, time_signature = t_s)
+            robot = Robot(number = n, phase_period = phase_bar_value, delay_values = beats_array, sb = seconds_in_a_beat, time_signature = t_s, neighbors_number = self.number_of_robots)
             robot.compute_beat_threshold()
             # to compute minimum and maximum midinote value.
             robot.min_midinote, robot.max_midinote = self.compute_midi_range_values()
@@ -196,12 +195,12 @@ class Supervisor:
     def post_office(self,initial_robot):
         initial_robot.set_emitter_message()
         for j in range(initial_robot.number +1, len(self.distances)):
-            distance_to_check = self.distances[initial_robot.number][j]
+            #distance_to_check = self.distances[initial_robot.number][j]
             # block to handle phase communication between robots.
-            if distance_to_check <= self.threshold:
-                robot1_chat = self.dictionary_of_robots[initial_robot.number]
-                robot2_chat = self.dictionary_of_robots[j]
-                self.handle_communication(robot1_chat, robot2_chat)
+            #if distance_to_check <= self.threshold:
+            robot1_chat = self.dictionary_of_robots[initial_robot.number]
+            robot2_chat = self.dictionary_of_robots[j]
+            self.handle_communication(robot1_chat, robot2_chat)
     
     # method to handle phase communication.
     def handle_communication(self,robot1, robot2):

@@ -48,9 +48,23 @@ def main():
                     #print("number of beats: "+ str(robot.number_of_beats))
                     #print("total bar phase: "+ str(robot.phase_denominator))
                     #print()
+
+                    # COMUNICATION every 80 ms.   
+                    if (millisecond % 80 == 0 and millisecond != 0):
+                        supervisor.post_office(robot)
+
+                    # ROBOT STEPS every 40 ms.
                     if (millisecond % 40 == 0):
+                        robot.get_beat_info()
+
+                        robot.clean_buffers()
                         arena.write_robot_data(writer, simulation_number, millisecond, robot)
             
+            for robot in supervisor.dictionary_of_robots:
+                print("robot "+str(robot.number)+ " beats dict")
+                print(robot.local_beat_map)
+                print()
+
             supervisor.dictionary_of_robots.clear()
                     
 
