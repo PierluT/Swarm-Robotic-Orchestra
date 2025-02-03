@@ -85,7 +85,8 @@ class Robot:
         self.number_of_beats = time_signature[0]
         self.beat_phase = 0
         self.beat_phase_denominator = phase_period / self.number_of_beats
-        self.beat_counter = 1
+        #self.beat_counter = 1
+        self.beat_counter = random.choice(delay_values)
         self.first_beat_control_flag = True
         self.threshold = 0
 
@@ -444,24 +445,6 @@ class Robot:
         
         self.first_beat_control_flag = False
 
-"""""
-  def control_beat_flag(self, millisecond):
-        # Solo quando siamo nell'intervallo di beat desiderato (0 <= beat_phase < 0.2)
-        if 0 <= self.beat_phase < 0.2:  
-            # Verifica se il contatore è al massimo e resetta correttamente
-            #print(f"Beat phase: {self.beat_phase}, Beat counter before: {self.beat_counter}")
-
-            if self.beat_counter == 0:  # Se il contatore è 0, lo iniziamo correttamente a 1
-                self.beat_counter = 1  
-            else:  # Ogni volta che entriamo nell'intervallo incrementiamo il contatore
-                self.beat_counter += 1
-
-            # Reset solo quando raggiungiamo il numero massimo di battiti
-            if self.beat_counter > self.number_of_beats:
-                self.beat_counter = 1
-
-            #print(f"Beat counter after: {self.beat_counter}")
-"""
                     
     
 
