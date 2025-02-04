@@ -115,10 +115,6 @@ class Supervisor:
     # method to return the list of robots and assign a phase to each of them.
     def create_dictionary_of_robots(self):  
         number_of_beats, phase_bar_value, seconds_in_a_beat, t_s = self.compute_phase_bar_value()
-        #print(" numeratore: "+ str(number_of_beats))
-        #print("kuramoto value: "+ str(kuramoto_value))
-        #print(" bpm: "+ str(self.initial_bpm))
-        #print("seconds in a beat: "+str(seconds_in_a_beat))
         beats_array = list(range(1, number_of_beats +1))
         
         for n in range(self.number_of_robots):
@@ -128,6 +124,7 @@ class Supervisor:
             robot.min_midinote, robot.max_midinote = self.compute_midi_range_values()
             initial_random_note = random.randint(self.min_midinote, self.max_midinote)
             robot.create_new_note(initial_random_note, bpm = self.initial_bpm, duration = seconds_in_a_beat)
+            robot.set_dynamic()
             # to associate a timbre to the note.
             robot.set_timbre_from_midi()
             # the supervisor has a complete dictionary of all the robots.

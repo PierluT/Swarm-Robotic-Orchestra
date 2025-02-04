@@ -31,7 +31,7 @@ def main():
     
     with open(csv_path , mode="w", newline="") as file:
         writer = csv.writer(file, delimiter=';')
-        writer.writerow(["simulation number","ms", "robot number","beat phase","beat counter","playing flag"])
+        writer.writerow(["simulation number","ms", "robot number","beat phase","beat counter","playing flag", "dynamic","delay"])
         for simulation_number in range(int_param):
             print(" ################################# ")
             print(f"Execution number {simulation_number}")
@@ -48,7 +48,7 @@ def main():
                     # POSITION MATRIX and ORCHESTRA SPARTITO
                     if (millisecond % 40 == 0 and millisecond != 0):
                         distances_to_check = supervisor.make_matrix_control(robot)
-                        orchestra_spartito = supervisor.build_conductor_spartito()
+                        orchestra_spartito = supervisor.build_conductor_spartito() 
                     
                     # COMUNICATION every 80 ms.   
                     if (millisecond % 80 == 0 and millisecond != 0):
@@ -56,18 +56,20 @@ def main():
                         
 
                     # ROBOT STEPS every 40 ms.
-                    if (millisecond % 40 == 0):
-                        #robot.orchestra_spartito = orchestra_spartito
+                    if (millisecond % 40 == 0 and millisecond != 0):
                         robot.get_beat_info()
-
+                        
                         # ACTION PART
-                        #robot.update_orchestra_spartito(orchestra_spartito)
+                        if orchestra_spartito:
+                            robot.update_orchestra_spartito(orchestra_spartito)
+                        
+                        
                         robot.clean_buffers()
                         arena.write_robot_data(writer, simulation_number, millisecond, robot)
         
             for robot in supervisor.dictionary_of_robots:
                 print("spartito robot n: "+str(robot.number))
-                print(robot.my_spartito)
+                print(robot.orchestra_spartito)
                 print()
                 
             
