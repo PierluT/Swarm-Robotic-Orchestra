@@ -254,17 +254,18 @@ class Supervisor:
     # unifies spartito of all robots and sort them form a crhonological point of view.
     def build_conductor_spartito(self):
         self.conductor_spartito = []
-        
         for robot in self.dictionary_of_robots:
             
             adjusted_spartito = [
-            entry  # Non applico nearest_timestep
+            entry  
             for entry in robot.my_spartito
             ]
             # Extend the full spartito with the player ones.
             self.conductor_spartito.extend(adjusted_spartito)
         # I sort the final music sheet considering ms.
         self.conductor_spartito.sort(key=lambda x: x["ms"])
+
+        return self.conductor_spartito
 
     def calculate_instrument_affinity(self):
         affinity_dict = defaultdict(lambda: defaultdict(int))

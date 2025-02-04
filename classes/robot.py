@@ -3,6 +3,7 @@ import math
 import numpy as np
 import time
 import random
+import math
 import datetime
 from collections import defaultdict, deque
 from classes.file_reader import File_Reader
@@ -84,7 +85,8 @@ class Robot:
         # by now time signature is a value known from the robot
         self.time_signature = time_signature
         self.number_of_beats = time_signature[0]
-        self.beat_phase = 0
+        #self.beat_phase = 0
+        self.beat_phase = np.random.uniform(0, 2 * np.pi)
         self.beat_phase_denominator = phase_period / self.number_of_beats
         #self.beat_counter = 1
         self.beat_counter = random.choice(delay_values)
@@ -92,6 +94,8 @@ class Robot:
         self.threshold = 0
         self.last_beat_phase = 0
         self.neighbors_number = neighbors_number - 1
+        # orchestra spartito
+        self.orchestra_spartito = []
 
     def __repr__(self):
         return f"Robot(number = {self.number}, phase = {self.phase})"
@@ -107,12 +111,14 @@ class Robot:
     
     def compute_beat_threshold(self):
         
-        if self.sb == 0.5:
-            self.threshold = 0.001
-        if self.sb == 1:
+        if math.isclose(self.sb, 0.5, rel_tol=1e-3):
             self.threshold = 0.01
-        if self.sb == 2:
+        elif math.isclose(self.sb, 1, rel_tol=1e-3):
+            self.threshold = 0.01
+        elif math.isclose(self.sb, 2, rel_tol=1e-3):
             self.threshold = 0.1
+        else:
+            self.threshold = 0.01
 
 
     def compute_robot_compass(self):
@@ -373,28 +379,6 @@ class Robot:
 
         self.my_spartito.append(spartito_entry)
     
-    # method to control that robot enters only the first time in the playing status.
-    def control_playing_flag(self, millisecond):
-        #if 0 <= self.phase < 1:
-            # the first time that I enter means that I have to play.
-            #if not self.triggered_playing_flag:
-            self.playing_flag = True
-            #self.triggered_playing_flag = True
-            self.colour = colours['blue']
-            self.last_played_ms = millisecond
-                # that has to be separated by the 0 cross phase.
-            self.add_note_to_spartito(millisecond)  
-        # Means that my phase doesn't allow me to play.
-        #else:
-            # to control that the robot doesn't start to play the note before the end of previous one.
-            # first term: elapsed amount of time from last played ms and current millisecond.
-            # second term: beats multiplied per ms in a second divided all by beats in a second.
-            if( (millisecond - self.last_played_ms) >  (1000 * self.sb)):
-                # add a condition that the else condition happens only after the end of the note.
-                self.triggered_playing_flag = False
-                self.playing_flag = False
-                self.colour = colours['green']
-    
     # method to update internal robot phase.
     def update_phase(self,millisecond):
         self.phase += (2 * np.pi / self.bar_phase_denominator)
@@ -431,28 +415,32 @@ class Robot:
         self.control_beat_flag(millisecond)
     
     def control_beat_flag(self, millisecond):
-
-        if 0 <= self.beat_phase < self.threshold:
-            # I control that I not already increment in the fisrt control.
-            if not self.first_beat_control_flag: 
-                # if beat counter reaches the number of beats is reset to zero.
-                self.beat_counter += 1 if self.beat_counter < self.number_of_beats else -self.beat_counter + 1
-                # set the flag true of the first control.
-                self.first_beat_control_flag = True 
+        # LOGICA PER GESTIRE IL BEAT
+        if 0 <= self.beat_phase < self.threshold:  # Threshold modificabile
+            if not self.first_beat_control_flag:  # Controlla se è già stato incrementato
+                self.beat_counter = self.beat_counter + 1 if self.beat_counter < self.number_of_beats else 1
+                self.first_beat_control_flag = True  # Evita doppi incrementi
+            
         else:
-            self.first_beat_control_flag = False 
-        
+            self.first_beat_control_flag = False  # Resetta il flag quando esce dalla soglia
+
+        # Controllo per settare playing_flag
         if self.beat_counter == 1:
-            self.last_played_ms = millisecond
             self.playing_flag = True
-            # to control that I play for the correct amount of time
-            if( (millisecond - self.last_played_ms) >  (1000 * self.sb)):
-                self.playing_flag = False
-        
         else:
             self.playing_flag = False
+        
+        # LOGIC TO UPDATE MY SPARTITO.
+        # Controllo per suonare la nota solo una volta per ogni ciclo in cui beat_counter è 1
+        if self.beat_counter == 1:
+            if not self.triggered_playing_flag:
+                self.add_note_to_spartito(millisecond)
+                self.triggered_playing_flag = True  # Evita chiamate multiple
 
-
+            self.playing_flag = True  # Rimane attivo finché beat_counter è 1
+        else:
+            self.playing_flag = False
+            self.triggered_playing_flag = False  # Resetta il trigger per il prossimo ciclo
 
 
 """""
