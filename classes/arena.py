@@ -99,12 +99,13 @@ class Arena:
             #robot.compass, 
             robot.beat_phase, 
             robot.beat_counter,
-            robot.playing_flag
+            robot.playing_flag,
+            robot.note.dynamic,
             #robot.colour,
             #robot.note.midinote,
             #robot.note.pitch,
             #robot.timbre,
-            #robot.delay
+            robot.delay
             #robot.harmony
     ])
 

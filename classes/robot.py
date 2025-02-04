@@ -120,7 +120,6 @@ class Robot:
         else:
             self.threshold = 0.01
 
-
     def compute_robot_compass(self):
         magnitude = math.sqrt(self.vx**2 + self.vy**2)
         end_x = int(self.x)  # Valore di default
@@ -179,7 +178,14 @@ class Robot:
         speed = math.sqrt(self.vx**2 + self.vy**2) 
         self.vx = speed * math.cos(angle) 
         self.vy = speed * math.sin(angle)  
-   
+    
+    def set_dynamic(self):
+        
+        if self.delay == 1:
+            self.note.dynamic = "ff"
+        else:
+            self.note.dynamic = "mf"
+    
     def update_note(self):
         # extract only notes from my dictionary
         notes_to_check = [note[0] for note in self.local_music_map.values()]
@@ -371,7 +377,7 @@ class Robot:
             "musician": self.number,
             "note": self.note.midinote,
             "dur": self.note.dur,
-            "amp": self.note.amp,
+            "dynamic": self.note.dynamic,
             "bpm": self.note.bpm,
             "timbre": self.timbre,
             "delay": self.delay,
@@ -441,6 +447,14 @@ class Robot:
         else:
             self.playing_flag = False
             self.triggered_playing_flag = False  # Resetta il trigger per il prossimo ciclo
+
+    def update_orchestra_spartito(self, full_spartito):
+        """
+        Filtra lo spartito escludendo le note del robot stesso.
+        """
+        if full_spartito is None or len(full_spartito) == 0:
+            return  # Non aggiorna se lo spartito è vuoto
+        self.orchestra_spartito = [entry for entry in full_spartito if entry["musician"] != self.number]
 
 
 """""
