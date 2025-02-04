@@ -31,7 +31,7 @@ def main():
     
     with open(csv_path , mode="w", newline="") as file:
         writer = csv.writer(file, delimiter=';')
-        writer.writerow(["simulation number","ms", "robot number","beat phase","beat counter"])
+        writer.writerow(["simulation number","ms", "robot number","beat phase","beat counter","playing flag"])
         for simulation_number in range(int_param):
             print(" ################################# ")
             print(f"Execution number {simulation_number}")
@@ -57,15 +57,13 @@ def main():
                     if (millisecond % 40 == 0):
                         robot.get_beat_info()
 
-                        if robot.local_beat_map:
-                            robot.update_beat_firefly()
-
                         robot.clean_buffers()
                         arena.write_robot_data(writer, simulation_number, millisecond, robot)
             
             for robot in supervisor.dictionary_of_robots:
                 print("robot "+str(robot.number)+ " beats dict")
-                print(robot.local_beat_map)
+                print(robot.sb)
+                print(robot.threshold)
                 print()
 
             supervisor.dictionary_of_robots.clear()                    
