@@ -96,11 +96,11 @@ class Robot:
         self.neighbors_number = neighbors_number - 1
         # orchestra spartito
         self.orchestra_spartito = []
+        self.ms_dynamic_ff = []
 
     def __repr__(self):
         return f"Robot(number = {self.number}, phase = {self.phase})"
 
-    
     def compute_initial_x_position(self):
         possible_x_coordinate = random.randint(int(self.radar_radius + 10), int(self.rectangleArea_width - self.radar_radius - 10))
         return possible_x_coordinate
@@ -139,6 +139,7 @@ class Robot:
     def clean_buffers(self):
         self.forwarded_message.clear()
         self.recieved_message.clear()
+        #self.my_spartito.clear()
 
     
     # manage differently the collision
@@ -381,6 +382,7 @@ class Robot:
             "bpm": self.note.bpm,
             "timbre": self.timbre,
             "delay": self.delay,
+            "beat phase": self.beat_phase
         }
 
         self.my_spartito.append(spartito_entry)
@@ -402,17 +404,22 @@ class Robot:
                     if robot_number is not None and phase_value is not None:
                         self.local_phase_map[robot_number].append(phase_value)
 
-    # Method for Kuramoto model
-    def update_phase_kuramoto_model(self):
-        # Iterate on all the recieved phases and apply Kuramoto model.
-        for robot_number, phases in self.local_phase_map.items():
-            for recieved_phase in phases:
-                self.phase += self.K * np.sin(recieved_phase - self.phase)
-                # phase normalization.
-                self.phase %= (2 * np.pi)
+    
         
         # clear the dictionary after computing values.
         self.local_phase_map.clear()
+    
+    def update_phase_kuramoto_model(self):
+        """
+        Aggiorna la fase del robot usando il modello di Kuramoto, basandosi sulle fasi degli altri robot
+        presenti in self.orchestra_spartito.
+        """
+        for entry in self.orchestra_spartito:
+            received_phase = entry["beat phase"]
+            self.beat_phase += self.K * np.sin(received_phase - self.beat_phase)
+
+        # Normalizzazione della fase nel range [0, 2π]
+        self.beat_phase %= (2 * np.pi)
   
     def update_beat_phase(self, millisecond):
         self.beat_phase += (2 * np.pi / self.beat_phase_denominator) 
@@ -456,40 +463,24 @@ class Robot:
             return  # Non aggiorna se lo spartito è vuoto
         self.orchestra_spartito = [entry for entry in full_spartito if entry["musician"] != self.number]
 
+        # Filtro per salvare i millisecondi con 'dynamic' == 'ff'
+        #ms_ff = [entry['ms'] for entry in self.orchestra_spartito if entry['dynamic'] == 'ff']
+        
+        # Stampa o memorizza i millisecondi (a seconda di cosa vuoi fare)
+        #print(f"Millisecondi con 'dynamic' = 'ff': {ms_ff}")
+        
+        # Puoi anche assegnarli a una variabile della classe, se necessario:
+        #self.ms_dynamic_ff = ms_ff
+
+
 
 """""
-
-    # method to control that robot enters only the first time in the playing status.
-    def control_playing_flag(self, millisecond):
-        if 0 <= self.phase < 1:
-            # the first time that I enter means that I have to play.
-            if not self.triggered_playing_flag:
-                self.playing_flag = True
-                self.triggered_playing_flag = True
-                self.colour = colours['blue']
-                self.last_played_ms = millisecond
-                # that has to be separated by the 0 cross phase.
-                self.add_note_to_spartito(millisecond)  
-            # Means that is not the first time that I enter in the condition, so I have to reset false.
-            else:
-                self.playing_flag = False
-                self.colour = colours['blue']
-        # Means that my phase doesn't allow me to play.
-        else:
-            # to control that the robot doesn't start to play the note before the end of previous one.
-            # first term: elapsed amount of time from last played ms and current millisecond.
-            # second term: beats multiplied per ms in a second divided all by beats in a second.
-            if( (millisecond - self.last_played_ms) >  (1000 * self.sb)):
-                # add a condition that the else condition happens only after the end of the note.
-                self.triggered_playing_flag = False
-                self.playing_flag = False
-                self.colour = colours['green']
-
+    # Method for Kuramoto model
+    def update_phase_kuramoto_model(self):
+        # Iterate on all the recieved phases and apply Kuramoto model.
+        for robot_number, phases in self.local_phase_map.items():
+            for recieved_phase in phases:
+                self.phase += self.K * np.sin(recieved_phase - self.phase)
+                # phase normalization.
+                self.phase %= (2 * np.pi)
 """
-                    
-    
-
-
-
-
-
