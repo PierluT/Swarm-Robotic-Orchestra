@@ -404,8 +404,6 @@ class Robot:
                     if robot_number is not None and phase_value is not None:
                         self.local_phase_map[robot_number].append(phase_value)
 
-    
-        
         # clear the dictionary after computing values.
         self.local_phase_map.clear()
     
@@ -422,6 +420,7 @@ class Robot:
         self.beat_phase %= (2 * np.pi)
   
     def update_beat_phase(self, millisecond):
+        
         self.beat_phase += (2 * np.pi / self.beat_phase_denominator) 
         # normalization only if I reach 2pi then I go to 0.
         self.beat_phase %= (2 * np.pi)

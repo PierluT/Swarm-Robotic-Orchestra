@@ -41,28 +41,35 @@ def main():
             # method to set robot positions and initial random notes.
             supervisor.setup_robots()
             
-            for millisecond in range(0,9000):          
+            for millisecond in range(0,60000):          
                 for robot in supervisor.dictionary_of_robots:
+                    # update its beat phase
                     robot.update_beat_phase(millisecond)
 
                     # POSITION MATRIX and ORCHESTRA SPARTITO
                     if (millisecond % 40 == 0 and millisecond != 0):
                         distances_to_check = supervisor.make_matrix_control(robot)
-                        orchestra_spartito = supervisor.build_conductor_spartito() 
+                         
+
+                        #print("orchestra spartito")
+                        #for entry in orchestra_spartito:
+                            #print(f"Musician {entry['musician']} | ms: {entry['ms']} | Beat Phase: {entry['beat phase']}")
                     
                     # COMUNICATION every 80 ms.   
                     if (millisecond % 80 == 0 and millisecond != 0):
                         supervisor.post_office(robot)
                         
-
+                        orchestra_spartito = supervisor.build_conductor_spartito()
+                        robot.update_orchestra_spartito(orchestra_spartito)
+                    
                     # ROBOT STEPS every 40 ms.
                     if (millisecond % 40 == 0 and millisecond != 0):
-                        robot.get_beat_info()
+                        #robot.get_beat_info()
                         
                         # ACTION PART
-                        if orchestra_spartito:
-                            robot.update_orchestra_spartito(orchestra_spartito)
+                        if robot.orchestra_spartito:
                             robot.update_phase_kuramoto_model()
+
                         
                         robot.clean_buffers()
                         arena.write_robot_data(writer, simulation_number, millisecond, robot)
@@ -71,10 +78,8 @@ def main():
                 print("beat phase robot n: "+str(robot.number))
                 print(robot.beat_phase)
                 print()
-                
             
-            print("orchestra spartito")
-            print(orchestra_spartito)
+            
             supervisor.dictionary_of_robots.clear()                    
 
 if __name__ == "__main__":
