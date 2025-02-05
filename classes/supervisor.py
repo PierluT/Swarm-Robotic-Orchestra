@@ -251,6 +251,7 @@ class Supervisor:
     # unifies spartito of all robots and sort them form a crhonological point of view.
     def build_conductor_spartito(self):
         self.conductor_spartito = []
+        
         for robot in self.dictionary_of_robots:
             
             adjusted_spartito = [
