@@ -62,14 +62,14 @@ def main():
                         # ACTION PART
                         if orchestra_spartito:
                             robot.update_orchestra_spartito(orchestra_spartito)
-                        
+                            robot.update_phase_kuramoto_model()
                         
                         robot.clean_buffers()
                         arena.write_robot_data(writer, simulation_number, millisecond, robot)
         
             for robot in supervisor.dictionary_of_robots:
-                print("spartito robot n: "+str(robot.number))
-                print(robot.orchestra_spartito)
+                print("beat phase robot n: "+str(robot.number))
+                print(robot.beat_phase)
                 print()
                 
             
