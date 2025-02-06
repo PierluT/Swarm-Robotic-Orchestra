@@ -97,6 +97,8 @@ class Robot:
         # orchestra spartito
         self.orchestra_spartito = []
         self.ms_dynamic_ff = []
+        self.c = 0
+        self.first_triggered_time = False
 
     def __repr__(self):
         return f"Robot(number = {self.number}, phase = {self.phase})"
@@ -372,6 +374,7 @@ class Robot:
 
     # method to write robot music sheet.
     def add_note_to_spartito(self,ms):
+        print(f"Note added at ms: {ms}")
         
         spartito_entry = {
             "ms": ms,
@@ -385,10 +388,11 @@ class Robot:
             "beat phase": self.beat_phase
         }
 
-        self.my_spartito.append(spartito_entry)
+        self.my_spartito = spartito_entry 
     
     # method to update internal robot phase.
     def update_phase(self,millisecond):
+        
         self.phase += (2 * np.pi / self.bar_phase_denominator)
         # normalization only if I reach 2pi then I go to 0.
         self.phase %= (2 * np.pi)
@@ -407,20 +411,17 @@ class Robot:
         # clear the dictionary after computing values.
         self.local_phase_map.clear()
     
+    # kuramoto model that works with orchestra spartito 
     def update_phase_kuramoto_model(self):
-        """
-        Aggiorna la fase del robot usando il modello di Kuramoto, basandosi sulle fasi degli altri robot
-        presenti in self.orchestra_spartito.
-        """
         for entry in self.orchestra_spartito:
             received_phase = entry["beat phase"]
-            self.beat_phase += self.K * np.sin(received_phase - self.beat_phase)
+            self.beat_phase += self.K * np.sin(0 - self.beat_phase)
 
         # Normalizzazione della fase nel range [0, 2π]
         self.beat_phase %= (2 * np.pi)
   
     def update_beat_phase(self, millisecond):
-        
+        #print("r: "+str(self.number)+ str(self.c))
         self.beat_phase += (2 * np.pi / self.beat_phase_denominator) 
         # normalization only if I reach 2pi then I go to 0.
         self.beat_phase %= (2 * np.pi)
@@ -428,33 +429,35 @@ class Robot:
     
     def control_beat_flag(self, millisecond):
         # LOGICA PER GESTIRE IL BEAT
-        if 0 <= self.beat_phase < self.threshold:  # Threshold modificabile
-            if not self.first_beat_control_flag:  # Controlla se è già stato incrementato
+        if 0 <= self.beat_phase < self.threshold:  
+            if not self.first_beat_control_flag:  
                 self.beat_counter = self.beat_counter + 1 if self.beat_counter < self.number_of_beats else 1
-                self.first_beat_control_flag = True  # Evita doppi incrementi
-            
+                self.first_beat_control_flag = True  
         else:
-            self.first_beat_control_flag = False  # Resetta il flag quando esce dalla soglia
-
-        # Controllo per settare playing_flag
-        if self.beat_counter == 1:
-            self.playing_flag = True
-        else:
-            self.playing_flag = False
+            self.first_beat_control_flag = False  
         
         # LOGIC TO UPDATE MY SPARTITO.
-        # Controllo per suonare la nota solo una volta per ogni ciclo in cui beat_counter è 1
         if self.beat_counter == 1:
+            
             if not self.triggered_playing_flag:
-                self.add_note_to_spartito(millisecond)
-                self.triggered_playing_flag = True  # Evita chiamate multiple
-
-            self.playing_flag = True  # Rimane attivo finché beat_counter è 1
+                 self.playing_flag = True
+                 self.triggered_playing_flag = True
+                 self.last_played_ms = millisecond
+                 self.add_note_to_spartito(millisecond)
+        
+            else:
+                self.playing_flag = False
         else:
-            self.playing_flag = False
-            self.triggered_playing_flag = False  # Resetta il trigger per il prossimo ciclo
-
+            # to control that the robot doesn't start to play the note before the end of previous one.
+            # first term: elapsed amount of time from last played ms and current millisecond.
+            # second term: beats multiplied per ms in a second divided all by beats in a second.
+            if( (millisecond - self.last_played_ms) >  (1000 * self.sb)):
+                # add a condition that the else condition happens only after the end of the note.
+                self.triggered_playing_flag = False
+                self.playing_flag = False
+    
     def update_orchestra_spartito(self, full_spartito):
+        # is ti a new info? is mine?
         """
         Filtra lo spartito escludendo le note del robot stesso.
         """
@@ -462,16 +465,28 @@ class Robot:
             return  # Non aggiorna se lo spartito è vuoto
         self.orchestra_spartito = [entry for entry in full_spartito if entry["musician"] != self.number]
 
-        # Filtro per salvare i millisecondi con 'dynamic' == 'ff'
-        #ms_ff = [entry['ms'] for entry in self.orchestra_spartito if entry['dynamic'] == 'ff']
-        
-        # Stampa o memorizza i millisecondi (a seconda di cosa vuoi fare)
-        #print(f"Millisecondi con 'dynamic' = 'ff': {ms_ff}")
-        
-        # Puoi anche assegnarli a una variabile della classe, se necessario:
-        #self.ms_dynamic_ff = ms_ff
+    def sync_beat_counter(self,millisecond):
 
+        # compare with beats not ms.
+        
+        # Trova tutti gli eventi con dynamic == 'ff'
+        ff_entries = [entry for entry in self.orchestra_spartito if entry["dynamic"] == "ff"]
+        
+        if not ff_entries:
+            return  # Nessuna nota con 'ff', non serve sincronizzare
 
+        # Per ogni evento con dynamic == 'ff', sincronizza il beat_counter
+        for entry in ff_entries:
+            reference_ms = entry['ms']  # Prendi il ms di riferimento dell'evento 'ff'
+
+            # Sincronizzazione del beat_counter
+            if millisecond > reference_ms:
+                self.beat_counter -= 1  # Se il robot è avanti, anticipa il beat
+            
+            elif millisecond < reference_ms:
+                self.beat_counter += 1  # Se il robot è indietro, ritarda il beat
+
+        print(f"Robot {self.number} sincronizzato - Nuovo beat_counter: {self.beat_counter}")
 
 """""
     # Method for Kuramoto model
