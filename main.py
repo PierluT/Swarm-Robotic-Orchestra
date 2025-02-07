@@ -31,53 +31,55 @@ def main():
     
     with open(csv_path , mode="w", newline="") as file:
         writer = csv.writer(file, delimiter=';')
-        writer.writerow(["simulation number","ms", "robot number","beat phase","beat counter","playing flag", "dynamic","delay"])
+        writer.writerow(["simulation number","ms", "robot number","beat phase","beat counter","playing flag","triggered", "dynamic","delay"])
         for simulation_number in range(int_param):
-            print(" ################################# ")
-            print(f"Execution number {simulation_number}")
+            print("##################################")
+            print(f"EXECUTION NUMBER {simulation_number}")
             # CLEAN EVERYTHING BEFORE EXECUTION 
             # method to clean previous png files in order to not overlap them.
             arena.clean_png_folder()
             # method to set robot positions and initial random notes.
             supervisor.setup_robots()
             
-            for millisecond in range(0,8000):          
+            for millisecond in range(0,9000):          
                 for robot in supervisor.dictionary_of_robots:
                     # update its beat phase
                     robot.update_beat_phase(millisecond)
-
-                    if robot.playing_flag:
-                        
                     
-                    # POSITION MATRIX and ORCHESTRA SPARTITO
-                    if (millisecond % 40 == 0 and millisecond != 0):
-                        distances_to_check = supervisor.make_matrix_control(robot)
+                    # if the robot play then I update the gobal spartito.
+                    if robot.playing_flag:
+                        #print("robot new line")
+                        #print(robot.my_spartito)
+                        supervisor.build_conductor_spartito(robot.my_spartito)
+                        #print("global spartito")
+                        #for entry in supervisor.conductor_spartito:
+                            #print(f"ms: {entry['ms']}, musician: {entry['musician']}")
+
+                        #print()
                     
                     # COMUNICATION every 80 ms.   
                     if (millisecond % 80 == 0 and millisecond != 0):
+                        #supervisor.post_office(robot)
+                        supervisor.update_global_robot_spartito()
                         
-                        supervisor.post_office(robot)
-                        #orchestra_spartito = supervisor.build_conductor_spartito()
-                        
-                        # global memory of what happened. limit it
-                        #robot.update_orchestra_spartito(orchestra_spartito)
-                    
                     # ROBOT STEPS every 40 ms.
                     if (millisecond % 40 == 0 and millisecond != 0):
-                        
-                        # ACTION PART
-                        #if robot.orchestra_spartito:
-                            
-                            #robot.update_phase_kuramoto_model()
-                            #robot.sync_beat_counter(millisecond)
-                        
-                        robot.clean_buffers()
                         arena.write_robot_data(writer, simulation_number, millisecond, robot)
+                        robot.clean_buffers()
             
+
+            # print of end of communications.
             for robot in supervisor.dictionary_of_robots:
-                print("qaunte volte è stato chiamato")
-                print(robot.c)  
+                print("robot:", robot.number, "global info")
+                for sublist in robot.orchestra_spartito:  # Ogni sublist è una lista di dizionari
+                    for entry in sublist:  # Iteriamo sui dizionari dentro la sublist
+                        print(f"ms: {entry['ms']}, musician: {entry['musician']}, beat phase: {entry['beat phase']}")
+                print()
             
+            for entry in supervisor.conductor_spartito:
+                            print(f"ms: {entry['ms']}, musician: {entry['musician']}")
+            
+            # for another simulation I clear all robot data.
             supervisor.dictionary_of_robots.clear()    
 
                           

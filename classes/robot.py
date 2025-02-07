@@ -97,8 +97,6 @@ class Robot:
         # orchestra spartito
         self.orchestra_spartito = []
         self.ms_dynamic_ff = []
-        self.c = 0
-        self.first_triggered_time = False
 
     def __repr__(self):
         return f"Robot(number = {self.number}, phase = {self.phase})"
@@ -112,15 +110,17 @@ class Robot:
         return possible_y_coordinate
     
     def compute_beat_threshold(self):
+        # Aumento la threshold per BPM più alti
+        if self.sb == 0.5:
+            self.threshold = 0.5  # Valore più grande per permettere il reset
         
-        if math.isclose(self.sb, 0.5, rel_tol=1e-3):
-            self.threshold = 0.01
-        elif math.isclose(self.sb, 1, rel_tol=1e-3):
-            self.threshold = 0.01
-        elif math.isclose(self.sb, 2, rel_tol=1e-3):
+        elif self.sb == 1:
+            self.threshold = 0.2
+        
+        elif self.sb == 2:
             self.threshold = 0.1
-        else:
-            self.threshold = 0.01
+
+
 
     def compute_robot_compass(self):
         magnitude = math.sqrt(self.vx**2 + self.vy**2)
@@ -141,7 +141,8 @@ class Robot:
     def clean_buffers(self):
         self.forwarded_message.clear()
         self.recieved_message.clear()
-        #self.my_spartito.clear()
+        self.my_spartito.clear()
+        #self.orchestra_spartito.clear()
 
     
     # manage differently the collision
@@ -374,8 +375,8 @@ class Robot:
 
     # method to write robot music sheet.
     def add_note_to_spartito(self,ms):
-        print(f"Note added at ms: {ms}")
-        
+        #print(f"Note added at ms: {ms}")
+
         spartito_entry = {
             "ms": ms,
             "musician": self.number,
@@ -388,7 +389,7 @@ class Robot:
             "beat phase": self.beat_phase
         }
 
-        self.my_spartito = spartito_entry 
+        self.my_spartito.append(spartito_entry)
     
     # method to update internal robot phase.
     def update_phase(self,millisecond):
@@ -412,13 +413,16 @@ class Robot:
         self.local_phase_map.clear()
     
     # kuramoto model that works with orchestra spartito 
-    def update_phase_kuramoto_model(self):
-        for entry in self.orchestra_spartito:
-            received_phase = entry["beat phase"]
-            self.beat_phase += self.K * np.sin(0 - self.beat_phase)
+    def update_phase_kuramoto_model(self, millisecond):
+        
+        for sublist in self.orchestra_spartito:  
+            for entry in sublist:  
+                received_phase = entry["beat phase"]
+                self.beat_phase += self.K * np.sin(received_phase - self.beat_phase)
 
         # Normalizzazione della fase nel range [0, 2π]
         self.beat_phase %= (2 * np.pi)
+
   
     def update_beat_phase(self, millisecond):
         #print("r: "+str(self.number)+ str(self.c))
@@ -457,13 +461,13 @@ class Robot:
                 self.playing_flag = False
     
     def update_orchestra_spartito(self, full_spartito):
-        # is ti a new info? is mine?
-        """
-        Filtra lo spartito escludendo le note del robot stesso.
-        """
+        
+        self.orchestra_spartito = []
+
         if full_spartito is None or len(full_spartito) == 0:
             return  # Non aggiorna se lo spartito è vuoto
-        self.orchestra_spartito = [entry for entry in full_spartito if entry["musician"] != self.number]
+        
+        self.orchestra_spartito.append([entry for entry in full_spartito if entry["musician"] != self.number])
 
     def sync_beat_counter(self,millisecond):
 
@@ -497,4 +501,16 @@ class Robot:
                 self.phase += self.K * np.sin(recieved_phase - self.phase)
                 # phase normalization.
                 self.phase %= (2 * np.pi)
+
+
+    def compute_beat_threshold(self):
+        
+        if math.isclose(self.sb, 0.5, rel_tol=1e-3):
+            self.threshold = 0.01
+        elif math.isclose(self.sb, 1, rel_tol=1e-3):
+            self.threshold = 0.01
+        elif math.isclose(self.sb, 2, rel_tol=1e-3):
+            self.threshold = 0.1
+        else:
+            self.threshold = 0.01
 """
