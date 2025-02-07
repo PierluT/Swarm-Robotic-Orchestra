@@ -33,6 +33,7 @@ class Supervisor:
         self.distances = [[0 for _ in range(self.number_of_robots)] for _ in range(self.number_of_robots)] 
         # final music sheet that will be converted into audio file.
         self.conductor_spartito = []
+        self.global_spartito = []
         # to found the minimum a maximum mid value.
         self.min_midinote = 0
         self.max_midinote = 0
@@ -187,6 +188,9 @@ class Supervisor:
                     self.distances[j][initial_robot.number] = distance_between_robots
 
         return self.distances 
+    def update_global_robot_spartito(self):
+        for robot in self.dictionary_of_robots:
+            robot.update_orchestra_spartito(self.conductor_spartito) 
 
     # method to send and receive messages.
     def post_office(self,initial_robot):
@@ -249,18 +253,12 @@ class Supervisor:
         return None  
         
     # unifies spartito of all robots and sort them form a crhonological point of view.
-    def build_conductor_spartito(self):
-        #self.conductor_spartito = []
+    def build_conductor_spartito(self, robot_spartito):
         
-        for robot in self.dictionary_of_robots:
-            
-            adjusted_spartito = [
-            entry  
-            for entry in robot.my_spartito
-            ]
-            # Extend the full spartito with the player ones.
-            self.conductor_spartito.extend(adjusted_spartito)
-        # I sort the final music sheet considering ms.
+        # Aggiungi tutti gli elementi della lista robot_spartito al conductor_spartito
+        self.conductor_spartito.extend(robot_spartito)
+
+        # Ordina il conductor_spartito in base al valore di "ms"
         self.conductor_spartito.sort(key=lambda x: x["ms"])
 
         return self.conductor_spartito

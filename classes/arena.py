@@ -100,7 +100,7 @@ class Arena:
             robot.beat_phase, 
             robot.beat_counter,
             robot.playing_flag,
-            #robot.triggered,
+            robot.triggered_playing_flag,
             robot.note.dynamic,
             #robot.colour,
             #robot.note.midinote,
