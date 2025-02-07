@@ -46,6 +46,7 @@ class Supervisor:
         self.initial_bpm = values_dictionary['bpm']
         self.music_formations = music_formations
         self.csv_folder = ""
+        self.new_note = False
     
     # method to compute iteratively the min and max midinote value that robot can play.
     def compute_midi_range_values(self):
@@ -188,9 +189,14 @@ class Supervisor:
                     self.distances[j][initial_robot.number] = distance_between_robots
 
         return self.distances 
+    
     def update_global_robot_spartito(self):
         for robot in self.dictionary_of_robots:
             robot.update_orchestra_spartito(self.conductor_spartito) 
+    
+    def clean_robot_buffers(self):
+        for robot in self.dictionary_of_robots:
+            robot.clean_buffers() 
 
     # method to send and receive messages.
     def post_office(self,initial_robot):
