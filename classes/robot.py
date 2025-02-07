@@ -142,7 +142,7 @@ class Robot:
         self.forwarded_message.clear()
         self.recieved_message.clear()
         self.my_spartito.clear()
-        #self.orchestra_spartito.clear()
+        self.orchestra_spartito.clear()
 
     
     # manage differently the collision
@@ -462,7 +462,7 @@ class Robot:
     
     def update_orchestra_spartito(self, full_spartito):
         
-        self.orchestra_spartito = []
+        #self.orchestra_spartito = []
 
         if full_spartito is None or len(full_spartito) == 0:
             return  # Non aggiorna se lo spartito è vuoto
