@@ -414,18 +414,19 @@ class Robot:
     
     # kuramoto model that works with orchestra spartito 
     def update_phase_kuramoto_model(self, millisecond):
-        
-        for sublist in self.orchestra_spartito:  
-            for entry in sublist:  
-                received_phase = entry["beat phase"]
-                self.beat_phase += self.K * np.sin(received_phase - self.beat_phase)
+        for sublist in self.orchestra_spartito:
+            for entry in sublist:
+                if entry["ms"] == millisecond:  # Filtra solo l'entry corrispondente al millisecondo attuale
+                    received_phase = entry["beat phase"]
+                    self.beat_phase += self.K * np.sin(received_phase - self.beat_phase)
 
         # Normalizzazione della fase nel range [0, 2π]
         self.beat_phase %= (2 * np.pi)
 
+
   
     def update_beat_phase(self, millisecond):
-        #print("r: "+str(self.number)+ str(self.c))
+
         self.beat_phase += (2 * np.pi / self.beat_phase_denominator) 
         # normalization only if I reach 2pi then I go to 0.
         self.beat_phase %= (2 * np.pi)
@@ -461,9 +462,6 @@ class Robot:
                 self.playing_flag = False
     
     def update_orchestra_spartito(self, full_spartito):
-        
-        #self.orchestra_spartito = []
-
         if full_spartito is None or len(full_spartito) == 0:
             return  # Non aggiorna se lo spartito è vuoto
         
@@ -502,15 +500,4 @@ class Robot:
                 # phase normalization.
                 self.phase %= (2 * np.pi)
 
-
-    def compute_beat_threshold(self):
-        
-        if math.isclose(self.sb, 0.5, rel_tol=1e-3):
-            self.threshold = 0.01
-        elif math.isclose(self.sb, 1, rel_tol=1e-3):
-            self.threshold = 0.01
-        elif math.isclose(self.sb, 2, rel_tol=1e-3):
-            self.threshold = 0.1
-        else:
-            self.threshold = 0.01
 """

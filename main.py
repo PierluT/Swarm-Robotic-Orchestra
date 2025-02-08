@@ -43,6 +43,7 @@ def main():
             
             for millisecond in range(0,9000):          
                 
+                # ROBOTS WRITE A NOTE IN THE GLOBAL SPARTITO
                 for robot in supervisor.dictionary_of_robots:
                     # update its beat phase
                     robot.update_beat_phase(millisecond)
@@ -53,12 +54,15 @@ def main():
                         supervisor.build_conductor_spartito(robot.my_spartito)
                         supervisor.new_note = True           
                     
-                arena.write_robot_data(writer, simulation_number, millisecond, robot)
-                #robot.clean_buffers()
-
-                if supervisor.new_note:
-                    supervisor.update_global_robot_spartito() 
+                    if (millisecond % 40 == 0 and millisecond != 0):
+                        arena.write_robot_data(writer, simulation_number, millisecond, robot)
                     
+                
+                # SUPERVISOR SIMULATES ROBOT'S EARS SO IT UPDATES ALL OF THEM OF WHAT HAPPENS IN THE ENVIRONMENT.  
+                if supervisor.new_note:
+                    supervisor.update_global_robot_spartito(millisecond)
+                
+                    # STAMPA DI CONTROLLO
                     print("QUALCUNO HA SUONATO AL ms ", millisecond)
                     print()
                     for robot in supervisor.dictionary_of_robots:
@@ -68,6 +72,8 @@ def main():
                                 print(f"ms: {entry['ms']}, musician: {entry['musician']}, beat phase: {entry['beat phase']}")
                         print()
                     print()
+                
+                
                     
                 
                 # I set false for the new cycle.
@@ -77,35 +83,13 @@ def main():
                 supervisor.clean_robot_buffers()
             
             # for another simulation I clear all robot data.
-            supervisor.dictionary_of_robots.clear()  
-
-"""""
-            # print of end of communications.
-            for robot in supervisor.dictionary_of_robots:
-                print("robot:", robot.number, "global info")
-                for sublist in robot.orchestra_spartito:  # Ogni sublist è una lista di dizionari
-                    for entry in sublist:  # Iteriamo sui dizionari dentro la sublist
-                        print(f"ms: {entry['ms']}, musician: {entry['musician']}, beat phase: {entry['beat phase']}")
-                print()
-            
-            for entry in supervisor.conductor_spartito:
-                            print(f"ms: {entry['ms']}, musician: {entry['musician']}")
-"""            
-  
-
-                          
+            supervisor.dictionary_of_robots.clear()                            
 
 if __name__ == "__main__":
         
         main()
 
 """""
-        for robot in supervisor.dictionary_of_robots:
-            print("spartito robot n: "+str(robot.number))
-            print(robot.my_spartito)
-            print()
-
-
 robot.update_phase(millisecond)
                     
                     # POSITIONS MATRIX
