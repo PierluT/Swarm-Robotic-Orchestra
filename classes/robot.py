@@ -479,54 +479,42 @@ class Robot:
         relative_time = ms_ff_iniziale - self.last_played_ms
         #print("robot ", self.number, " ms ff iniziale ",ms_ff_iniziale )
         #print("robot ", self.number, " last played ms: ", self.last_played_ms) 
+
+        # I compute the tieme interval from my last played note and the fortissimo note suddenly listened.
         relative_time = ms_ff_iniziale - self.last_played_ms
-        print("robot ", self.number, "relative time ", relative_time, " at ms ", millisecond)
+        #print("robot ", self.number, "relative time ", relative_time, " at ms ", millisecond)
         #print("self sb ", self.sb)
-        actual_beat = (relative_time / (self.sb * 1000) ) +1
+
+        # to compute in wich beat I am, computing from the milliseconds infos, beacuse I'm supposed to not know this info 
+        # from a real point of view.
+        actual_beat = (relative_time / (self.beat_phase_denominator) ) +1
         print("robot ", self.number, "actual beat ", actual_beat, " at ms ", millisecond)
         
+        # If the actual beat is not an integer, it means that we are in the first stesp of the simualtions,
+        # so the phase is not synchronized and it doesn't make sense syncronyze beat before phase.
         if actual_beat % 1 != 0:
-            print("robot ", self.number, " non sincronizzato, esco dal metodo.")
+            #print("robot ", self.number, " non sincronizzato, esco dal metodo.")
             print()
             return
         
         if actual_beat == self.number_of_beats:
-            print("robot ", self.number, " già nel primo beat")
+            self.beat_counter = 1
             return
-        # Troviamo la differenza tra il nostro beat e il beat di riferimento
-        diff = actual_beat - 1  # Il primo ff è sempre beat 1
-        print("difference: ", diff)
-        # Sincronizzazione: decidiamo se spostarci di +1 o -1
-        if diff == 1:
-            #self.beat_counter -= 1  # Rallentiamo di 1 beat
-            print("robot ", self.number, " -1")
-        elif diff == -1:
-            #self.beat_counter += 1  # Acceleriamo di 1 beat
-            print("robot ", self.number, " +1")
         
+        diff = actual_beat - 1  # Il primo ff è sempre beat 1
+        print("difference", diff)
+        if diff == 0:
+            print(print(f"robot {self.number} non si sposta"))
+            return
+        
+        # I divide the measure in 2 parts to understand if is better go to the left or to the right.
+        half_beats = self.number_of_beats / 2
+
+        if diff <= half_beats:
+            move = -1
+        else:
+            move = 1
+        
+        self.beat_counter += move
+        print(f"robot {self.number} si sposta di {move} beat")
         print()
-        
-        """"
-
-        # determine in wich beat I am
-        actual_beat = (relative_time // self.sb) +1
-        print("actual beat: ", actual_beat)
-        # Se siamo nell'ultimo beat della battuta, non torniamo indietro
-        if actual_beat == self.number_of_beats:
-            print(" sono già nel primo beat")
-            return
-
-        # Troviamo la differenza tra il nostro beat e il beat di riferimento
-        diff = actual_beat - 1  # Il primo ff è sempre beat 1
-        print("difference: ", diff)
-        # Sincronizzazione: decidiamo se spostarci di +1 o -1
-        if diff == 1:
-            #self.beat_counter -= 1  # Rallentiamo di 1 beat
-            print("robot ", self.number, " -1")
-        elif diff == -1:
-            #self.beat_counter += 1  # Acceleriamo di 1 beat
-            print("robot ", self.number, " +1")
-
-        #print(f"Robot {self.number}, {ff_entries} at ms {millisecond}")
-
-"""

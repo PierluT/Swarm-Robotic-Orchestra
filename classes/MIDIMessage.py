@@ -22,7 +22,7 @@ class MIDIMessage():
         # I recieve the csv folder path from supervisor, but I have to remove video.csv
         csv_directory = os.path.dirname(csv_path)
         self.final_csv_music_path = os.path.join(csv_directory, self.music_csv_file)
-        print(self.final_csv_music_path)
+        #print(self.final_csv_music_path)
         #os.makedirs(self.directory, exist_ok=True)
         
         # if it necessary to write first row
@@ -32,7 +32,7 @@ class MIDIMessage():
         mode = "w" if first_iteration else "a"
 
         with open(self.final_csv_music_path, mode= mode, newline = '') as file:
-            writer = csv.DictWriter(file, fieldnames=["simulation number", "ms", "musician", "note", "dur", "amp", "bpm", "timbre", "delay"], delimiter=';')
+            writer = csv.DictWriter(file, fieldnames=["simulation number", "ms", "musician", "note", "dur","bpm", "timbre", "delay", "dynamic"], delimiter=';')
             
             if first_iteration:
                 writer.writeheader()
@@ -40,6 +40,7 @@ class MIDIMessage():
             if conductor_spartito:
                 for row in conductor_spartito:
                     row["simulation number"] = simulation_number
+                    row.pop("beat phase", None)
                 writer.writerows(conductor_spartito)
             
     def finding_wav_from_csv(self):
@@ -130,7 +131,7 @@ class MIDIMessage():
                         print(f"File WAV non trovato: {input_file}. Salto questa riga.")
                         continue
                     ms = int(parts[1]) if parts[1].isdigit() else 0  # Offset in ms
-                    delay = int(parts[8]) if parts[8].isdigit() else 0 # offset in delay
+                    delay = int(parts[7]) if parts[7].isdigit() else 0 # offset in delay
                     duration = int(parts[4]) if parts[4].isdigit() else 0
                     #print("delay "+ str(delay))
                     start_sample = int((ms / 1000 + delay ) * sr) # converts ms in samples

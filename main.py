@@ -31,7 +31,7 @@ def main():
     
     with open(csv_path , mode="w", newline="") as file:
         writer = csv.writer(file, delimiter=';')
-        writer.writerow(["simulation number","ms", "robot number","beat phase","beat counter","playing flag","triggered", "dynamic","delay"])
+        writer.writerow(["simulation number","ms","robot number","x", "y","compass","beat phase","beat counter","dynamic", "colour","midinote", "pitch", "timbre", "delay"])
         for simulation_number in range(int_param):
             print("##################################")
             print(f"EXECUTION NUMBER {simulation_number}")
@@ -41,21 +41,20 @@ def main():
             # method to set robot positions and initial random notes.
             supervisor.setup_robots()
             
-            for millisecond in range(0,20000):          
+            for millisecond in range(0,60000):          
                 
                 # ROBOTS WRITE A note IN THE GLOBAL SPARTITO
                 for robot in supervisor.dictionary_of_robots:
                     # update its beat phase
                     robot.update_beat_phase(millisecond)
-                    
                     # if the robot play then I update the gobal spartito.
                     if robot.playing_flag:
                         # supervisor adds the new robot note line to its global spartito. 
                         supervisor.build_conductor_spartito(robot.my_spartito)
                         supervisor.new_note = True           
                     
-                    #if (millisecond % 40 == 0 and millisecond != 0):
-                    arena.write_robot_data(writer, simulation_number, millisecond, robot)
+                    if (millisecond % 40 == 0 and millisecond != 0):
+                        arena.write_robot_data(writer, simulation_number, millisecond, robot)
 
                 # SUPERVISOR SIMULATES ROBOT'S EARS SO IT UPDATES ALL OF THEM OF WHAT HAPPENS IN THE ENVIRONMENT.  
                 if supervisor.new_note:
@@ -77,12 +76,22 @@ def main():
             """
                 # I set false for the new cycle.
                 supervisor.new_note = False
-                
                 # to clean the robot ears.
                 supervisor.clean_robot_buffers()
-            
+            #print(supervisor.conductor_spartito)
+            midi_class.write_csv(supervisor.conductor_spartito,simulation_number, csv_path)
             # for another simulation I clear all robot data.
-            supervisor.dictionary_of_robots.clear()                            
+            supervisor.dictionary_of_robots.clear()
+            supervisor.conductor_spartito.clear() 
+    
+    if bool_video_audio: 
+        # VISUALIZATION PART       
+        arena.load_robot_data(csv_path, simulation_number)
+        arena.draw_all_robots()
+        wav_files_list = midi_class.finding_wav_from_csv()
+        midi_class.generate_audio_from_csv(wav_files_list)
+        # video generation audio included
+        arena.create_video(output_path= "video_simulation.mp4", audio_path = "final_output.wav", fps = 25, auto_open= True)                           
 
 if __name__ == "__main__":
         main()
