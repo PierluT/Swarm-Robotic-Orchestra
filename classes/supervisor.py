@@ -193,11 +193,12 @@ class Supervisor:
     # EVERY ROBOT UPDATES ITS GLOBAL SPARTITO TO BE CONSCIOUS OF WHAT HAS BEEN PLAYED.
     def update_global_robot_spartito(self, millisecond):
         for robot in self.dictionary_of_robots:
-            # proper global spartito update.
             robot.update_orchestra_spartito(self.conductor_spartito)
             robot.update_phase_kuramoto_model(millisecond)
-            
-    
+        
+        for robot in self.dictionary_of_robots:     
+            robot.update_beat_firefly(millisecond)
+
     def clean_robot_buffers(self):
         for robot in self.dictionary_of_robots:
             robot.clean_buffers() 
