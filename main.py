@@ -7,9 +7,9 @@ from classes.MIDIMessage import MIDIMessage
 
 # I pass parameters in the main.           
 def main():
-    parser = argparse.ArgumentParser(description=" Esempio di script con un intero e due booleani")
-    parser.add_argument("int_param", type=int, help="Un parametro intero.")
-    parser.add_argument("bool_param1", type=lambda x: x.lower() in ("true", "1", "yes"), help="boolean video and audio (true/false).")
+    parser = argparse.ArgumentParser(description =" Esempio di script con un intero e due booleani")
+    parser.add_argument("int_param", type=int, help = "Un parametro intero.")
+    parser.add_argument("bool_param1", type=lambda x: x.lower() in ("true", "1", "yes"), help ="boolean video and audio (true/false).")
     
     # Parsing dei parametri
     args = parser.parse_args()
@@ -41,9 +41,9 @@ def main():
             # method to set robot positions and initial random notes.
             supervisor.setup_robots()
             
-            for millisecond in range(0,9000):          
+            for millisecond in range(0,20000):          
                 
-                # ROBOTS WRITE A NOTE IN THE GLOBAL SPARTITO
+                # ROBOTS WRITE A note IN THE GLOBAL SPARTITO
                 for robot in supervisor.dictionary_of_robots:
                     # update its beat phase
                     robot.update_beat_phase(millisecond)
@@ -54,14 +54,14 @@ def main():
                         supervisor.build_conductor_spartito(robot.my_spartito)
                         supervisor.new_note = True           
                     
-                    if (millisecond % 40 == 0 and millisecond != 0):
-                        arena.write_robot_data(writer, simulation_number, millisecond, robot)
-                    
-                
+                    #if (millisecond % 40 == 0 and millisecond != 0):
+                    arena.write_robot_data(writer, simulation_number, millisecond, robot)
+
                 # SUPERVISOR SIMULATES ROBOT'S EARS SO IT UPDATES ALL OF THEM OF WHAT HAPPENS IN THE ENVIRONMENT.  
                 if supervisor.new_note:
                     supervisor.update_global_robot_spartito(millisecond)
                 
+                """""
                     # STAMPA DI CONTROLLO
                     print("QUALCUNO HA SUONATO AL ms ", millisecond)
                     print()
@@ -69,13 +69,12 @@ def main():
                         print("ROBOT:", robot.number, "global info")
                         for sublist in robot.orchestra_spartito:  # Ogni sublist è una lista di dizionari
                             for entry in sublist:  # Iteriamo sui dizionari dentro la sublist
-                                print(f"ms: {entry['ms']}, musician: {entry['musician']}, beat phase: {entry['beat phase']}")
+                                print(f"ms: {entry['ms']}, musician: {entry['musician']}, dynamic: {entry['dynamic']}")
+                        print("ultimo ms suonato: ", robot.last_played_ms)
                         print()
+                        
                     print()
-                
-                
-                    
-                
+            """
                 # I set false for the new cycle.
                 supervisor.new_note = False
                 
@@ -86,7 +85,6 @@ def main():
             supervisor.dictionary_of_robots.clear()                            
 
 if __name__ == "__main__":
-        
         main()
 
 """""

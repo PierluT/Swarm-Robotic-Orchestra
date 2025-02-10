@@ -423,18 +423,17 @@ class Robot:
         # Normalizzazione della fase nel range [0, 2π]
         self.beat_phase %= (2 * np.pi)
 
-
-  
     def update_beat_phase(self, millisecond):
-
         self.beat_phase += (2 * np.pi / self.beat_phase_denominator) 
         # normalization only if I reach 2pi then I go to 0.
         self.beat_phase %= (2 * np.pi)
         self.control_beat_flag(millisecond)
     
     def control_beat_flag(self, millisecond):
+        
         # LOGICA PER GESTIRE IL BEAT
         if 0 <= self.beat_phase < self.threshold:  
+            
             if not self.first_beat_control_flag:  
                 self.beat_counter = self.beat_counter + 1 if self.beat_counter < self.number_of_beats else 1
                 self.first_beat_control_flag = True  
@@ -443,7 +442,6 @@ class Robot:
         
         # LOGIC TO UPDATE MY SPARTITO.
         if self.beat_counter == 1:
-            
             if not self.triggered_playing_flag:
                  self.playing_flag = True
                  self.triggered_playing_flag = True
@@ -462,42 +460,73 @@ class Robot:
                 self.playing_flag = False
     
     def update_orchestra_spartito(self, full_spartito):
+        
         if full_spartito is None or len(full_spartito) == 0:
             return  # Non aggiorna se lo spartito è vuoto
-        
         self.orchestra_spartito.append([entry for entry in full_spartito if entry["musician"] != self.number])
 
-    def sync_beat_counter(self,millisecond):
-
-        # compare with beats not ms.
-        
+    def update_beat_firefly(self,millisecond):
         # Trova tutti gli eventi con dynamic == 'ff'
-        ff_entries = [entry for entry in self.orchestra_spartito if entry["dynamic"] == "ff"]
+        ff_entries = [entry for sublist in self.orchestra_spartito 
+              for entry in sublist 
+              if entry["ms"] == millisecond and entry["dynamic"] == "ff"]
         
         if not ff_entries:
             return  # Nessuna nota con 'ff', non serve sincronizzare
+        
+        first_ff = ff_entries[0]  # Usa il primo elemento della lista
+        ms_ff_iniziale = first_ff["ms"]
+        relative_time = ms_ff_iniziale - self.last_played_ms
+        #print("robot ", self.number, " ms ff iniziale ",ms_ff_iniziale )
+        #print("robot ", self.number, " last played ms: ", self.last_played_ms) 
+        relative_time = ms_ff_iniziale - self.last_played_ms
+        print("robot ", self.number, "relative time ", relative_time, " at ms ", millisecond)
+        #print("self sb ", self.sb)
+        actual_beat = (relative_time / (self.sb * 1000) ) +1
+        print("robot ", self.number, "actual beat ", actual_beat, " at ms ", millisecond)
+        
+        if actual_beat % 1 != 0:
+            print("robot ", self.number, " non sincronizzato, esco dal metodo.")
+            print()
+            return
+        
+        if actual_beat == self.number_of_beats:
+            print("robot ", self.number, " già nel primo beat")
+            return
+        # Troviamo la differenza tra il nostro beat e il beat di riferimento
+        diff = actual_beat - 1  # Il primo ff è sempre beat 1
+        print("difference: ", diff)
+        # Sincronizzazione: decidiamo se spostarci di +1 o -1
+        if diff == 1:
+            #self.beat_counter -= 1  # Rallentiamo di 1 beat
+            print("robot ", self.number, " -1")
+        elif diff == -1:
+            #self.beat_counter += 1  # Acceleriamo di 1 beat
+            print("robot ", self.number, " +1")
+        
+        print()
+        
+        """"
 
-        # Per ogni evento con dynamic == 'ff', sincronizza il beat_counter
-        for entry in ff_entries:
-            reference_ms = entry['ms']  # Prendi il ms di riferimento dell'evento 'ff'
+        # determine in wich beat I am
+        actual_beat = (relative_time // self.sb) +1
+        print("actual beat: ", actual_beat)
+        # Se siamo nell'ultimo beat della battuta, non torniamo indietro
+        if actual_beat == self.number_of_beats:
+            print(" sono già nel primo beat")
+            return
 
-            # Sincronizzazione del beat_counter
-            if millisecond > reference_ms:
-                self.beat_counter -= 1  # Se il robot è avanti, anticipa il beat
-            
-            elif millisecond < reference_ms:
-                self.beat_counter += 1  # Se il robot è indietro, ritarda il beat
+        # Troviamo la differenza tra il nostro beat e il beat di riferimento
+        diff = actual_beat - 1  # Il primo ff è sempre beat 1
+        print("difference: ", diff)
+        # Sincronizzazione: decidiamo se spostarci di +1 o -1
+        if diff == 1:
+            #self.beat_counter -= 1  # Rallentiamo di 1 beat
+            print("robot ", self.number, " -1")
+        elif diff == -1:
+            #self.beat_counter += 1  # Acceleriamo di 1 beat
+            print("robot ", self.number, " +1")
 
-        print(f"Robot {self.number} sincronizzato - Nuovo beat_counter: {self.beat_counter}")
-
-"""""
-    # Method for Kuramoto model
-    def update_phase_kuramoto_model(self):
-        # Iterate on all the recieved phases and apply Kuramoto model.
-        for robot_number, phases in self.local_phase_map.items():
-            for recieved_phase in phases:
-                self.phase += self.K * np.sin(recieved_phase - self.phase)
-                # phase normalization.
-                self.phase %= (2 * np.pi)
+        #print(f"Robot {self.number}, {ff_entries} at ms {millisecond}")
 
 """
