@@ -454,6 +454,9 @@ class Robot:
                  self.triggered_playing_flag = True
                  self.last_played_ms = millisecond
                  self.add_note_to_spartito(millisecond)
+            else:
+                self.playing_flag = False
+            
         else:
             self.playing_flag = False
             self.triggered_playing_flag = False
