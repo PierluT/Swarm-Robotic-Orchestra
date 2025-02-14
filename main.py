@@ -31,7 +31,7 @@ def main():
     
     with open(csv_path , mode="w", newline="") as file:
         writer = csv.writer(file, delimiter=';')
-        writer.writerow(["simulation number","ms","robot number","x", "y","compass","beat phase","beat counter","dynamic", "colour","midinote", "pitch", "timbre", "delay"])
+        writer.writerow(["simulation number","ms","robot number","x", "y","compass","beat phase","beat counter","dynamic", "colour","midinote", "pitch", "timbre", "delay", "playing flag "])
         for simulation_number in range(int_param):
             print("##################################")
             print(f"EXECUTION NUMBER {simulation_number}")
@@ -41,21 +41,22 @@ def main():
             # method to set robot positions and initial random notes.
             supervisor.setup_robots()
             
-            for millisecond in range(0,60000):          
-                
+            for millisecond in range(0,6000):          
                 # ROBOTS WRITE A note IN THE GLOBAL SPARTITO
                 for robot in supervisor.dictionary_of_robots:
                     # update its beat phase
                     robot.update_beat_phase(millisecond)
+                    
                     # if the robot play then I update the gobal spartito.
                     if robot.playing_flag:
                         # supervisor adds the new robot note line to its global spartito. 
                         supervisor.build_conductor_spartito(robot.my_spartito)
                         supervisor.new_note = True           
                     
-                    if (millisecond % 40 == 0 and millisecond != 0):
-                        arena.write_robot_data(writer, simulation_number, millisecond, robot)
+                    #if (millisecond % 40 == 0 and millisecond != 0):
+                    arena.write_robot_data(writer, simulation_number, millisecond, robot)
 
+                        
                 # SUPERVISOR SIMULATES ROBOT'S EARS SO IT UPDATES ALL OF THEM OF WHAT HAPPENS IN THE ENVIRONMENT.  
                 if supervisor.new_note:
                     supervisor.update_global_robot_spartito(millisecond)
@@ -68,12 +69,14 @@ def main():
                         print("ROBOT:", robot.number, "global info")
                         for sublist in robot.orchestra_spartito:  # Ogni sublist è una lista di dizionari
                             for entry in sublist:  # Iteriamo sui dizionari dentro la sublist
-                                print(f"ms: {entry['ms']}, musician: {entry['musician']}, dynamic: {entry['dynamic']}")
+                                #print(f"ms: {entry['ms']}, musician: {entry['musician']}, dynamic: {entry['dynamic']}")
+                                print(entry)
                         print("ultimo ms suonato: ", robot.last_played_ms)
                         print()
-                        
+               
                     print()
-            """
+                """
+                
                 # I set false for the new cycle.
                 supervisor.new_note = False
                 # to clean the robot ears.
