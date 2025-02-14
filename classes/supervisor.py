@@ -201,8 +201,8 @@ class Supervisor:
             robot.update_phase_kuramoto_model(millisecond)
         
         # once coordinated phase, robot applies beat synchronization.
-        #for robot in self.dictionary_of_robots:     
-            #robot.update_beat_firefly(millisecond)
+        for robot in self.dictionary_of_robots:     
+            robot.update_beat_firefly(millisecond)
         
         # harmonic consensous.
         #for robot in self.dictionary_of_robots:

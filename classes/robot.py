@@ -99,6 +99,8 @@ class Robot:
         self.orchestra_spartito = []
         self.ms_dynamic_ff = []
         self.music_map = deque(maxlen = 7)
+        self.first_beat_ms = 0
+        self.first_saved_beat = False
 
     def __repr__(self):
         return f"Robot(number = {self.number}, phase = {self.phase})"
@@ -447,19 +449,24 @@ class Robot:
         # LOGIC TO UPDATE MY SPARTITO.
         # ADD DELAY VALUE TO SIMULATE IN A MORE REALISTIC WAY.
         if self.beat_counter == self.delay:
-            
             if not self.triggered_playing_flag:
                  self.playing_flag = True
                  self.triggered_playing_flag = True
                  self.last_played_ms = millisecond
                  self.add_note_to_spartito(millisecond)
-            #self.triggered_playing_flag = True
-            else:
-                self.playing_flag = True
-        
         else:
             self.playing_flag = False
             self.triggered_playing_flag = False
+        
+        # to save first beat millisecond
+        if self.beat_counter == 1:
+            self.colour = colours['blue']
+            if not self.first_saved_beat:
+                self.first_beat_ms = millisecond
+                self.first_saved_beat = True
+        else:
+            self.first_saved_beat = False
+            self.colour = colours['green']
     
     # method to save what the other robots have been played and save notes into a structure.
     def update_orchestra_spartito(self, full_spartito):
@@ -490,10 +497,10 @@ class Robot:
         
         # NOT THE LAST TIME YOU PLAYED, BUT THE LAST TIME YOU THINK YOU CROSSED BEAT 1.
         # ABOUT MY PERCEPTION OF WHERE IS THE START OF THE MEASURE.
-        relative_time = ms_ff_iniziale - self.last_played_ms
+        relative_time = ms_ff_iniziale - self.first_beat_ms
         
         #print("robot ", self.number, " ms ff iniziale ",ms_ff_iniziale )
-        #print("robot ", self.number, " last played ms: ", self.last_played_ms) 
+        #print("robot ", self.number, " last first beat ms: ", self.last_played_ms) 
 
         # I compute the tieme interval from my last played note and the fortissimo note suddenly listened.
         
