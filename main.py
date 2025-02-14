@@ -33,6 +33,7 @@ def main():
         writer = csv.writer(file, delimiter=';')
         writer.writerow(["simulation number","ms","robot number","x", "y","compass","beat phase","beat counter","dynamic", "colour","midinote", "pitch", "timbre", "delay"," playing flag"])
         for simulation_number in range(int_param):
+            n = 0
             print("##################################")
             print(f"EXECUTION NUMBER {simulation_number}")
             # CLEAN EVERYTHING BEFORE EXECUTION 
@@ -49,12 +50,13 @@ def main():
                     
                     # if the robot play then I update the gobal spartito.
                     if robot.playing_flag:
+                        n += 1
                         # supervisor adds the new robot note line to its global spartito. 
                         supervisor.build_conductor_spartito(robot.my_spartito)
                         supervisor.new_note = True           
                     
-                    #if (millisecond % 40 == 0 and millisecond != 0): 
-                    arena.write_robot_data(writer, simulation_number, millisecond, robot)
+                    if (millisecond % 40 == 0 and millisecond != 0): 
+                        arena.write_robot_data(writer, simulation_number, millisecond, robot)
 
                         
                 # SUPERVISOR SIMULATES ROBOT'S EARS SO IT UPDATES ALL OF THEM OF WHAT HAPPENS IN THE ENVIRONMENT.  
@@ -88,7 +90,7 @@ def main():
             # for another simulation I clear all robot data.
             supervisor.dictionary_of_robots.clear()
             supervisor.conductor_spartito.clear() 
-    
+    print(n)
     if bool_video_audio: 
         # VISUALIZATION PART       
         arena.load_robot_data(csv_path, simulation_number)
