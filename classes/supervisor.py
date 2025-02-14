@@ -192,12 +192,21 @@ class Supervisor:
     
     # EVERY ROBOT UPDATES ITS GLOBAL SPARTITO TO BE CONSCIOUS OF WHAT HAS BEEN PLAYED.
     def update_global_robot_spartito(self, millisecond):
+        
+        # I update the global infos of every robot.
         for robot in self.dictionary_of_robots:
-            robot.update_orchestra_spartito(self.conductor_spartito)
+            # robot stores what the other ones have been played.
+            robot.update_orchestra_spartito(self.conductor_spartito)    
+            # with the stored info, robot applies kuramoto model on its phase.
             robot.update_phase_kuramoto_model(millisecond)
         
-        for robot in self.dictionary_of_robots:     
-            robot.update_beat_firefly(millisecond)
+        # once coordinated phase, robot applies beat synchronization.
+        #for robot in self.dictionary_of_robots:     
+            #robot.update_beat_firefly(millisecond)
+        
+        # harmonic consensous.
+        #for robot in self.dictionary_of_robots:
+            #robot.update_note()
 
     def clean_robot_buffers(self):
         for robot in self.dictionary_of_robots:
@@ -265,13 +274,10 @@ class Supervisor:
         
     # unifies spartito of all robots and sort them form a crhonological point of view.
     def build_conductor_spartito(self, robot_spartito):
-        
         # Aggiungi tutti gli elementi della lista robot_spartito al conductor_spartito
         self.conductor_spartito.extend(robot_spartito)
-
         # Ordina il conductor_spartito in base al valore di "ms"
         self.conductor_spartito.sort(key=lambda x: x["ms"])
-
         return self.conductor_spartito
 
     def calculate_instrument_affinity(self):

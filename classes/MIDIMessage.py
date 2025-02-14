@@ -32,7 +32,7 @@ class MIDIMessage():
         mode = "w" if first_iteration else "a"
 
         with open(self.final_csv_music_path, mode= mode, newline = '') as file:
-            writer = csv.DictWriter(file, fieldnames=["simulation number", "ms", "musician", "note", "dur","bpm", "timbre", "delay", "dynamic"], delimiter=';')
+            writer = csv.DictWriter(file, fieldnames=["simulation number", "ms", "musician", "note", "dur","bpm", "timbre", "delay", "dynamic", "harmony"], delimiter=';')
             
             if first_iteration:
                 writer.writeheader()
@@ -103,8 +103,7 @@ class MIDIMessage():
                 matched_files.append(os.path.join(instrument_folder, matching_files[0]))  # by now takes the first one, has to implement amp behaviour.
                 
             else:
-                matched_files.append(os.path.join(instrument_folder, matching_files[0]))  # by now takes the first one, has to implement amp behaviour.
-                
+                matched_files.append(os.path.join(instrument_folder, matching_files[0]))  # by now takes the first one, has to implement amp behaviour.       
     
         return matched_files
     

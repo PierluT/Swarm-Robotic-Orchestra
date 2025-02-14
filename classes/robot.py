@@ -52,7 +52,7 @@ class Robot:
         self.stop_counter = 0
         self.moving_counter = 0
         # MUSIC VARIABLES
-        self.scales = major_scales
+        self.scales = whole_tone_scales
         self.note = ""
         #self.id_note_counter = 0
         self.max_music_neighbourgs = 4
@@ -76,6 +76,7 @@ class Robot:
         self.local_phase_map = defaultdict(list) 
         self.timbre = ""
         self.timbre_dictionary = orchestra_to_midi_range
+        self.d_values =[value for value in delay_values if value != 1]
         self.delay = random.choice(delay_values) 
         # to found the minimum a maximum mid value.
         self.min_midinote = 0
@@ -89,7 +90,7 @@ class Robot:
         self.beat_phase = np.random.uniform(0, 2 * np.pi)
         self.beat_phase_denominator = phase_period / self.number_of_beats
         #self.beat_counter = 1
-        self.beat_counter = random.choice(delay_values)
+        self.beat_counter = random.choice(self.d_values)
         self.first_beat_control_flag = True
         self.threshold = 0
         self.last_beat_phase = 0
@@ -97,6 +98,7 @@ class Robot:
         # orchestra spartito
         self.orchestra_spartito = []
         self.ms_dynamic_ff = []
+        self.music_map = deque(maxlen = 7)
 
     def __repr__(self):
         return f"Robot(number = {self.number}, phase = {self.phase})"
@@ -120,8 +122,6 @@ class Robot:
         elif self.sb == 2:
             self.threshold = 0.1
 
-
-
     def compute_robot_compass(self):
         magnitude = math.sqrt(self.vx**2 + self.vy**2)
         end_x = int(self.x)  # Valore di default
@@ -143,6 +143,7 @@ class Robot:
         self.recieved_message.clear()
         self.my_spartito.clear()
         self.orchestra_spartito.clear()
+        self.music_map.clear()
 
     
     # manage differently the collision
@@ -190,39 +191,44 @@ class Robot:
         else:
             self.note.dynamic = "mf"
     
+    # SOMETHING THAT WORKS FOR EVERY SITUATION.
     def update_note(self):
         # extract only notes from my dictionary
-        notes_to_check = [note[0] for note in self.local_music_map.values()]
-        
-        mas = 0
+        notes_to_check = list(self.music_map)
+        #print(" robot ", self.number," notes to check: ", notes_to_check )
         scale_matches = {}
+        
         for scale_name, scale_notes in self.scales.items():
             matching_notes = [note for note in notes_to_check if note in scale_notes]
             scale_matches[scale_name] = len(matching_notes)
-
             # found the scale with major number of common notes.
             max_matches = max(scale_matches.values())
             #mas = max_matches
+        
         best_scales = [scale_name for scale_name, match_count in scale_matches.items() if match_count == max_matches]
+        print("robot ", self.number," best scales", best_scales, " for notes group", notes_to_check)
+        print("robot ", self.number," note played", self.note.pitch)
+        
+        # control if my note is included in one of the probable scales:
+        note_count_in_scales = 0
 
         # control if my note is included in one of the probable scales:
         for scale in best_scales:
             #print("probable scale for r number: "+ str(self.number)+ " "+ str(scale))
             scale_notes = self.scales[scale]
             if self.note.pitch in scale_notes:
-                 # put a flag if the note that I play is included in one of the best scales found for the harmony.
-                self.flag_included_proper_midinote = True
-                self.harmony = True
-                #print("robot :"+ str(self.number)+ " is already in harmony")
-        if not self.flag_included_proper_midinote:
-            #print("note robot :"+ str(self.number)+" not included in the best scales")
-            # function change 70-30 to call it or not.
-            self.change_note(best_scales) 
-            #print(self.note)
-
+                note_count_in_scales += 1
+        print(" match my note + otherones:", note_count_in_scales)
+        # Se la mia nota è presente in più di 2 scale
+        if note_count_in_scales > 2 or note_count_in_scales == 0:
             
-        self.flag_included_proper_midinote = False 
-    
+            self.harmony = False  # Non in armonia
+            self.change_note(best_scales)  # Cambia la nota
+        
+        else:
+            self.harmony = True  # Sono in armonia
+            self.flag_included_proper_midinote = False
+        
     # method to create the first note.
     def create_new_note(self, midi_value, bpm, duration):
         note = Note( midinote = midi_value, bpm = bpm, duration = duration)
@@ -234,6 +240,7 @@ class Robot:
         change_probability = random.random()
         # I change note
         if change_probability < 0.7:
+            print("robot ", self.number, " changes note")
             # I found the closest scale
             closest_scale = min(
                 best_scales,
@@ -242,13 +249,12 @@ class Robot:
                     for note in self.scales[scale_name]
                 )
             )
-
             # found closest note into the closest scale.
             closest_note = min(
                 self.scales[closest_scale],
                 key = lambda note: min(abs(self.note.pitch - note), 12 - abs(self.note.pitch - note))
             )
-            
+            print("robot ", self.number," closest scale ", closest_scale, " closest note ", closest_note)
             # Calcolo la differenza tra la nota suonata e la nota più vicina
             midi_diff = closest_note - self.note.pitch
 
@@ -257,7 +263,6 @@ class Robot:
                 # Se la differenza è maggiore di 6, normalizzo il salto
                 midi_diff = midi_diff - (12 if midi_diff > 0 else -12)
                 print("here")
-
             # Aggiusto il midinote in base alla differenza
             self.note.midinote += midi_diff
 
@@ -265,8 +270,8 @@ class Robot:
             self.note.pitch = closest_note
 
             # Stampa per il debug
-            #print("pitch: " + str(self.note.pitch))
-            #print("midinote: " + str(self.note.midinote))
+            print("pitch: " + str(self.note.pitch))
+            print("midinote: " + str(self.note.midinote))
             #print(self.note)
         if self.note.pitch > 11:
             print("NOOOOOOOOOOOOOOOOO")
@@ -318,7 +323,6 @@ class Robot:
 
                         # add a new note in the robot queue.
                         self.local_music_map[robot_number].append(note)
-        
             
             # if the dictionary reaches maximum limit, remove the oldest data on it.
             while len(self.local_music_map) > self.max_music_neighbourgs:
@@ -375,7 +379,6 @@ class Robot:
 
     # method to write robot music sheet.
     def add_note_to_spartito(self,ms):
-        #print(f"Note added at ms: {ms}")
 
         spartito_entry = {
             "ms": ms,
@@ -386,7 +389,8 @@ class Robot:
             "bpm": self.note.bpm,
             "timbre": self.timbre,
             "delay": self.delay,
-            "beat phase": self.beat_phase
+            "beat phase": self.beat_phase,
+            "harmony": self.harmony
         }
 
         self.my_spartito.append(spartito_entry)
@@ -424,13 +428,13 @@ class Robot:
         self.beat_phase %= (2 * np.pi)
 
     def update_beat_phase(self, millisecond):
+        
         self.beat_phase += (2 * np.pi / self.beat_phase_denominator) 
         # normalization only if I reach 2pi then I go to 0.
         self.beat_phase %= (2 * np.pi)
         self.control_beat_flag(millisecond)
     
     def control_beat_flag(self, millisecond):
-        
         # LOGICA PER GESTIRE IL BEAT
         if 0 <= self.beat_phase < self.threshold:  
             
@@ -441,31 +445,38 @@ class Robot:
             self.first_beat_control_flag = False  
         
         # LOGIC TO UPDATE MY SPARTITO.
-        if self.beat_counter == 1:
+        # ADD DELAY VALUE TO SIMULATE IN A MORE REALISTIC WAY.
+        if self.beat_counter == self.delay:
+            
             if not self.triggered_playing_flag:
                  self.playing_flag = True
                  self.triggered_playing_flag = True
                  self.last_played_ms = millisecond
                  self.add_note_to_spartito(millisecond)
-        
+            #self.triggered_playing_flag = True
             else:
-                self.playing_flag = False
+                self.playing_flag = True
+        
         else:
-            # to control that the robot doesn't start to play the note before the end of previous one.
-            # first term: elapsed amount of time from last played ms and current millisecond.
-            # second term: beats multiplied per ms in a second divided all by beats in a second.
-            if( (millisecond - self.last_played_ms) >  (1000 * self.sb)):
-                # add a condition that the else condition happens only after the end of the note.
-                self.triggered_playing_flag = False
-                self.playing_flag = False
+            self.playing_flag = False
+            self.triggered_playing_flag = False
     
+    # method to save what the other robots have been played and save notes into a structure.
     def update_orchestra_spartito(self, full_spartito):
         
         if full_spartito is None or len(full_spartito) == 0:
             return  # Non aggiorna se lo spartito è vuoto
         self.orchestra_spartito.append([entry for entry in full_spartito if entry["musician"] != self.number])
 
+        for sublist in self.orchestra_spartito:  # Iteriamo sulle sotto-liste
+            for entry in sublist:  # Ogni entry è un dizionario
+                note = entry.get("note")  
+                if note is not None:
+                    pitch_note = note % 12
+                    self.music_map.append(pitch_note)  # Se piena, rimuove la più vecchia
+    
     def update_beat_firefly(self,millisecond):
+        
         # Trova tutti gli eventi con dynamic == 'ff'
         ff_entries = [entry for sublist in self.orchestra_spartito 
               for entry in sublist 
@@ -476,25 +487,29 @@ class Robot:
         
         first_ff = ff_entries[0]  # Usa il primo elemento della lista
         ms_ff_iniziale = first_ff["ms"]
+        
+        # NOT THE LAST TIME YOU PLAYED, BUT THE LAST TIME YOU THINK YOU CROSSED BEAT 1.
+        # ABOUT MY PERCEPTION OF WHERE IS THE START OF THE MEASURE.
         relative_time = ms_ff_iniziale - self.last_played_ms
+        
         #print("robot ", self.number, " ms ff iniziale ",ms_ff_iniziale )
         #print("robot ", self.number, " last played ms: ", self.last_played_ms) 
 
         # I compute the tieme interval from my last played note and the fortissimo note suddenly listened.
-        relative_time = ms_ff_iniziale - self.last_played_ms
+        
         #print("robot ", self.number, "relative time ", relative_time, " at ms ", millisecond)
         #print("self sb ", self.sb)
 
         # to compute in wich beat I am, computing from the milliseconds infos, beacuse I'm supposed to not know this info 
         # from a real point of view.
         actual_beat = (relative_time / (self.beat_phase_denominator) ) +1
-        print("robot ", self.number, "actual beat ", actual_beat, " at ms ", millisecond)
+        #print("robot ", self.number, "actual beat ", actual_beat, " at ms ", millisecond)
         
         # If the actual beat is not an integer, it means that we are in the first stesp of the simualtions,
         # so the phase is not synchronized and it doesn't make sense syncronyze beat before phase.
         if actual_beat % 1 != 0:
             #print("robot ", self.number, " non sincronizzato, esco dal metodo.")
-            print()
+            #print()
             return
         
         if actual_beat == self.number_of_beats:
@@ -502,9 +517,10 @@ class Robot:
             return
         
         diff = actual_beat - 1  # Il primo ff è sempre beat 1
-        print("difference", diff)
+        
+        #print("difference", diff)
         if diff == 0:
-            print(print(f"robot {self.number} non si sposta"))
+            #print(print(f"robot {self.number} non si sposta"))
             return
         
         # I divide the measure in 2 parts to understand if is better go to the left or to the right.
@@ -516,5 +532,4 @@ class Robot:
             move = 1
         
         self.beat_counter += move
-        print(f"robot {self.number} si sposta di {move} beat")
-        print()
+        #print(f"robot {self.number} si sposta di {move} beat")
