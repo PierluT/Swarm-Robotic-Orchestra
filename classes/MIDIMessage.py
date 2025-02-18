@@ -133,7 +133,7 @@ class MIDIMessage():
                     delay = int(parts[7]) if parts[7].isdigit() else 0 # offset in delay
                     duration = int(parts[4]) if parts[4].isdigit() else 0
                     #print("delay "+ str(delay))
-                    start_sample = int((ms / 1000 + delay ) * sr) # converts ms in samples
+                    start_sample = int((ms / 1000 ) * sr) # converts ms in samples
 
                     # load WAV file
                     audio, sr_file = librosa.load(input_file, sr=sr)
