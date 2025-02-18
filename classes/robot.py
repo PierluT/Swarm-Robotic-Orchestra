@@ -7,7 +7,7 @@ import math
 import datetime
 from collections import defaultdict, deque
 from classes.file_reader import File_Reader
-from classes.dictionaries import colours,major_scales,major_pentatonic_scales, whole_tone_scales, orchestra_to_midi_range
+from classes.dictionaries import colours, major_scales, major_pentatonic_scales, whole_tone_scales, orchestra_to_midi_range
 from classes.tempo import Note
 
 file_reader_valuse = File_Reader()
@@ -52,7 +52,7 @@ class Robot:
         self.stop_counter = 0
         self.moving_counter = 0
         # MUSIC VARIABLES
-        self.scales = whole_tone_scales
+        self.scales = major_scales
         self.note = ""
         #self.id_note_counter = 0
         self.max_music_neighbourgs = 4
@@ -98,9 +98,10 @@ class Robot:
         # orchestra spartito
         self.orchestra_spartito = []
         self.ms_dynamic_ff = []
-        self.music_map = deque(maxlen = 7)
+        self.music_map = deque(maxlen = self.neighbors_number)
         self.first_beat_ms = 0
         self.first_saved_beat = False
+        self.supposed_scales = []
 
     def __repr__(self):
         return f"Robot(number = {self.number}, phase = {self.phase})"
@@ -146,6 +147,7 @@ class Robot:
         self.my_spartito.clear()
         self.orchestra_spartito.clear()
         self.music_map.clear()
+        self.supposed_scales.clear()
 
     
     # manage differently the collision
@@ -193,43 +195,38 @@ class Robot:
         else:
             self.note.dynamic = "mf"
     
-    # SOMETHING THAT WORKS FOR EVERY SITUATION.
     def update_note(self):
         # extract only notes from my dictionary
         notes_to_check = list(self.music_map)
-        #print(" robot ", self.number," notes to check: ", notes_to_check )
+        #mas = 0
         scale_matches = {}
-        
+        # method to found the scale with best matches with my notes list. 
         for scale_name, scale_notes in self.scales.items():
             matching_notes = [note for note in notes_to_check if note in scale_notes]
             scale_matches[scale_name] = len(matching_notes)
-            # found the scale with major number of common notes.
-            max_matches = max(scale_matches.values())
-            #mas = max_matches
-        
+
+        # found the scale with major number of common notes.
+        max_matches = max(scale_matches.values())
         best_scales = [scale_name for scale_name, match_count in scale_matches.items() if match_count == max_matches]
-        print("robot ", self.number," best scales", best_scales, " for notes group", notes_to_check)
-        print("robot ", self.number," note played", self.note.pitch)
-        
-        # control if my note is included in one of the probable scales:
-        note_count_in_scales = 0
 
         # control if my note is included in one of the probable scales:
         for scale in best_scales:
             #print("probable scale for r number: "+ str(self.number)+ " "+ str(scale))
             scale_notes = self.scales[scale]
             if self.note.pitch in scale_notes:
-                note_count_in_scales += 1
-        print(" match my note + otherones:", note_count_in_scales)
-        # Se la mia nota è presente in più di 2 scale
-        if note_count_in_scales > 2 or note_count_in_scales == 0:
-            
-            self.harmony = False  # Non in armonia
-            self.change_note(best_scales)  # Cambia la nota
-        
-        else:
-            self.harmony = True  # Sono in armonia
-            self.flag_included_proper_midinote = False
+                 # put a flag if the note that I play is included in one of the best scales found for the harmony.
+                self.flag_included_proper_midinote = True
+                self.harmony = True
+                #print("robot :"+ str(self.number)+ " is already in harmony")
+        if not self.flag_included_proper_midinote:
+            #print("note robot :"+ str(self.number)+" not included in the best scales")
+
+            # function change 70-30 to call it or not.
+            self.change_note(best_scales) 
+            #print(self.note)
+        self.flag_included_proper_midinote = False 
+        self.supposed_scales = best_scales
+        print(self.number, " supposed scales: ", self.supposed_scales)
         
     # method to create the first note.
     def create_new_note(self, midi_value, bpm, duration):
@@ -257,6 +254,7 @@ class Robot:
                 key = lambda note: min(abs(self.note.pitch - note), 12 - abs(self.note.pitch - note))
             )
             print("robot ", self.number," closest scale ", closest_scale, " closest note ", closest_note)
+            print("robot ", self.number," changes from ", self.note.pitch, " to ", closest_note)
             # Calcolo la differenza tra la nota suonata e la nota più vicina
             midi_diff = closest_note - self.note.pitch
 
@@ -264,7 +262,7 @@ class Robot:
             if abs(midi_diff) > 6:
                 # Se la differenza è maggiore di 6, normalizzo il salto
                 midi_diff = midi_diff - (12 if midi_diff > 0 else -12)
-                print("here")
+                #print("here")
             # Aggiusto il midinote in base alla differenza
             self.note.midinote += midi_diff
 
@@ -272,12 +270,12 @@ class Robot:
             self.note.pitch = closest_note
 
             # Stampa per il debug
-            print("pitch: " + str(self.note.pitch))
-            print("midinote: " + str(self.note.midinote))
+            #print("pitch: " + str(self.note.pitch))
+            #print("midinote: " + str(self.note.midinote))
             #print(self.note)
         if self.note.pitch > 11:
             print("NOOOOOOOOOOOOOOOOO")
-            
+        print()  
     # message from each robot.
     def set_emitter_message(self):
         
@@ -330,7 +328,7 @@ class Robot:
             while len(self.local_music_map) > self.max_music_neighbourgs:
                 oldest_robot = next(iter(self.local_music_map))
                 del self.local_music_map[oldest_robot]
-            #print(self.local_music_map)
+        
     
     # timbre dictionary with the same functions of notes dictionary
     def get_timbre_info(self):
@@ -484,6 +482,10 @@ class Robot:
                 if note is not None:
                     pitch_note = note % 12
                     self.music_map.append(pitch_note)  # Se piena, rimuove la più vecchia
+        #print("robot ",self.number, " music map: ", self.music_map)
+        
+        if self.music_map:
+            self.update_note()
     
     def update_beat_firefly(self,millisecond):
         

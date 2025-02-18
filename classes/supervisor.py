@@ -74,19 +74,25 @@ class Supervisor:
         csv_directory = "csv"
         csv_folder = f"S_N{s_n}R_N{self.number_of_robots}_Thr{self.threshold}_Area{self.arena_area}"
         csv_video_file_name = "video.csv"
+        csv_music_file_name = "music.csv"
         
         if not os.path.exists(csv_directory):
             # creates directory if doesn't exist.
             os.mkdir(csv_directory)  
         
         csv_folder_directory = os.path.join(csv_directory,csv_folder)
-
+        
         if not os.path.exists(csv_folder_directory):
             # creates directory if doesn't exist.
             os.mkdir(csv_folder_directory)  
         
         csv_final_path = os.path.join(csv_folder_directory,csv_video_file_name)
-
+        # Percorso file music.csv
+        csv_music_path = os.path.join(csv_folder_directory, csv_music_file_name)
+        # Svuota il file music.csv se esiste
+        if os.path.exists(csv_music_path):
+            open(csv_music_path, "w").close() 
+        
         return csv_final_path
     
     # method to clean previous files and csv folders. 

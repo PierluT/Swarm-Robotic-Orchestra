@@ -33,7 +33,6 @@ def main():
         writer = csv.writer(file, delimiter=';')
         writer.writerow(["simulation number","ms","robot number","x", "y","compass","beat phase","beat counter","dynamic", "colour","midinote", "pitch", "timbre", "delay"," playing flag"])
         for simulation_number in range(int_param):
-            n = 0
             print("##################################")
             print(f"EXECUTION NUMBER {simulation_number}")
             # CLEAN EVERYTHING BEFORE EXECUTION 
@@ -47,10 +46,8 @@ def main():
                 for robot in supervisor.dictionary_of_robots:
                     # update its beat phase
                     robot.update_beat_phase(millisecond)
-                    
                     # if the robot play then I update the gobal spartito.
                     if robot.playing_flag:
-                        n += 1
                         # supervisor adds the new robot note line to its global spartito. 
                         supervisor.build_conductor_spartito(robot.my_spartito)
                         supervisor.new_note = True           
@@ -84,13 +81,13 @@ def main():
                 # to clean the robot ears.
                 supervisor.clean_robot_buffers()
             for robot in supervisor.dictionary_of_robots:
-                print("ultimo battere ms: ", robot.first_beat_ms) 
+                print(robot.number, " last note ", robot.note.pitch)
             #print(supervisor.conductor_spartito)
             midi_class.write_csv(supervisor.conductor_spartito,simulation_number, csv_path)
             # for another simulation I clear all robot data.
             supervisor.dictionary_of_robots.clear()
             supervisor.conductor_spartito.clear() 
-    print(n)
+
     if bool_video_audio: 
         # VISUALIZATION PART       
         arena.load_robot_data(csv_path, simulation_number)
