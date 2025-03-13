@@ -70,8 +70,8 @@ for i in range(N):
         else:
             print(f"Individuo {i+1} non ha mai scelto un task e rimane inattivo.")
 
-print(task_performed)
-"""
+#print(task_performed)
+
 # Visualizzazione dei risultati per replicare il comportamento atteso
 plt.figure(figsize=(10, 5))
 for i in range(N):
@@ -83,4 +83,4 @@ for i in range(N):
     plt.title("Evoluzione delle soglie di risposta nel tempo con 3 task")
     plt.legend()
     plt.show()  
-"""
+
