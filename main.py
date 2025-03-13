@@ -1,6 +1,8 @@
 import csv
 import argparse
 import sys
+import matplotlib.pyplot as plt
+import numpy as np
 from classes.supervisor import Supervisor
 from classes.arena import Arena
 from classes.MIDIMessage import MIDIMessage
@@ -90,6 +92,18 @@ def main():
                 supervisor.clean_robot_buffers()
             #for robot in supervisor.dictionary_of_robots:
                 #print(robot.stimuli)
+            
+            plt.figure(figsize=(10, 5))
+            for robot in supervisor.dictionary_of_robots:
+                threshold_history = np.array(robot.timbre_threshold_history)
+                for i in range(supervisor.num_timbres):
+                    plt.plot(threshold_history[:, i], label=f'Indiv {robot.number + 1} - Task {i+1}')
+
+                plt.xlabel("Tempo")
+                plt.ylabel("Soglia di risposta")
+                plt.title("Evoluzione delle soglie di risposta nel tempo con 3 task")
+                plt.legend()
+                plt.show()
             #print(supervisor.conductor_spartito)
             midi_class.write_csv(supervisor.conductor_spartito,simulation_number, csv_path)
             # for another simulation I clear all robot data.
