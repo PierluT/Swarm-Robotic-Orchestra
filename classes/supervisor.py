@@ -47,10 +47,18 @@ class Supervisor:
         self.music_formations = music_formations
         self.csv_folder = ""
         self.new_note = False
+        # timbre module
+        # Parametri degli stimoli
+        self.lambda_stimulus = 5  
+        self.phi = 2 
+        self.timbre_dictionary = orchestra_to_midi_range
+        self.num_timbres = sum(len(instruments) for instruments in self.timbre_dictionary.values())
+        self.timbre_list = [instrument for instruments in self.timbre_dictionary.values() for instrument in instruments]
+        # I set an array of lenght number of timbres ( as tasks ) with 100 as initial value.
+        self.stimuli = np.ones(self.num_timbres) * 100
     
     # method to compute iteratively the min and max midinote value that robot can play.
     def compute_midi_range_values(self):
-        
         min_value = float('inf')  
         max_value = float('-inf') 
         
@@ -58,14 +66,15 @@ class Supervisor:
             for instrument_range in section.values():
                 min_value = min(min_value, min(instrument_range))
                 max_value = max(max_value, max(instrument_range))
-        
         self.min_midinote = min_value
         self.max_midinote = max_value 
         
         return self.min_midinote, self.max_midinote
     
     def setup_robots(self):
+        # I associate a note and a timbre for each robot.
         self.create_dictionary_of_robots()
+        # I set the initial positions of the robots.
         self.compute_initial_positions()
     
     def set_up_csv_directory(self,simulation_number):
@@ -97,7 +106,6 @@ class Supervisor:
     
     # method to clean previous files and csv folders. 
     def clean_csv_directory(self):
-        
         # remove all the files contained in the directory.
         for file_name in os.listdir(self.csv_folder):
             file_path = os.path.join(self.csv_folder, file_name)
@@ -108,7 +116,6 @@ class Supervisor:
                     shutil.rmtree(file_path)
             except Exception as e:
                     print(f"Errore durante la rimozione del file {file_path}: {e}")
-            
         print(f"Tutti i file nella cartella {self.csv_folder} sono stati eliminati.")       
 
     def compute_phase_bar_value(self):
@@ -124,17 +131,22 @@ class Supervisor:
     def create_dictionary_of_robots(self):  
         number_of_beats, phase_bar_value, seconds_in_a_beat, t_s = self.compute_phase_bar_value()
         beats_array = list(range(1, number_of_beats +1))
-        
         for n in range(self.number_of_robots):
             robot = Robot(number = n, phase_period = phase_bar_value, delay_values = beats_array, sb = seconds_in_a_beat, time_signature = t_s, neighbors_number = self.number_of_robots)
             robot.compute_beat_threshold()
-            # to compute minimum and maximum midinote value.
-            robot.min_midinote, robot.max_midinote = self.compute_midi_range_values()
-            initial_random_note = random.randint(self.min_midinote, self.max_midinote)
+            # to set the initial random timbre. the first time stimulis is 100 for everyone, so the timbre will be random.
+            robot.choose_timbre(self.stimuli)
+            chosen_timbre = robot.timbre
+            # I set the initial random note as one the notes that the initial timbre can play.
+            for family, instruments in self.timbre_dictionary.items():
+                if chosen_timbre in instruments:
+                    note_range = instruments[chosen_timbre]
+                    initial_random_note = random.choice(note_range)
+                    break
+
             robot.create_new_note(initial_random_note, bpm = self.initial_bpm, duration = seconds_in_a_beat)
             robot.set_dynamic()
-            # to associate a timbre to the note.
-            robot.set_timbre_from_midi()
+            #robot.set_timbre_from_midi()
             # the supervisor has a complete dictionary of all the robots.
             self.dictionary_of_robots.append(robot)
 
@@ -196,23 +208,46 @@ class Supervisor:
 
         return self.distances 
     
+    def compute_task_performed(self):
+        """
+        Compute task performed base on supervisor conductor spartito.
+        Every timbre has 1 if it is recently played, otherwise 0.
+
+        """
+        # initialize the array of task performed by the robots.
+        task_performed = np.zeros(self.num_timbres)
+        # extract the timbres that have been played from the conductor spartito.
+        played_timbres = [entry['timbre'] for entry in self.conductor_spartito]
+        # controls if the timbre has been played.
+        for i, timbre in enumerate(self.timbre_list):
+            if timbre in played_timbres:
+                task_performed[i] = 1
+
+        return task_performed
+
+    def update_stimuli(self):
+        # I compute the timbres perfromed by the robots to compute what is needed to be played.
+        task_performed = self.compute_task_performed()
+        # apply the stimuli update formula form the paper.
+        self.stimuli += self.lambda_stimulus - self.phi * np.sum(task_performed, axis=0)
+        self.stimuli = np.clip(self.stimuli, 0, 1000)
+
     # EVERY ROBOT UPDATES ITS GLOBAL SPARTITO TO BE CONSCIOUS OF WHAT HAS BEEN PLAYED.
     def update_global_robot_spartito(self, millisecond):
-        
+        # I compute the new global stimuli to cominucate to robtos..
+        self.update_stimuli()
         # I update the global infos of every robot.
         for robot in self.dictionary_of_robots:
             # robot stores what the other ones have been played.
             robot.update_orchestra_spartito(self.conductor_spartito)    
             # with the stored info, robot applies kuramoto model on its phase.
             robot.update_phase_kuramoto_model(millisecond)
+            # TIMBRE MODULE
+            robot.choose_timbre(self.stimuli)
         
         # once coordinated phase, robot applies beat synchronization.
         for robot in self.dictionary_of_robots:     
             robot.update_beat_firefly(millisecond)
-        
-        # harmonic consensous.
-        #for robot in self.dictionary_of_robots:
-            #robot.update_note()
 
     def clean_robot_buffers(self):
         for robot in self.dictionary_of_robots:
@@ -280,10 +315,11 @@ class Supervisor:
         
     # unifies spartito of all robots and sort them form a crhonological point of view.
     def build_conductor_spartito(self, robot_spartito):
-        # Aggiungi tutti gli elementi della lista robot_spartito al conductor_spartito
+        # adds every element of the robot spartito to the supervisor conductor spartito.
         self.conductor_spartito.extend(robot_spartito)
-        # Ordina il conductor_spartito in base al valore di "ms"
+        # orders the conductor spartito by ms value.
         self.conductor_spartito.sort(key=lambda x: x["ms"])
+
         return self.conductor_spartito
 
     def calculate_instrument_affinity(self):
@@ -307,4 +343,28 @@ class Supervisor:
                 affinity_matrix[instrument1][instrument2] = count / total_pairs
     
         return affinity_matrix
+
+"""""
+    # Metodo per calcolare e aggiornare la matrice delle distanze
+    def make_matrix_control(self, initial_robot):
+        
+        self.update_positions(initial_robot)
+        
+        for j in range(initial_robot.number + 1, self.number_of_robots):
+                robot_b = self.dictionary_of_robots[j]
+                # compute the distance between robots.
+                distance_between_robots = self.compute_distance(initial_robot, robot_b)
+                # I store only the values that teh robot is able to read.
+                if distance_between_robots <= self.sensor:
+                    self.distances[initial_robot.number][j] = distance_between_robots
+                    self.distances[j][initial_robot.number] = distance_between_robots
+
+        return self.distances
     
+    # method to update robot positions
+    def update_positions(self,initial_robot):
+        initial_robot.x += initial_robot.vx
+        initial_robot.y += initial_robot.vy
+        
+
+"""

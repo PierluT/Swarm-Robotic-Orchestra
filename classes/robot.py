@@ -52,7 +52,7 @@ class Robot:
         self.stop_counter = 0
         self.moving_counter = 0
         # MUSIC VARIABLES
-        self.scales = major_scales
+        self.scales = whole_tone_scales
         self.note = ""
         #self.id_note_counter = 0
         self.max_music_neighbourgs = 4
@@ -74,8 +74,6 @@ class Robot:
         self.local_beat_map = defaultdict(list)
         # dictionary for recieved phases
         self.local_phase_map = defaultdict(list) 
-        self.timbre = ""
-        self.timbre_dictionary = orchestra_to_midi_range
         self.d_values =[value for value in delay_values if value != 1]
         self.delay = random.choice(delay_values) 
         # to found the minimum a maximum mid value.
@@ -102,6 +100,23 @@ class Robot:
         self.first_beat_ms = 0
         self.first_saved_beat = False
         self.supposed_scales = []
+        # bioinspired variables
+        # Booleano per tracciare la prima chiamata
+        self.first_call = True
+        self.alpha = 10
+        self.beta = 3
+        self.p = 0.2
+        self.lambda_stimulus = 5
+        self.phi = 2
+        self.timbre_dictionary = orchestra_to_midi_range
+        # Creiamo la lista dei timbri UNA VOLTA SOLA all'inizio
+        self.timbre_list = [instrument for instruments in self.timbre_dictionary.values() for instrument in instruments]
+        self.timbre = ""
+        self.num_timbres = sum(len(instruments) for instruments in self.timbre_dictionary.values())
+        self.timbre_thresholds =  np.full(self.num_timbres, 500, dtype=float)
+        self.timbre_threshold_history = []
+        #self.stimuli = np.ones(self.num_timbres) * 100
+        self.last_timbre = None  # Ultimo timbro suonato
 
     def __repr__(self):
         return f"Robot(number = {self.number}, phase = {self.phase})"
@@ -149,7 +164,6 @@ class Robot:
         self.music_map.clear()
         self.supposed_scales.clear()
 
-    
     # manage differently the collision
     def change_direction_x_axes(self):
         self.vx = -self.vx
@@ -171,7 +185,7 @@ class Robot:
         if self.y - self.radar_radius <= 10 or self.y + self.radar_radius >= self.rectangleArea_heigth:
             self.change_direction_y_axes()
         
-         # collision control with other robots
+        # collision control with other robots
         for other_robot_index, distance in enumerate(matrix_to_check[self.number]):
             # Skip itself
             if other_robot_index == self.number:
@@ -188,6 +202,7 @@ class Robot:
         self.vx = speed * math.cos(angle) 
         self.vy = speed * math.sin(angle)  
     
+    # method to set the dynamics based on the delay, to stress the first note of the measure.
     def set_dynamic(self):
         
         if self.delay == 1:
@@ -195,6 +210,7 @@ class Robot:
         else:
             self.note.dynamic = "mf"
     
+    # method to to compute harmonicity with other robots.
     def update_note(self):
         # extract only notes from my dictionary
         notes_to_check = list(self.music_map)
@@ -214,19 +230,18 @@ class Robot:
             #print("probable scale for r number: "+ str(self.number)+ " "+ str(scale))
             scale_notes = self.scales[scale]
             if self.note.pitch in scale_notes:
-                 # put a flag if the note that I play is included in one of the best scales found for the harmony.
+                # put a flag if the note that I play is included in one of the best scales found for the harmony.
                 self.flag_included_proper_midinote = True
                 self.harmony = True
                 #print("robot :"+ str(self.number)+ " is already in harmony")
         if not self.flag_included_proper_midinote:
             #print("note robot :"+ str(self.number)+" not included in the best scales")
-
             # function change 70-30 to call it or not.
             self.change_note(best_scales) 
             #print(self.note)
         self.flag_included_proper_midinote = False 
         self.supposed_scales = best_scales
-        print(self.number, " supposed scales: ", self.supposed_scales)
+        #print(self.number, " supposed scales: ", self.supposed_scales)
         
     # method to create the first note.
     def create_new_note(self, midi_value, bpm, duration):
@@ -265,6 +280,7 @@ class Robot:
                 #print("here")
             # Aggiusto il midinote in base alla differenza
             self.note.midinote += midi_diff
+            self.timbre_range_control()
 
             # Aggiorno il pitch alla nota più vicina
             self.note.pitch = closest_note
@@ -276,6 +292,7 @@ class Robot:
         if self.note.pitch > 11:
             print("NOOOOOOOOOOOOOOOOO")
         print()  
+    
     # message from each robot.
     def set_emitter_message(self):
         
@@ -289,23 +306,66 @@ class Robot:
         self.forwarded_message = entry
         #print("nota "+str(self.note.pitch))
     
-    # method to set the timbre based on related note ranges.
-    def set_timbre_from_midi(self):
+    # method to set the timbre based on thresholds and stimuli.
+    def choose_timbre(self, stimuli):
+        """
+        Il robot sceglie un timbro in base agli stimoli e alle soglie
+        """
+        chosen_timbre = None
+        probabilities = []
+        
+        # compute the probabilities to choose each timbre
+        for j in range(self.num_timbres):
+            prob = stimuli[j] ** 2 / (stimuli[j] ** 2 + self.timbre_thresholds[j] ** 2)
+            probabilities.append(prob)
+        
+        # Choose the timbre based on the probabilities
+        for j, prob in enumerate(probabilities):
+            if random.random() < prob:
+                chosen_timbre = self.timbre_list[j]
+                break
+        
+        # Se è la prima chiamata e non è stato scelto alcun timbro, forziamo una scelta
+        if chosen_timbre is None and self.first_call:
+            chosen_timbre = self.timbre_list[np.argmax(probabilities)]
+            self.first_call = False
+        
+        if chosen_timbre is None:
+            chosen_timbre = self.last_timbre
+        
+        self.timbre = chosen_timbre
+        self.last_timbre = chosen_timbre
+        
+        # Aggiorna le soglie basandosi sul timbro scelto
+        self.update_thresholds(chosen_timbre)
 
-        matching_instruments = []
-        for instruments in self.timbre_dictionary.values():
-            for instrument, midi_range in instruments.items():
-                # Verify if the note that I'm playing is in the midi range of the instrument
-                if self.note.midinote in midi_range:  
-                    matching_instruments.append(instrument)
-
-        # If there are more than one corrispondent instrument, choose one randomly.
-        if matching_instruments:
-            choosen_timbre = random.choice(matching_instruments)
-            #print(" found new instrument: " +str(choosen_timbre))
-            self.timbre = choosen_timbre
-        #else:
-             #print("No matching instrument found") 
+        return chosen_timbre
+    
+    def update_thresholds(self, chosen_timbre):
+        """
+            Aggiorna le soglie in base al timbro scelto.
+            - Diminuisce la soglia del timbro selezionato (rinforzo positivo).
+            - Aumenta le soglie degli altri timbri (rinforzo negativo).
+            - Salva la storia delle soglie per l'analisi nel tempo.
+        """
+        # no change
+        if chosen_timbre is None:
+            return
+        # Trova l'indice del timbro scelto
+        chosen_index = self.timbre_list.index(chosen_timbre)
+        task_performed = np.zeros(self.num_timbres)  # Indica se il timbro è stato scelto (1 se sì, 0 se no)
+        
+        # Aggiornamento delle soglie
+        for j in range(self.num_timbres):
+            if j == chosen_index:
+                # Rinforzo positivo: abbassa la soglia per il timbro scelto
+                self.timbre_thresholds[j] = max(10, self.timbre_thresholds[j] - self.alpha)
+            else:
+                # Rinforzo negativo: aumenta le soglie degli altri timbri
+                self.timbre_thresholds[j] = min(1000, self.timbre_thresholds[j] + self.beta)
+        
+        # Salvataggio dello stato attuale nella storia delle soglie
+        self.timbre_threshold_history.append(self.timbre_thresholds.copy())
 
     # Every robot has a dictionary on what is the last note that others are playing.
     # With this structure I can predict the next note to play consulting music scales dictionary.
@@ -328,8 +388,7 @@ class Robot:
             while len(self.local_music_map) > self.max_music_neighbourgs:
                 oldest_robot = next(iter(self.local_music_map))
                 del self.local_music_map[oldest_robot]
-        
-    
+
     # timbre dictionary with the same functions of notes dictionary
     def get_timbre_info(self):
         if self.recieved_message:
@@ -379,7 +438,8 @@ class Robot:
 
     # method to write robot music sheet.
     def add_note_to_spartito(self,ms):
-
+        self.timbre_range_control()
+        
         spartito_entry = {
             "ms": ms,
             "musician": self.number,
@@ -397,7 +457,6 @@ class Robot:
     
     # method to update internal robot phase.
     def update_phase(self,millisecond):
-        
         self.phase += (2 * np.pi / self.bar_phase_denominator)
         # normalization only if I reach 2pi then I go to 0.
         self.phase %= (2 * np.pi)
@@ -428,7 +487,6 @@ class Robot:
         self.beat_phase %= (2 * np.pi)
 
     def update_beat_phase(self, millisecond):
-        
         self.beat_phase += (2 * np.pi / self.beat_phase_denominator) 
         # normalization only if I reach 2pi then I go to 0.
         self.beat_phase %= (2 * np.pi)
@@ -474,10 +532,13 @@ class Robot:
         
         if full_spartito is None or len(full_spartito) == 0:
             return  # Non aggiorna se lo spartito è vuoto
+        
+        # I store all the infos about the other robots.
         self.orchestra_spartito.append([entry for entry in full_spartito if entry["musician"] != self.number])
 
-        for sublist in self.orchestra_spartito:  # Iteriamo sulle sotto-liste
-            for entry in sublist:  # Ogni entry è un dizionario
+        # I sotre note info.
+        for sublist in self.orchestra_spartito:  
+            for entry in sublist: 
                 note = entry.get("note")  
                 if note is not None:
                     pitch_note = note % 12
@@ -488,7 +549,6 @@ class Robot:
             self.update_note()
     
     def update_beat_firefly(self,millisecond):
-        
         # Trova tutti gli eventi con dynamic == 'ff'
         ff_entries = [entry for sublist in self.orchestra_spartito 
               for entry in sublist 
@@ -527,14 +587,12 @@ class Robot:
         if actual_beat == self.number_of_beats:
             self.beat_counter = 1
             return
-        
         diff = actual_beat - 1  # Il primo ff è sempre beat 1
         
         #print("difference", diff)
         if diff == 0:
             #print(print(f"robot {self.number} non si sposta"))
             return
-        
         # I divide the measure in 2 parts to understand if is better go to the left or to the right.
         half_beats = self.number_of_beats / 2
 
@@ -542,6 +600,36 @@ class Robot:
             move = -1
         else:
             move = 1
-        
         self.beat_counter += move
         #print(f"robot {self.number} si sposta di {move} beat")
+    
+    def timbre_range_control(self):
+        """
+        Verifies if the actual note is in the range of the current timbre.
+        If the timbre is not valid, it will be changed with another one able to play that note.
+        """
+        # Controlla se la nota è nel range del timbro attuale
+        valid_range_found = False
+        for family, instruments in self.timbre_dictionary.items():
+            if self.timbre in instruments:  # Verifica se il timbro corrente è in instruments
+                note_range = instruments[self.timbre]  # Ottieni il range delle note per il timbro
+                if self.note.midinote in note_range:
+                    # La nota è valida per questo timbro, quindi manteniamo il timbro attuale
+                    print(f"Nota {self.note.midinote} in range di {self.timbre}")
+                    valid_range_found = True
+                    break
+        
+        # Se la nota non è valida per il timbro attuale
+        if not valid_range_found:
+            print(f"Nota {self.note.midinote} non valida per il timbro {self.timbre}. Cambio di timbro necessario.")
+            
+            # Trova un timbro che possa suonare la nota
+            for family, instruments in self.timbre_dictionary.items():
+                for timbre, note_range in instruments.items():
+                    if self.note.midinote in note_range:
+                        # Cambia al timbro che può suonare la nota
+                        self.timbre = timbre
+                        print(f"Nuovo timbro scelto: {self.timbre}")
+                        break
+                if self.timbre != self.last_timbre:
+                    break  # Se è stato trovato un timbro, esci dal ciclo
