@@ -44,20 +44,29 @@ def main():
             for millisecond in range(0,60000):          
                 # ROBOTS WRITE A note IN THE GLOBAL SPARTITO
                 for robot in supervisor.dictionary_of_robots:
-                    # update its beat phase
+                    # update robot beat phase
                     robot.update_beat_phase(millisecond)
+                    
                     # if the robot play then I update the gobal spartito.
                     if robot.playing_flag:
                         # supervisor adds the new robot note line to its global spartito. 
                         supervisor.build_conductor_spartito(robot.my_spartito)
                         supervisor.new_note = True           
                     
-                    if (millisecond % 40 == 0 and millisecond != 0): 
-                        arena.write_robot_data(writer, simulation_number, millisecond, robot)
-
+                    if (millisecond % 40 == 0 ): 
+                        distances_to_check = supervisor.make_matrix_control(robot)
+                        # ACTION PART
+                        robot.move_robot(distances_to_check)
                         
+                        arena.write_robot_data(writer, simulation_number, millisecond, robot)
+                    
+                    # timbre bio inspired module
+                    #if (millisecond % 80 == 0 and millisecond != 0):
+                        #robot.choose_timbre()
+
                 # SUPERVISOR SIMULATES ROBOT'S EARS SO IT UPDATES ALL OF THEM OF WHAT HAPPENS IN THE ENVIRONMENT.  
                 if supervisor.new_note:
+                    # once I wrote the new notes in the global spartito I share infos to all robots.
                     supervisor.update_global_robot_spartito(millisecond)
                 
                 """""
@@ -75,13 +84,12 @@ def main():
                
                     print()
                 """
-
                 # I set false for the new cycle.
                 supervisor.new_note = False
                 # to clean the robot ears.
                 supervisor.clean_robot_buffers()
-            for robot in supervisor.dictionary_of_robots:
-                print(robot.number, " last note ", robot.note.pitch)
+            #for robot in supervisor.dictionary_of_robots:
+                #print(robot.stimuli)
             #print(supervisor.conductor_spartito)
             midi_class.write_csv(supervisor.conductor_spartito,simulation_number, csv_path)
             # for another simulation I clear all robot data.
@@ -100,61 +108,6 @@ def main():
 if __name__ == "__main__":
         main()
 
-"""""
-robot.update_phase(millisecond)
-                    
-                    # POSITIONS MATRIX
-                    if (millisecond % 40 == 0 and millisecond != 0):
-                        distances_to_check = supervisor.make_matrix_control(robot)
-  
-                    # COMUNICATION every 80 ms.   
-                    if (millisecond % 80 == 0 and millisecond != 0):
-                        supervisor.post_office(robot)
-                            
-                    # ROBOT STEP every 40 ms.
-                    if (millisecond % 40 == 0 and millisecond != 0):
-                        #distances_to_check = supervisor.make_matrix_control(robot)
-                        #print( distances_to_check)
-                        #supervisor.print_distance_matrix()
-                        robot.get_note_info()
-                        robot.get_phase_info()
-                        robot.get_timbre_info()
-                        robot.get_delay_info()
-                        print("bla")
-                        print(robot.phase_denominator)
-                        print(robot.beat_phase_denominator)
-                        # ACTION PART
-                        robot.move_robot(distances_to_check)
-
-                        if robot.local_music_map:
-                            robot.update_note()
-                                
-                        if robot.local_phase_map:
-                            robot.update_phase_kuramoto_model()
-                        
-                        #if robot.local_timbre_map:
-                            #robot.update_timbre()
-                        
-                        #if robot.local_delay_map:
-                            # method to change the timbre/delay we play.
-                            #print(" delay aggiornato")
-                            
-                        robot.clean_buffers()    
-                        arena.write_robot_data(writer, simulation_number, millisecond, robot) 
-
-            supervisor.build_conductor_spartito()
-            midi_class.write_csv(supervisor.conductor_spartito,simulation_number, csv_path)
-            supervisor.dictionary_of_robots.clear()
-            supervisor.conductor_spartito.clear()
-    if bool_video_audio: 
-        # VISUALIZATION PART       
-        arena.load_robot_data(csv_path, simulation_number)
-        arena.draw_all_robots()
-        wav_files_list = midi_class.finding_wav_from_csv()
-        midi_class.generate_audio_from_csv(wav_files_list)
-        # video generation audio included
-        arena.create_video(output_path= "video_simulation.mp4", audio_path = "final_output.wav", fps = 25, auto_open= True)
-"""
 
 
 
