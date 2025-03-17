@@ -78,6 +78,7 @@ class Supervisor:
         self.compute_initial_positions()
     
     def set_up_csv_directory(self,simulation_number):
+        
         s_n = simulation_number
         #csv_file_name = f"s_n{s_n}r_n{self.number_of_robots}_thr{self.threshold}_area{self.arena_area}.csv"
         csv_directory = "csv"
@@ -134,21 +135,17 @@ class Supervisor:
         for n in range(self.number_of_robots):
             robot = Robot(number = n, phase_period = phase_bar_value, delay_values = beats_array, sb = seconds_in_a_beat, time_signature = t_s, neighbors_number = self.number_of_robots)
             robot.compute_beat_threshold()
-            # to set the initial random timbre. the first time stimulis is 100 for everyone, so the timbre will be random.
             robot.choose_timbre(self.stimuli)
-            chosen_timbre = robot.timbre
+            #chosen_timbre = robot.timbre
             # I set the initial random note as one the notes that the initial timbre can play.
-            for family, instruments in self.timbre_dictionary.items():
-                if chosen_timbre in instruments:
-                    note_range = instruments[chosen_timbre]
-                    initial_random_note = random.choice(note_range)
-                    break
-
+            notes_range = robot.get_midi_range_from_timbre()
+            #robot.min_midinote, robot.max_midinote = self.compute_midi_range_values()
+            initial_random_note = random.choice(notes_range)
             robot.create_new_note(initial_random_note, bpm = self.initial_bpm, duration = seconds_in_a_beat)
             robot.set_dynamic()
-            #robot.set_timbre_from_midi()
             # the supervisor has a complete dictionary of all the robots.
             self.dictionary_of_robots.append(robot)
+        self.update_stimuli()
 
     # method to set the intial positions of the robots, in order to avoid overlap.
     def compute_initial_positions(self):
@@ -234,8 +231,6 @@ class Supervisor:
 
     # EVERY ROBOT UPDATES ITS GLOBAL SPARTITO TO BE CONSCIOUS OF WHAT HAS BEEN PLAYED.
     def update_global_robot_spartito(self, millisecond):
-        # I compute the new global stimuli to cominucate to robtos..
-        self.update_stimuli()
         # I update the global infos of every robot.
         for robot in self.dictionary_of_robots:
             # robot stores what the other ones have been played.

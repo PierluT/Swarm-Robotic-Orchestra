@@ -171,6 +171,7 @@ def phase_synchrony(sim_data):
 
 
 analyzer = DataAnalyzer(analysis_function = phase_synchrony)
+print(analyzer.get_csv_files())
 #analyzer.analyze()    
 #print(analyzer.get_csv_files())
-print(analyzer.extract_robot_number(analyzer.get_csv_files())) 
+#print(analyzer.extract_robot_number(analyzer.get_csv_files())) 

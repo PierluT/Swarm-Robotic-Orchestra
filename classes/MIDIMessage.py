@@ -28,6 +28,8 @@ class MIDIMessage():
         # if it necessary to write first row
         first_iteration = not os.path.exists(self.final_csv_music_path)
         
+        print (" first iteraction ", first_iteration)
+        
         # mode w writes the file, mode a appends vaues on the file.
         mode = "w" if first_iteration else "a"
 

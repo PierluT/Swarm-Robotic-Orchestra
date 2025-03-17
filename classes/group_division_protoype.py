@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Parametri del modello
-N = 10  # Numero di individui
+N = 30  # Numero di individui
 M = 3  # Numero di task
 T = 3000  # Numero di iterazioni
 
@@ -84,3 +84,16 @@ for i in range(N):
     plt.legend()
     plt.show()  
 
+
+# Conta quanti individui hanno scelto ciascun task nell'ultima iterazione
+task_counts = np.sum(task_performed, axis=0)
+"""
+# Crea il grafico a barre
+plt.figure(figsize=(8, 5))
+plt.bar(range(1, M + 1), task_counts, color=['blue', 'orange', 'green'])
+plt.xlabel("Task")
+plt.ylabel("Numero di individui")
+plt.title("Distribuzione dei task scelti nell'ultima iterazione")
+plt.xticks(range(1, M + 1))  # Imposta le etichette sull'asse X
+plt.show()
+"""
