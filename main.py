@@ -59,7 +59,6 @@ def main():
                         distances_to_check = supervisor.make_matrix_control(robot)
                         # ACTION PART
                         robot.move_robot(distances_to_check)
-                        
                         arena.write_robot_data(writer, simulation_number, millisecond, robot)
                     
                     # timbre bio inspired module
@@ -68,6 +67,8 @@ def main():
 
                 # SUPERVISOR SIMULATES ROBOT'S EARS SO IT UPDATES ALL OF THEM OF WHAT HAPPENS IN THE ENVIRONMENT.  
                 if supervisor.new_note:
+                    # I compute the new global stimuli to cominucate to robtos..
+                    supervisor.update_stimuli()
                     # once I wrote the new notes in the global spartito I share infos to all robots.
                     supervisor.update_global_robot_spartito(millisecond)
                 
@@ -92,7 +93,10 @@ def main():
                 supervisor.clean_robot_buffers()
             #for robot in supervisor.dictionary_of_robots:
                 #print(robot.stimuli)
-            
+            #print(supervisor.conductor_spartito)
+            midi_class.write_csv(supervisor.conductor_spartito,simulation_number, csv_path)
+            """
+            # plot of the timbre threshold evolution
             plt.figure(figsize=(10, 5))
             for robot in supervisor.dictionary_of_robots:
                 threshold_history = np.array(robot.timbre_threshold_history)
@@ -104,8 +108,7 @@ def main():
                 plt.title("Evoluzione delle soglie di risposta nel tempo con 3 task")
                 plt.legend()
                 plt.show()
-            #print(supervisor.conductor_spartito)
-            midi_class.write_csv(supervisor.conductor_spartito,simulation_number, csv_path)
+            """
             # for another simulation I clear all robot data.
             supervisor.dictionary_of_robots.clear()
             supervisor.conductor_spartito.clear() 
