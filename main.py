@@ -6,6 +6,7 @@ import numpy as np
 from classes.supervisor import Supervisor
 from classes.arena import Arena
 from classes.MIDIMessage import MIDIMessage
+from classes.analyzer import DataAnalyzer
 
 # I pass parameters in the main.           
 def main():
@@ -29,6 +30,7 @@ def main():
     supervisor = Supervisor([])
     midi_class = MIDIMessage()
     arena = Arena()
+    analyzer = DataAnalyzer()
     csv_path = supervisor.set_up_csv_directory(int_param)
     
     with open(csv_path , mode="w", newline="") as file:
@@ -43,7 +45,7 @@ def main():
             # method to set robot positions and initial random notes.
             supervisor.setup_robots()
             
-            for millisecond in range(0,60000):          
+            for millisecond in range(0,180000):          
                 # ROBOTS WRITE A note IN THE GLOBAL SPARTITO
                 for robot in supervisor.dictionary_of_robots:
                     # update robot beat phase
@@ -60,10 +62,6 @@ def main():
                         # ACTION PART
                         robot.move_robot(distances_to_check)
                         arena.write_robot_data(writer, simulation_number, millisecond, robot)
-                    
-                    # timbre bio inspired module
-                    #if (millisecond % 80 == 0 and millisecond != 0):
-                        #robot.choose_timbre()
 
                 # SUPERVISOR SIMULATES ROBOT'S EARS SO IT UPDATES ALL OF THEM OF WHAT HAPPENS IN THE ENVIRONMENT.  
                 if supervisor.new_note:
@@ -112,7 +110,8 @@ def main():
             # for another simulation I clear all robot data.
             supervisor.dictionary_of_robots.clear()
             supervisor.conductor_spartito.clear() 
-
+    analyzer.timbre_analysis_distribution(csv_path)
+    
     if bool_video_audio: 
         # VISUALIZATION PART       
         arena.load_robot_data(csv_path, simulation_number)
