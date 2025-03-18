@@ -92,7 +92,7 @@ class Robot:
         self.first_beat_control_flag = True
         self.threshold = 0
         self.last_beat_phase = 0
-        self.neighbors_number = neighbors_number - 10
+        self.neighbors_number = neighbors_number - 1
         # orchestra spartito
         self.orchestra_spartito = []
         self.ms_dynamic_ff = []
@@ -106,8 +106,6 @@ class Robot:
         self.alpha = 10
         self.beta = 3
         self.p = 0.2
-        self.lambda_stimulus = 5
-        self.phi = 2
         self.timbre_dictionary = orchestra_to_midi_range
         self.timbre_list = [instrument for instruments in self.timbre_dictionary.values() for instrument in instruments]
         self.timbre = ""
@@ -251,7 +249,7 @@ class Robot:
         change_probability = random.random()
         # I change note
         if change_probability < 0.7:
-            print("robot ", self.number, " changes note")
+            #print("robot ", self.number, " changes note")
             # I found the closest scale
             closest_scale = min(
                 best_scales,
@@ -265,8 +263,8 @@ class Robot:
                 self.scales[closest_scale],
                 key = lambda note: min(abs(self.note.pitch - note), 12 - abs(self.note.pitch - note))
             )
-            print("robot ", self.number," closest scale ", closest_scale, " closest note ", closest_note)
-            print("robot ", self.number," changes from ", self.note.pitch, " to ", closest_note)
+            #print("robot ", self.number," closest scale ", closest_scale, " closest note ", closest_note)
+            #print("robot ", self.number," changes from ", self.note.pitch, " to ", closest_note)
             
             # Calcolo la differenza tra la nota suonata e la nota più vicina
             midi_diff = closest_note - self.note.pitch
@@ -290,10 +288,10 @@ class Robot:
             if plausible_new_midinote in midi_range_for_control:
                 self.note.midinote += midi_diff
             else:
-                print(f"Pitch relativo da cercare: {self.note.pitch}")
+                #print(f"Pitch relativo da cercare: {self.note.pitch}")
                 new_midinote = self.find_closest_midinote(midi_range_for_control)
                 self.note.midinote = new_midinote
-                print(f"Nuova nota MIDI: {new_midinote}")
+                #print(f"Nuova nota MIDI: {new_midinote}")
 
             # Stampa per il debug
             #print("pitch: " + str(self.note.pitch))
@@ -370,12 +368,12 @@ class Robot:
             if self.note.midinote in new_midi_range:
                 return
             else:
-                print(self.note.midinote, " non è nel range del nuovo timbro", self.timbre)
-                print(f"Pitch relativo da cercare: {self.note.pitch}")
+                #print(self.note.midinote, " non è nel range del nuovo timbro", self.timbre)
+                #print(f"Pitch relativo da cercare: {self.note.pitch}")
                 
                 new_midinote = self.find_closest_midinote(new_midi_range)
                 self.note.midinote = new_midinote
-                print(f"Nuova nota MIDI: {new_midinote}")
+                #print(f"Nuova nota MIDI: {new_midinote}")
         # Threshold's updates based on choosen timbre.
         self.update_thresholds(chosen_timbre)
         # once I enter into the method for the first time I set the first call to false.
@@ -417,15 +415,15 @@ class Robot:
         :return: La nota MIDI più vicina con lo stesso pitch, oppure None se nessuna nota è trovata.
         """
         matching_notes = [note for note in new_midi_range if note % 12 == self.note.pitch]
-        print(f"Note corrispondenti: {matching_notes}")
+        #print(f"Note corrispondenti: {matching_notes}")
 
         if matching_notes:
             # Scegli la nota più vicina all'originale
             closest_midinote = min(matching_notes, key=lambda x: abs(x - self.note.midinote))
-            print(f"Nota più vicina trovata: {closest_midinote}")
+            #print(f"Nota più vicina trovata: {closest_midinote}")
             return closest_midinote  # Restituisce la nuova nota MIDI
         else:
-            print("Nessuna nota con lo stesso pitch trovata nel nuovo range.")
+            #print("Nessuna nota con lo stesso pitch trovata nel nuovo range.")
             return None  # Nessuna nota corrispondente trovata
 
 

@@ -1,9 +1,12 @@
 import os
 import pandas as pd
 import numpy as np
+import csv
 import matplotlib.pyplot as plt
 import seaborn as sns
 import glob
+from collections import Counter
+
 
 class DataAnalyzer:
     def __init__(self, analysis_function=None):
@@ -13,6 +16,48 @@ class DataAnalyzer:
         self.analysis_function = analysis_function  # Funzione di analisi generica
         self.results_df = None
 
+    #  PLOT METHODS FOR TIMBRE ALLOCATION
+    def timbre_analysis_distribution(self, csv_path):
+        """
+            Legge il CSV, estrae i timbri finali di ogni simulazione e mostra un grafico a barre con la distribuzione.
+            
+            :param csv_path: Percorso del file CSV da analizzare.
+        """
+        """
+        Analizza la distribuzione media dei timbri finali considerando più simulazioni in un unico CSV.
+
+        :param csv_path: Percorso del file CSV contenente i dati di tutte le simulazioni.
+        """
+        # Carica il file CSV
+        df = pd.read_csv(csv_path, delimiter=";")
+
+        # Ordina per numero di simulazione, robot number e millisecondo
+        df_sorted = df.sort_values(by=['simulation number', 'robot number', 'ms'], ascending=[True, True, False])
+
+        # Prendi l'ultimo millisecondo per ogni robot in ogni simulazione
+        last_millisecond_per_robot = df_sorted.drop_duplicates(subset=['simulation number', 'robot number'], keep='first')
+
+        #print(last_millisecond_per_robot)
+        # Conta i timbri per ogni simulazione
+        timbre_counts_per_simulation = last_millisecond_per_robot.groupby("simulation number")['timbre'].value_counts().unstack(fill_value=0)
+        #print(timbre_counts_per_simulation)
+        # Calcola la media della distribuzione dei timbri su tutte le simulazioni
+        avg_timbre_counts = timbre_counts_per_simulation.mean()
+
+        # Visualizza il risultato
+        print(avg_timbre_counts)
+        avg_timbre_counts.plot(kind='bar', color='skyblue')
+
+        # Aggiungi etichette al grafico
+        plt.title('Distribuzione Media dei Timbri su Più Simulazioni')
+        plt.xlabel('Timbro')
+        plt.ylabel('Conteggio Medio')
+        plt.xticks(rotation=45, ha='right')
+
+        # Mostra il grafico
+        plt.tight_layout()
+        plt.show()  
+    
     def get_csv_files(self):
         """Trova tutti i file CSV nella directory specificata."""
         return glob.glob(f"{self.csv_directory}/**/video.csv", recursive=True)
@@ -169,6 +214,7 @@ def phase_synchrony(sim_data):
 
     return synchrony_values
 
+    
 
 analyzer = DataAnalyzer(analysis_function = phase_synchrony)
 print(analyzer.get_csv_files())

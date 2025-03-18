@@ -136,6 +136,7 @@ class Supervisor:
             robot = Robot(number = n, phase_period = phase_bar_value, delay_values = beats_array, sb = seconds_in_a_beat, time_signature = t_s, neighbors_number = self.number_of_robots)
             robot.compute_beat_threshold()
             robot.choose_timbre(self.stimuli)
+            self.update_stimuli()
             #chosen_timbre = robot.timbre
             # I set the initial random note as one the notes that the initial timbre can play.
             notes_range = robot.get_midi_range_from_timbre()
@@ -145,7 +146,7 @@ class Supervisor:
             robot.set_dynamic()
             # the supervisor has a complete dictionary of all the robots.
             self.dictionary_of_robots.append(robot)
-        self.update_stimuli()
+        
 
     # method to set the intial positions of the robots, in order to avoid overlap.
     def compute_initial_positions(self):
