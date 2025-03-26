@@ -49,7 +49,7 @@ class Supervisor:
         self.new_note = False
         # timbre module
         # Parametri degli stimoli
-        self.lambda_stimulus = 5  
+        self.lambda_stimulus = 4  
         self.phi = 2 
         self.timbre_dictionary = orchestra_to_midi_range
         self.num_timbres = sum(len(instruments) for instruments in self.timbre_dictionary.values())
@@ -78,7 +78,6 @@ class Supervisor:
         self.compute_initial_positions()
     
     def set_up_csv_directory(self,simulation_number):
-        
         s_n = simulation_number
         #csv_file_name = f"s_n{s_n}r_n{self.number_of_robots}_thr{self.threshold}_area{self.arena_area}.csv"
         csv_directory = "csv"
@@ -169,7 +168,7 @@ class Supervisor:
                 overlap_found = False  
                 for valid_robot in valid_initial_positions:
                     distance_between_origins = math.sqrt(pow(valid_robot.x - x_position_to_check, 2) + pow(valid_robot.y - y_position_to_check, 2))
-                    distance_between_radars = valid_robot.radar_radius + robot_to_check.radar_radius + margin
+                    distance_between_radars = valid_robot.radius + robot_to_check.radius + margin
                     
                     if distance_between_origins <= distance_between_radars:
                         overlap_found = True  
@@ -185,27 +184,77 @@ class Supervisor:
 
         return valid_initial_positions 
     
-    # method to compute distances between robots
-    def compute_distance(self, robot1, robot2):
-        distance = np.sqrt((robot1.x - robot2.x) ** 2 + (robot1.y - robot2.y) ** 2)
-        return round(distance)
-    
-    # Metodo per calcolare e aggiornare la matrice delle distanze
-    def make_matrix_control(self, initial_robot):
-        
-        self.update_positions(initial_robot)
-        
-        for j in range(initial_robot.number + 1, self.number_of_robots):
-                robot_b = self.dictionary_of_robots[j]
-                # compute the distance between robots.
-                distance_between_robots = self.compute_distance(initial_robot, robot_b)
-                # I store only the values that teh robot is able to read.
-                if distance_between_robots <= self.sensor:
-                    self.distances[initial_robot.number][j] = distance_between_robots
-                    self.distances[j][initial_robot.number] = distance_between_robots
+    def compute_next_robot_position(self,robot):
+        """Compute next possible position of the"""
+        next_x = robot.x + robot.vx
+        next_y = robot.y + robot.vy
+        return next_x, next_y
 
-        return self.distances 
-    
+    def compute_distance_with_coordinates(self, x1, y1, x2, y2):
+        """Calcola la distanza tra due punti (centri dei robot)."""
+        return math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
+
+    def new_positions_control(self, initial_robot):
+        next_x, next_y = self.compute_next_robot_position(initial_robot)
+        new_vx, new_vy = initial_robot.vx, initial_robot.vy  # Mantiene la velocità attuale
+
+        # 1️⃣ Controllo dei bordi PRIMA di verificare le collisioni con gli altri robot
+        if next_x - initial_robot.radius <= 10 or next_x + initial_robot.radius >= self.rectangleArea_width:
+            new_vx = -new_vx  # Inverte la velocità lungo X
+            next_x = initial_robot.x + new_vx  # Calcola la nuova posizione
+
+        if next_y - initial_robot.radius <= 10 or next_y + initial_robot.radius >= self.rectangleArea_heigth:
+            new_vy = -new_vy  # Inverte la velocità lungo Y
+            next_y = initial_robot.y + new_vy  # Calcola la nuova posizione
+
+        # Se dopo la correzione dei bordi non c'è collisione, restituisci i nuovi valori
+        collision = False
+        for j in range(self.number_of_robots):
+            if j != initial_robot.number:
+                robot_b = self.dictionary_of_robots[j]
+                if self.compute_distance_with_coordinates(next_x, next_y, robot_b.x, robot_b.y) <= 2 * initial_robot.radius + 20:
+                    collision = True
+                    break
+
+        if not collision:
+            return next_x, next_y, new_vx, new_vy  # ✅ Nessuna collisione, il robot può muoversi normalmente
+
+        # 2️⃣ Se invece c'è una collisione con un altro robot, trova una nuova traiettoria
+        new_angle = self.find_new_trajectory_angle(initial_robot)
+        new_vx = initial_robot.velocity * math.cos(new_angle)
+        new_vy = initial_robot.velocity * math.sin(new_angle)
+        new_x = initial_robot.x + new_vx
+        new_y = initial_robot.y + new_vy
+
+        return new_x, new_y, new_vx, new_vy  # ✅ Ritorna i nuovi valori con traiettoria modificata
+
+
+    def find_new_trajectory_angle(self, robot):
+        current_angle = math.atan2(robot.vy, robot.vx)
+        step = math.radians(10)  # Angolo di ricerca incrementale
+        max_attempts = 36  # Prova fino a coprire 360 gradi
+        
+        for i in range(max_attempts):
+            new_angle = current_angle + (i * step)
+            next_x = robot.x + robot.velocity * math.cos(new_angle)
+            next_y = robot.y + robot.velocity * math.sin(new_angle)
+            
+            collision = False
+            
+            for j in range(self.number_of_robots):
+                if j != robot.number:
+                    other_robot = self.dictionary_of_robots[j]
+                    if self.compute_distance_with_coordinates(next_x, next_y, other_robot.x, other_robot.y) >= 2 * robot.radius:
+                        continue
+                    collision = True
+                    break
+            
+            if not collision:
+                return new_angle  # Restituisce il primo angolo disponibile senza collisioni
+        
+        return current_angle  # Se non trova alternative, mantiene la direzione attuale
+
+       
     def compute_task_performed(self):
         """
         Compute task performed base on supervisor conductor spartito.
@@ -245,6 +294,13 @@ class Supervisor:
         for robot in self.dictionary_of_robots:     
             robot.update_beat_firefly(millisecond)
 
+    def send_neighborg_positions(self):
+        for robot in self.dictionary_of_robots.values():
+            robot.neighbors = []  # Resetta la lista dei vicini per evitare duplicati
+            for other_robot in self.dictionary_of_robots.values():
+                if robot.number != other_robot.number:  # Escludi se stesso
+                    robot.neighbors.append((other_robot.x, other_robot.y))
+
     def clean_robot_buffers(self):
         for robot in self.dictionary_of_robots:
             robot.clean_buffers() 
@@ -273,7 +329,6 @@ class Supervisor:
 
     # method to print distances between robots.
     def print_distance_matrix(self):
-
         print("Matrice delle distanze:")
         # Stampa l'intestazione della matrice (numeri dei robot)
         header = "     " + " ".join(f"{i:6}" for i in range(len(self.distances)))
@@ -340,27 +395,34 @@ class Supervisor:
     
         return affinity_matrix
 
-"""""
-    # Metodo per calcolare e aggiornare la matrice delle distanze
-    def make_matrix_control(self, initial_robot):
-        
-        self.update_positions(initial_robot)
-        
-        for j in range(initial_robot.number + 1, self.number_of_robots):
-                robot_b = self.dictionary_of_robots[j]
-                # compute the distance between robots.
-                distance_between_robots = self.compute_distance(initial_robot, robot_b)
-                # I store only the values that teh robot is able to read.
-                if distance_between_robots <= self.sensor:
-                    self.distances[initial_robot.number][j] = distance_between_robots
-                    self.distances[j][initial_robot.number] = distance_between_robots
 
-        return self.distances
-    
-    # method to update robot positions
-    def update_positions(self,initial_robot):
-        initial_robot.x += initial_robot.vx
-        initial_robot.y += initial_robot.vy
-        
+"""
+def new_positions_control(self, initial_robot):
+        next_x, next_y = self.compute_next_robot_position(initial_robot)
+        collision = False
+
+        # Controlla se la nuova posizione genera collisioni
+        for j in range(self.number_of_robots):
+            if j != initial_robot.number:
+
+                robot_b = self.dictionary_of_robots[j]
+                if self.compute_distance_with_coordinates(next_x, next_y, robot_b.x, robot_b.y) <= 2 * initial_robot.radius + 20:
+                    collision = True
+                    break
+        if not collision:
+            return next_x, next_y, initial_robot.vx, initial_robot.vy
+        else:
+            # Trova un nuovo angolo di traiettori
+            new_angle = self.find_new_trajectory_angle(initial_robot)
+            
+            # Calcola la nuova velocità in base al nuovo angolo
+            new_vx = initial_robot.velocity * math.cos(new_angle)
+            new_vy = initial_robot.velocity * math.sin(new_angle)
+            
+            # Calcola le nuove coordinate
+            new_x = initial_robot.x + new_vx
+            new_y = initial_robot.y + new_vy
+            
+            return new_x, new_y, new_vx, new_vy
 
 """

@@ -1,8 +1,18 @@
 
 colours = {
-    'green': (0,255,0),
-    'red':  (0,0,255),
-    'blue': (255,0,0)
+    'green': (0, 255, 0),
+    'red': (0, 0, 255),
+    'blue': (255, 0, 0),
+    'black': (0, 0, 0),
+    'brown': (42, 42, 165),  
+    'orange': (0, 165, 255),  
+    'yellow': (0, 255, 255),
+    'pink': (255, 192, 203),
+    'purple': (128, 0, 128),
+    'light_blue': (255, 200, 100),  # Azzurro chiaro
+    'sky_blue': (255, 180, 70),     # Blu cielo
+    'dark_blue': (139, 0, 0),       # Blu scuro
+    'grey': (128, 128, 128)         # Grigio
 }
 
 
@@ -57,13 +67,13 @@ orchestra_to_midi_range = {
 
     "Strings": {
         # violin
-        "Vn": list(range(55, 100)),      
+        #"Vn": list(range(55, 100)),      
         # viola
         #"Va": list(range(48, 96)),         # C3–E6
         # violoncello
-        "Vc": list(range(36, 84)),         # C2–E5
+        #"Vc": list(range(36, 84)),         # C2–E5
         # contrabbasso
-        "Cb": list(range(28, 72))  # B0–B3
+        #"Cb": list(range(28, 72))  # B0–B3
         #"Harp": list(range(24, 104))          # C1–G7
     },
     "Woodwinds": {
@@ -82,14 +92,14 @@ orchestra_to_midi_range = {
     },
     "Brass": {
         # trumpet in C
-        #"TpC": list(range(54, 87)),            # F#3–D6
+        "TpC": list(range(54, 87)),            # F#3–D6
         # Trombone
-        #"Tbn": list(range(34, 73)),           # E2–F5
+        "Tbn": list(range(34, 73)),           # E2–F5
         #"Bass Trombone": list(range(36, 66)),      # C2–F4
         # horn
         #"Hn": list(range(31, 77)),        # F2–F5
         # Bass tuba
-        #"BTb": list(range(30, 65))                # D1–F4
+        "BTb": list(range(30, 65))                # D1–F4
     },
     "Percussion": {
         #"Timpani": list(range(38, 61)),            # D2–C4

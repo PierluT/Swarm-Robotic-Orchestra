@@ -2,14 +2,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Parametri del modello
-N = 15  # Numero di individui
+N = 20  # Numero di individui
 M = 3  # Numero di task
 T = 1000  # Numero di iterazioni
 
 alpha = 10  # Rinforzo positivo per chi fa il task
-beta = 5    # Rinforzo negativo per chi NON fa il task
+beta = 3    # Rinforzo negativo per chi NON fa il task
 p = 0.2  # Probabilità di smettere di eseguire un task
-lambda_stimulus = 5  # Incremento dello stimolo quando il task non è svolto
+lambda_stimulus = 16  # Incremento dello stimolo quando il task non è svolto
 phi = 2  # Efficienza del lavoro
 
 # Inizializzazione delle soglie a 500 come nel grafico 1a
@@ -46,7 +46,7 @@ for t in range(T):
     
     # Salvataggio della storia delle soglie
     threshold_history[t] = thresholds
-
+"""
 # Visualizzazione dei risultati per replicare il comportamento atteso
 plt.figure(figsize=(10, 5))
 for i in range(N):
@@ -58,7 +58,7 @@ for i in range(N):
     plt.title("Evoluzione delle soglie di risposta nel tempo con 3 task")
     plt.legend()
     plt.show()
-
+"""
 # Ora aggiungiamo il grafico a colonna per l'ultimo task eseguito
 
 # Consideriamo l'ultimo task eseguito da ciascun individuo all'iterazione T-1

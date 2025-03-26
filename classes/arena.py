@@ -19,7 +19,7 @@ class Arena:
     def __init__(self):
         self.width = values_dictionary['width_arena']
         self.height = values_dictionary['height_arena']
-        self.arena = np.zeros((self.height, self.width, 3), np.uint8)
+        self.arena = np.ones((self.height, self.width, 3), dtype=np.uint8) * np.array([200, 220, 240], dtype=np.uint8)
         self.robot_data = defaultdict(list)
         self.frame_counter = 0
         self.png_folder = "png"   
@@ -178,7 +178,7 @@ class Arena:
     
     def draw_all_robots(self):
         for millisecond,robots in self.robot_data.items():
-            self.arena.fill(0)           
+            self.arena.fill(255)           
             for robot in robots:
                 self.draw_robot(robot)
             self.save_arena_as_png()
@@ -195,4 +195,4 @@ class Arena:
         # add a label for the number of the robot
         label_position = (int(robot['x']) - 10, int(robot['y']) - values_dictionary['radius'] - 10)  # Regola la posizione sopra il robot
         cv2.putText(self.arena, str(robot['robot_number']), label_position, 
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 2)  # Testo bianco con spessore 2
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 0), 2)  # Testo nero con spessore 2
