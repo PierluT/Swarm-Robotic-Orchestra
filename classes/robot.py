@@ -21,8 +21,6 @@ class Robot:
         self.radius = values_dictionary['radius']
         self.rectangleArea_width = values_dictionary['width_arena']
         self.rectangleArea_heigth = values_dictionary['height_arena']
-        # value for collision
-        self.radar_radius = values_dictionary['radar']
         self.colour = colours['green']
         self.velocity = float(values_dictionary['velocity'])
         self.vx = random.choice([-1, 1]) * self.velocity
@@ -88,7 +86,8 @@ class Robot:
         self.beat_phase = np.random.uniform(0, 2 * np.pi)
         self.beat_phase_denominator = phase_period / self.number_of_beats
         #self.beat_counter = 1
-        self.beat_counter = random.choice(self.d_values)
+        #self.beat_counter = random.choice(self.d_values)
+        self.beat_counter = random.choice([val for val in self.d_values if val != self.delay])
         self.first_beat_control_flag = True
         self.threshold = 0
         self.last_beat_phase = 0
@@ -118,11 +117,11 @@ class Robot:
         return f"Robot(number = {self.number}, phase = {self.phase})"
 
     def compute_initial_x_position(self):
-        possible_x_coordinate = random.randint(int(self.radar_radius + 10), int(self.rectangleArea_width - self.radar_radius - 10))
+        possible_x_coordinate = random.randint(int(self.radius + 10), int(self.rectangleArea_width - self.radius - 10))
         return possible_x_coordinate
     
     def compute_initial_y_position(self):  
-        possible_y_coordinate = random.randint(int(self.radar_radius + 10), int(self.rectangleArea_heigth - self.radar_radius - 10))
+        possible_y_coordinate = random.randint(int(self.radius + 10), int(self.rectangleArea_heigth - self.radius - 10))
         return possible_y_coordinate
     
     def compute_beat_threshold(self):
@@ -162,41 +161,32 @@ class Robot:
 
     # manage differently the collision
     def change_direction_x_axes(self):
-        self.vx = -self.vx
+        self.vx = -self.vx  # Inverti direzione
+        self.x += self.vx
                   
     def change_direction_y_axes(self):
-        self.vy = -self.vy 
+        self.vy = -self.vy  # Inverti direzione
+        self.y += self.vy 
     
     #return angle direction in rad.
     def get_angle(self):
         return math.atan2(self.vx,self.vy)
     
-    def move_robot(self, matrix_to_check, collision_threshold = 15):
+    def move_robot(self,new_x, new_y, new_vx, new_vy):
+        
+        self.x = new_x
+        self.y = new_y
+        self.vx = new_vx
+        self.vy = new_vy
         # method to compute the bussola for visualing robot orientation.
         self.compute_robot_compass()
         # Boundaries collision control
-        if self.x - self.radar_radius <= 10 or self.x + self.radar_radius >= self.rectangleArea_width:
+        if self.x - self.radius <= 10 or self.x + self.radius >= self.rectangleArea_width:
             self.change_direction_x_axes()
-        if self.y - self.radar_radius <= 10 or self.y + self.radar_radius >= self.rectangleArea_heigth:
+        if self.y - self.radius <= 10 or self.y + self.radius >= self.rectangleArea_heigth:
             self.change_direction_y_axes()
-        
-        # collision control with other robots
-        for other_robot_index, distance in enumerate(matrix_to_check[self.number]):
-            # Skip itself
-            if other_robot_index == self.number:
-                continue
-            
-            # Check if the distance is below the collision threshold
-            if distance <= collision_threshold:
-                self.change_direction_y_axes()
-            
-    def change_direction(self):
-        # change direction with casual angle
-        angle = random.uniform(0, 2 * math.pi)  
-        speed = math.sqrt(self.vx**2 + self.vy**2) 
-        self.vx = speed * math.cos(angle) 
-        self.vy = speed * math.sin(angle)  
-    
+
+
     # method to set the dynamics based on the delay, to stress the first note of the measure.
     def set_dynamic(self):
         
@@ -374,11 +364,12 @@ class Robot:
                 new_midinote = self.find_closest_midinote(new_midi_range)
                 self.note.midinote = new_midinote
                 #print(f"Nuova nota MIDI: {new_midinote}")
+        
         # Threshold's updates based on choosen timbre.
         self.update_thresholds(chosen_timbre)
         # once I enter into the method for the first time I set the first call to false.
         self.first_call = False 
-        
+        #self.set_colour_by_timbre()
         return chosen_timbre
     
     def update_thresholds(self, chosen_timbre):
@@ -425,7 +416,6 @@ class Robot:
         else:
             #print("Nessuna nota con lo stesso pitch trovata nel nuovo range.")
             return None  # Nessuna nota corrispondente trovata
-
 
     # Every robot has a dictionary on what is the last note that others are playing.
     # With this structure I can predict the next note to play consulting music scales dictionary.
@@ -564,6 +554,7 @@ class Robot:
         # LOGIC TO UPDATE MY SPARTITO.
         # ADD DELAY VALUE TO SIMULATE IN A MORE REALISTIC WAY.
         if self.beat_counter == self.delay:
+            self.colour = colours['grey']
             if not self.triggered_playing_flag:
                  self.playing_flag = True
                  self.triggered_playing_flag = True
@@ -575,16 +566,32 @@ class Robot:
         else:
             self.playing_flag = False
             self.triggered_playing_flag = False
-        
+            
         # to save first beat millisecond
         if self.beat_counter == 1:
-            self.colour = colours['blue']
+            self.colour = colours['black']
             if not self.first_saved_beat:
                 self.first_beat_ms = millisecond
                 self.first_saved_beat = True
         else:
             self.first_saved_beat = False
-            self.colour = colours['green']
+        
+        # Se nessuna delle due condizioni precedenti, il colore dipende dal timbro
+        if self.beat_counter != self.delay and self.beat_counter != 1:
+            if self.timbre == "Fl":
+                self.colour = colours['pink']
+            elif self.timbre == "ClBb":
+                self.colour = colours['purple']
+            elif self.timbre == "Bn":
+                self.colour = colours['blue']
+            
+            elif self.timbre == "TpC":
+                self.colour = colours['yellow']
+            elif self.timbre == "Tbn":
+                self.colour = colours['orange']
+            elif self.timbre == "BTb":
+                self.colour = colours['yellow']
+         
     
     # method to save what the other robots have been played and save notes into a structure.
     def update_orchestra_spartito(self, full_spartito):
@@ -661,4 +668,32 @@ class Robot:
             move = 1
         self.beat_counter += move
         #print(f"robot {self.number} si sposta di {move} beat")
-    
+
+
+    def set_colour_by_timbre(self):
+        if self.timbre == "Tbn":
+            self.colour = colours['light_blue']
+        elif self.timbre == "BTn":
+            self.colour = colours['blue']
+        elif self.timbre == "TpC":
+            self.colour = colours['grey']
+
+"""
+def move_robot(self,new_x, new_y, new_vx, new_vy):
+        
+        self.x = new_x
+        self.y = new_y
+        self.vx = new_vx
+        self.vy = new_vy
+        # method to compute the bussola for visualing robot orientation.
+        self.compute_robot_compass()
+        
+        # Boundaries collision control
+        if self.x - self.radius <= 10 or self.x + self.radius >= self.rectangleArea_width:
+            self.change_direction_x_axes()
+        if self.y - self.radius <= 10 or self.y + self.radius >= self.rectangleArea_heigth:
+            self.change_direction_y_axes()
+"""
+
+
+

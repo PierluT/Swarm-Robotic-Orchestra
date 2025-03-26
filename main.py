@@ -57,19 +57,20 @@ def main():
                         supervisor.build_conductor_spartito(robot.my_spartito)
                         supervisor.new_note = True           
                     
-                    if (millisecond % 40 == 0 ): 
-                        distances_to_check = supervisor.make_matrix_control(robot)
-                        # ACTION PART
-                        robot.move_robot(distances_to_check)
+                    if (millisecond % 40 == 0): 
+                        new_x, new_y, new_vx, new_vy = supervisor.new_positions_control(robot)
+                        robot.move_robot(new_x, new_y, new_vx, new_vy)
+                        
                         arena.write_robot_data(writer, simulation_number, millisecond, robot)
-
+                    
+                
                 # SUPERVISOR SIMULATES ROBOT'S EARS SO IT UPDATES ALL OF THEM OF WHAT HAPPENS IN THE ENVIRONMENT.  
                 if supervisor.new_note:
-                    # I compute the new global stimuli to cominucate to robtos..
+                    # I compute the new global stimuli to cominucate to robots.
                     supervisor.update_stimuli()
                     # once I wrote the new notes in the global spartito I share infos to all robots.
                     supervisor.update_global_robot_spartito(millisecond)
-                
+
                 """""
                     # STAMPA DI CONTROLLO
                     print("QUALCUNO HA SUONATO AL ms ", millisecond)
@@ -110,7 +111,7 @@ def main():
             # for another simulation I clear all robot data.
             supervisor.dictionary_of_robots.clear()
             supervisor.conductor_spartito.clear() 
-    analyzer.timbre_analysis_distribution(csv_path)
+    #ggggggganalyzer.timbre_analysis_distribution(csv_path)
     
     if bool_video_audio: 
         # VISUALIZATION PART       
