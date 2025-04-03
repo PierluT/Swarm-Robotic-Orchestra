@@ -24,13 +24,17 @@ def main():
         print("Errore: se il parametro intero è maggiore di 1, il booleano deve essere False.")
         sys.exit(1)  # Terminare il programma con codice di errore 1
 
+    # Se stai eseguendo il debug, aggiungi i parametri manualmente
+    if len(sys.argv) == 1:  # Se non ci sono argomenti da linea di comando
+        sys.argv.extend(["1", "false"])  # Imposta valori di test
+
     print(f"Parametri accettati: int_param={int_param}, bool_video_audio={bool_video_audio}")
 
     # intializations
     supervisor = Supervisor([])
     midi_class = MIDIMessage()
     arena = Arena()
-    analyzer = DataAnalyzer()
+    #analyzer = DataAnalyzer()
     csv_path = supervisor.set_up_csv_directory(int_param)
     
     with open(csv_path , mode="w", newline="") as file:
@@ -44,8 +48,10 @@ def main():
             arena.clean_png_folder()
             # method to set robot positions and initial random notes.
             supervisor.setup_robots()
+            #print("lista")
+            #print(supervisor.timbre_list)
             
-            for millisecond in range(0,180000):          
+            for millisecond in range(0,supervisor.time):          
                 # ROBOTS WRITE A note IN THE GLOBAL SPARTITO
                 for robot in supervisor.dictionary_of_robots:
                     # update robot beat phase
@@ -57,17 +63,17 @@ def main():
                         supervisor.build_conductor_spartito(robot.my_spartito)
                         supervisor.new_note = True           
                     
+                    # MOVEMENT PART
                     if (millisecond % 40 == 0): 
+                        # supervisor controls and manages the new robot positions, in order to
+                        # avoid collisions within boundaries and eachother.
                         new_x, new_y, new_vx, new_vy = supervisor.new_positions_control(robot)
                         robot.move_robot(new_x, new_y, new_vx, new_vy)
-                        
+                        # every 40 ms I write robot data on video.csv
                         arena.write_robot_data(writer, simulation_number, millisecond, robot)
                     
-                
                 # SUPERVISOR SIMULATES ROBOT'S EARS SO IT UPDATES ALL OF THEM OF WHAT HAPPENS IN THE ENVIRONMENT.  
                 if supervisor.new_note:
-                    # I compute the new global stimuli to cominucate to robots.
-                    supervisor.update_stimuli()
                     # once I wrote the new notes in the global spartito I share infos to all robots.
                     supervisor.update_global_robot_spartito(millisecond)
 
@@ -90,12 +96,10 @@ def main():
                 supervisor.new_note = False
                 # to clean the robot ears.
                 supervisor.clean_robot_buffers()
-            #for robot in supervisor.dictionary_of_robots:
-                #print(robot.stimuli)
             #print(supervisor.conductor_spartito)
             midi_class.write_csv(supervisor.conductor_spartito,simulation_number, csv_path)
-            """
             # plot of the timbre threshold evolution
+            """
             plt.figure(figsize=(10, 5))
             for robot in supervisor.dictionary_of_robots:
                 threshold_history = np.array(robot.timbre_threshold_history)
@@ -111,7 +115,7 @@ def main():
             # for another simulation I clear all robot data.
             supervisor.dictionary_of_robots.clear()
             supervisor.conductor_spartito.clear() 
-    #ggggggganalyzer.timbre_analysis_distribution(csv_path)
+    #analyzer.timbre_analysis_across_robots(csv_path)
     
     if bool_video_audio: 
         # VISUALIZATION PART       

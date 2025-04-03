@@ -10,7 +10,6 @@ from classes.tempo import TimeSignature
 from classes.dictionaries import orchestra_to_midi_range, music_formations
 from collections import defaultdict
 
-
 file_reader_valuse = File_Reader()
 values_dictionary = file_reader_valuse.read_configuration_file()
 
@@ -20,6 +19,7 @@ class Supervisor:
         # boundaries of rectangle area
         self.rectangleArea_width = values_dictionary['width_arena']
         self.rectangleArea_heigth = values_dictionary['height_arena']
+        self.time = values_dictionary['milliseconds']
         self.arena_area = self.rectangleArea_width * self.rectangleArea_heigth
         # number of robots in the arena
         self.number_of_robots = values_dictionary['robot_number']
@@ -33,7 +33,8 @@ class Supervisor:
         self.distances = [[0 for _ in range(self.number_of_robots)] for _ in range(self.number_of_robots)] 
         # final music sheet that will be converted into audio file.
         self.conductor_spartito = []
-        self.global_spartito = []
+        # variabile to store robots that played on this measure
+        self.robots_that_played = set()
         # to found the minimum a maximum mid value.
         self.min_midinote = 0
         self.max_midinote = 0
@@ -47,15 +48,16 @@ class Supervisor:
         self.music_formations = music_formations
         self.csv_folder = ""
         self.new_note = False
-        # timbre module
-        # Parametri degli stimoli
-        self.lambda_stimulus = 4  
-        self.phi = 2 
+        # TIMBRE MODULE
+        # stimuli parameters
+        self.alpha = 3
+        self.delta = 1
         self.timbre_dictionary = orchestra_to_midi_range
         self.num_timbres = sum(len(instruments) for instruments in self.timbre_dictionary.values())
         self.timbre_list = [instrument for instruments in self.timbre_dictionary.values() for instrument in instruments]
         # I set an array of lenght number of timbres ( as tasks ) with 100 as initial value.
         self.stimuli = np.ones(self.num_timbres) * 100
+        self.reset_count = 0
     
     # method to compute iteratively the min and max midinote value that robot can play.
     def compute_midi_range_values(self):
@@ -81,26 +83,22 @@ class Supervisor:
         s_n = simulation_number
         #csv_file_name = f"s_n{s_n}r_n{self.number_of_robots}_thr{self.threshold}_area{self.arena_area}.csv"
         csv_directory = "csv"
-        csv_folder = f"S_N{s_n}R_N{self.number_of_robots}_Thr{self.threshold}_Area{self.arena_area}"
+        csv_folder = f"S_N{s_n}R_N{self.number_of_robots}_BPM{self.initial_bpm}_lambda{self.alpha}_timbres_number{self.num_timbres}"
         csv_video_file_name = "video.csv"
         csv_music_file_name = "music.csv"
-        
         if not os.path.exists(csv_directory):
             # creates directory if doesn't exist.
             os.mkdir(csv_directory)  
-        
         csv_folder_directory = os.path.join(csv_directory,csv_folder)
-        
         if not os.path.exists(csv_folder_directory):
             # creates directory if doesn't exist.
             os.mkdir(csv_folder_directory)  
-        
         csv_final_path = os.path.join(csv_folder_directory,csv_video_file_name)
         # Percorso file music.csv
         csv_music_path = os.path.join(csv_folder_directory, csv_music_file_name)
         # Svuota il file music.csv se esiste
         if os.path.exists(csv_music_path):
-            open(csv_music_path, "w").close() 
+            os.remove(csv_music_path) 
         
         return csv_final_path
     
@@ -135,7 +133,6 @@ class Supervisor:
             robot = Robot(number = n, phase_period = phase_bar_value, delay_values = beats_array, sb = seconds_in_a_beat, time_signature = t_s, neighbors_number = self.number_of_robots)
             robot.compute_beat_threshold()
             robot.choose_timbre(self.stimuli)
-            self.update_stimuli()
             #chosen_timbre = robot.timbre
             # I set the initial random note as one the notes that the initial timbre can play.
             notes_range = robot.get_midi_range_from_timbre()
@@ -145,6 +142,8 @@ class Supervisor:
             robot.set_dynamic()
             # the supervisor has a complete dictionary of all the robots.
             self.dictionary_of_robots.append(robot)
+        # after the choice of everybody I update the stimuli.
+        self.update_stimuli()
         
 
     # method to set the intial positions of the robots, in order to avoid overlap.
@@ -217,16 +216,16 @@ class Supervisor:
                     break
 
         if not collision:
-            return next_x, next_y, new_vx, new_vy  # ✅ Nessuna collisione, il robot può muoversi normalmente
+            return next_x, next_y, new_vx, new_vy  #  Nessuna collisione, il robot può muoversi normalmente
 
-        # 2️⃣ Se invece c'è una collisione con un altro robot, trova una nuova traiettoria
+        #  Se invece c'è una collisione con un altro robot, trova una nuova traiettoria
         new_angle = self.find_new_trajectory_angle(initial_robot)
         new_vx = initial_robot.velocity * math.cos(new_angle)
         new_vy = initial_robot.velocity * math.sin(new_angle)
         new_x = initial_robot.x + new_vx
         new_y = initial_robot.y + new_vy
 
-        return new_x, new_y, new_vx, new_vy  # ✅ Ritorna i nuovi valori con traiettoria modificata
+        return new_x, new_y, new_vx, new_vy  # Ritorna i nuovi valori con traiettoria modificata
 
 
     def find_new_trajectory_angle(self, robot):
@@ -254,7 +253,6 @@ class Supervisor:
         
         return current_angle  # Se non trova alternative, mantiene la direzione attuale
 
-       
     def compute_task_performed(self):
         """
         Compute task performed base on supervisor conductor spartito.
@@ -263,20 +261,29 @@ class Supervisor:
         """
         # initialize the array of task performed by the robots.
         task_performed = np.zeros(self.num_timbres)
-        # extract the timbres that have been played from the conductor spartito.
-        played_timbres = [entry['timbre'] for entry in self.conductor_spartito]
-        # controls if the timbre has been played.
-        for i, timbre in enumerate(self.timbre_list):
-            if timbre in played_timbres:
-                task_performed[i] = 1
+        # Conta quante volte ogni timbro è stato suonato
+        timbre_counts = {}  # Dizionario per contare le occorrenze di ogni timbro
+        for robot, timbre in self.robots_that_played:
+            if timbre in timbre_counts:
+                timbre_counts[timbre] += 1
+            else:
+                timbre_counts[timbre] = 1
 
+        # Popola l'array task_performed con il conteggio dei timbri suonati
+        for i, timbre in enumerate(self.timbre_list):
+            if timbre in timbre_counts:
+                task_performed[i] = timbre_counts[timbre]
+
+        #print(task_performed)
         return task_performed
 
     def update_stimuli(self):
         # I compute the timbres perfromed by the robots to compute what is needed to be played.
         task_performed = self.compute_task_performed()
         # apply the stimuli update formula form the paper.
-        self.stimuli += self.lambda_stimulus - self.phi * np.sum(task_performed, axis=0)
+        #self.stimuli += self.delta - ( self.alpha / self.number_of_robots) * np.sum(task_performed, axis=0)
+        self.stimuli += self.delta - (self.alpha / self.number_of_robots) * task_performed
+        #print(self.stimuli)
         self.stimuli = np.clip(self.stimuli, 0, 1000)
 
     # EVERY ROBOT UPDATES ITS GLOBAL SPARTITO TO BE CONSCIOUS OF WHAT HAS BEEN PLAYED.
@@ -284,15 +291,7 @@ class Supervisor:
         # I update the global infos of every robot.
         for robot in self.dictionary_of_robots:
             # robot stores what the other ones have been played.
-            robot.update_orchestra_spartito(self.conductor_spartito)    
-            # with the stored info, robot applies kuramoto model on its phase.
-            robot.update_phase_kuramoto_model(millisecond)
-            # TIMBRE MODULE
-            robot.choose_timbre(self.stimuli)
-        
-        # once coordinated phase, robot applies beat synchronization.
-        for robot in self.dictionary_of_robots:     
-            robot.update_beat_firefly(millisecond)
+            robot.update_orchestra_spartito(self.conductor_spartito, millisecond, self.stimuli)    
 
     def send_neighborg_positions(self):
         for robot in self.dictionary_of_robots.values():
@@ -326,43 +325,6 @@ class Supervisor:
     def update_positions(self,initial_robot):
         initial_robot.x += initial_robot.vx
         initial_robot.y += initial_robot.vy
-
-    # method to print distances between robots.
-    def print_distance_matrix(self):
-        print("Matrice delle distanze:")
-        # Stampa l'intestazione della matrice (numeri dei robot)
-        header = "     " + " ".join(f"{i:6}" for i in range(len(self.distances)))
-        print(header)
-        print("-" * len(header))
-
-        # Stampa ogni riga con il numero del robot come intestazione
-        for i, row in enumerate(self.distances):
-            row_data = " ".join(f"{distance:6.2f}" for distance in row)
-            print(f"{i:3} | {row_data}")
-
-    # method to check periodically if phases are converging or not.
-    def check_phases_convergence(self):
-        # current time for phases check
-        current_time = time.time()
-        # I print matrix every 4 seconds.
-        if current_time - self.last_check_time >= 0.5:
-            # Update time from the last control. 
-            self.last_check_time = current_time
-            robot_phases = (np.array([robot.phase for robot in self.dictionary_of_robots]))
-            print(robot_phases)
-            # compute mean of phases and verify if the phases are near to that value.
-            mean_phase = np.mean(robot_phases)
-            phase_diff = np.abs(robot_phases - mean_phase)
-            converging = np.all(phase_diff < self.target_precision)
-            # Print if phases are converging or not.
-            print("Fasi attuali:",robot_phases)
-            if converging:
-                print("Le fasi stanno convergendo.")
-            else:
-                print("Le fasi non stanno convergendo.")
-            
-            return converging
-        return None  
         
     # unifies spartito of all robots and sort them form a crhonological point of view.
     def build_conductor_spartito(self, robot_spartito):
@@ -371,6 +333,19 @@ class Supervisor:
         # orders the conductor spartito by ms value.
         self.conductor_spartito.sort(key=lambda x: x["ms"])
 
+        # I sotre the number of the robot that played to check if everyone played
+        # for this measure
+        for entry in robot_spartito:
+            self.robots_that_played.add((entry['musician'], entry['timbre']))
+        
+        # Controlla se tutti i robot hanno suonato
+        unique_musicians = {robot for robot, _ in self.robots_that_played}  # Estrai solo i numeri dei robot
+        if len(unique_musicians) == self.number_of_robots:
+            #print(f"Reset numero {self.reset_count + 1}: Tutti i robot hanno suonato. ({self.robots_that_played})")
+            self.update_stimuli()  # Aggiorna gli stimoli
+            self.robots_that_played.clear()  # Resetta il set
+            self.reset_count += 1
+        
         return self.conductor_spartito
 
     def calculate_instrument_affinity(self):
