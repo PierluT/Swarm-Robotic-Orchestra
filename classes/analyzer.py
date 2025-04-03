@@ -12,15 +12,12 @@ class DataAnalyzer:
     def __init__(self, analysis_function=None):
         self.csv_directory = "csv/harmony_consensous/robot_numbers_values"
         self.time_conversion_factor = 1000
-        self.interval_size = 6000
         self.analysis_function = analysis_function  # Funzione di analisi generica
         self.results_df = None
 
-    
-    
     def get_csv_files(self):
-        """Trova tutti i file CSV nella directory specificata."""
-        return glob.glob(f"{self.csv_directory}/**/video.csv", recursive=True)
+        """Trova tutti i file video.csv nelle sottocartelle di 'csv/'"""
+        return glob.glob("csv/S_N*R_N*BPM*lambda*timbres_number*/video.csv", recursive=True)
 
     def extract_robot_number(self, file_path):
         """Estrae il numero di robot dal nome della cartella del file CSV."""
@@ -30,123 +27,128 @@ class DataAnalyzer:
             return int(parts[1].split("_")[0])  # Prende il numero dopo "R_N"
         return None
 
-    def process_simulation(self, df, num_robots):
-        """Processa i dati di simulazione, applicando la funzione di analisi e aggregando i risultati."""
+
+
+    def extract_parameter_from_folder(self, folder_path, parameter_name):
+        """
+        Estrae il valore di un parametro (es. "timbres_number") dal nome della cartella.
+        """
+        folder_name = os.path.basename(folder_path)
+        parts = folder_name.split(f"{parameter_name}")
+        
+        if len(parts) > 1:
+            try:
+                return int(parts[1].split("_")[0])  # Prende il numero dopo il parametro
+            except ValueError:
+                return None
+        return None
+    
+    def analyze_parameter(self, parameter_name):
+        """
+        Analizza la distribuzione dei timbri o di altri parametri (es. numero di robot, BPM, lambda, etc.).
+        
+        :param parameter_name: Nome del parametro da analizzare (es. "timbres_number", "Num Robots").
+        """
         all_results = []
-        simulation_numbers = df['simulation number'].unique()
 
-        for sim_number in simulation_numbers:
-            sim_data = df[df['simulation number'] == sim_number]
-            # Usa la funzione di analisi generica passata all'inizio
-            analysis_results = self.analysis_function(sim_data)
+        csv_folders = glob.glob(f"csv/S_N*R_N*BPM*lambda*timbres_number*")  # Trova tutte le cartelle
 
-            for ms, value in analysis_results:
-                # Rende l'intervallo di tempo divisibile per interval_size
-                time_interval = (ms // self.interval_size) * self.interval_size
-                time_interval_seconds = time_interval / self.time_conversion_factor  # Conversione in secondi
-                all_results.append({
-                    'Time Interval (s)': time_interval_seconds,
-                    'Value': value,  # Il valore analizzato
-                    'Num Robots': num_robots
-                })
+        for folder in csv_folders:
+            param_value = self.extract_parameter_from_folder(folder, parameter_name)  # Estrai il valore del parametro
+            if param_value is None:
+                continue
 
-        return all_results
+            csv_path = os.path.join(folder, "video.csv")  # Percorso del file CSV
+            if not os.path.exists(csv_path):
+                continue  # Salta se il file non esiste
 
-    def aggregate_results(self):
-        """Aggrega i risultati di tutte le simulazioni in un DataFrame."""
+            df = pd.read_csv(csv_path, delimiter=";")
+            df_sorted = df.sort_values(by=['simulation number', 'robot number', 'ms'], ascending=[True, True, False])
+            last_millisecond_per_robot = df_sorted.drop_duplicates(subset=['simulation number', 'robot number'], keep='first')
+
+            # Conta i timbri per ogni simulazione
+            timbre_counts_per_simulation = last_millisecond_per_robot.groupby("simulation number")['timbre'].value_counts().unstack(fill_value=0)
+            timbre_counts_per_simulation[parameter_name] = param_value  # Aggiunge il valore del parametro come colonna
+
+            all_results.append(timbre_counts_per_simulation)
+
+        if not all_results:
+            print(f"Nessun dato disponibile per l'analisi del parametro: {parameter_name}")
+            return
+
+        # Unisce tutti i DataFrame
+        combined_df = pd.concat(all_results)
+
+        # Creazione del DataFrame in formato lungo
+        df_long = combined_df.reset_index().melt(id_vars=[parameter_name], var_name="Timbre", value_name="Count")
+
+        # Se il parametro è "timbres_number", correggi il nome della colonna per coerenza con i dati
+        if parameter_name == "timbres_number":
+            df_long.rename(columns={"Timbre": "timbre"}, inplace=True)
+
+        # Creazione del boxplot
+        plt.figure(figsize=(10, 6))
+        sns.boxplot(x=parameter_name, y="Count", data=df_long, palette='Set2')
+
+        # Aggiungi etichette al grafico
+        plt.title(f'Distribuzione Timbri per {parameter_name}')
+        plt.xlabel(parameter_name)
+        plt.ylabel('Count')
+
+        plt.xticks(rotation=45, ha='right')
+        plt.tight_layout()
+        plt.show()
+
+
+    def timbre_analysis_across_robots(self):
+        """
+        Analizza la distribuzione dei timbri finali su più cartelle e confronta i boxplot per diversi R_N.
+        """
         all_results = []
+
+        # Trova tutti i file CSV nelle cartelle specificate
         csv_files = self.get_csv_files()
 
         for file_path in csv_files:
             num_robots = self.extract_robot_number(file_path)
             if num_robots is None:
-                continue
+                continue  # Salta file non validi
 
-            df = pd.read_csv(file_path, delimiter=';')
-            df['simulation number'] = df['simulation number'].astype(int)
+            # Carica il file CSV
+            df = pd.read_csv(file_path, delimiter=";")
 
-            simulation_results = self.process_simulation(df, num_robots)
-            all_results.extend(simulation_results)
+            # Ordina per numero di simulazione, robot number e millisecondo
+            df_sorted = df.sort_values(by=['simulation number', 'robot number', 'ms'], ascending=[True, True, False])
 
-        self.results_df = pd.DataFrame(all_results)
+            # Prendi l'ultimo millisecondo per ogni robot in ogni simulazione
+            last_millisecond_per_robot = df_sorted.drop_duplicates(subset=['simulation number', 'robot number'], keep='first')
 
-    def plot_boxplot(self, value_label='Value'):
-        """Crea il boxplot per visualizzare l'evoluzione dei valori analizzati nel tempo."""
+            # Conta i timbri per ogni simulazione
+            timbre_counts = last_millisecond_per_robot.groupby("simulation number")['timbre'].value_counts().unstack(fill_value=0)
+
+            # Aggiungi una colonna per il numero di robot
+            timbre_counts['Num Robots'] = num_robots
+
+            # Salva i risultati
+            all_results.append(timbre_counts)
+
+        # Unisce tutti i DataFrame raccolti
+        if not all_results:
+            print("Nessun dato disponibile per l'analisi dei timbri.")
+            return
+
+        final_df = pd.concat(all_results)
+
+        # Boxplot per visualizzare la distribuzione dei timbri nei diversi setup di robot
         plt.figure(figsize=(12, 6))
-        
-        sns.boxplot(
-            x='Time Interval (s)', 
-            y=value_label, 
-            hue='Num Robots',  # Differenzia i gruppi in base al numero di robot
-            data=self.results_df, 
-            palette='Set1'  # Colori diversi per i gruppi
-        )
+        sns.boxplot(data=final_df.melt(id_vars=['Num Robots'], var_name='Timbre', value_name='Count'),
+                    x='Timbre', y='Count', hue='Num Robots', palette='Set1')
 
-        plt.title('Harmony Consensus Evolution')
-        plt.xlabel('Time Interval (s)')
-        plt.ylabel(f'{value_label} (H(t) o altro)')
-        plt.grid(True)
-        plt.legend(title='Num Robots', loc='upper right')
-        plt.xticks(rotation=45)
-
-        # Creare la cartella "plot" se non esiste
-        plot_directory = "plot"
-        if not os.path.exists(plot_directory):
-            os.makedirs(plot_directory)
-
-        # Salva il grafico nella cartella "plot"
-        plot_filename = os.path.join(plot_directory, "robot_number_analysis_plot.png")
-        plt.savefig(plot_filename)
-
-        # Mostra il grafico
-        plt.show()
-
-    def analyze(self):
-        """Metodo principale che esegue l'intero processo di analisi e crea il boxplot."""
-        # Aggrega i risultati
-        self.aggregate_results()
-
-        # Verifica se la colonna 'Time Interval (s)' esiste
-        if 'Time Interval (s)' not in self.results_df.columns:
-            print("La colonna 'Time Interval (s)' non è presente nel DataFrame!")
-        else:
-            print(f"Le colonne nel DataFrame: {self.results_df.columns}")
-
-        # Debug: Verifica che ci siano effettivamente più configurazioni di numero di robot
-        print(f"Numero di righe nel DataFrame: {len(self.results_df)}")
-        #print(f"Valori unici di 'Num Robots': {self.results_df['Num Robots'].unique()}")
-
-        # Crea il boxplot
-        self.plot_boxplot()
-    
-    def timbre_analysis_distribution(self, csv_path):
-        """
-        Analizza la distribuzione dei timbri finali considerando più simulazioni in un unico CSV.
-        
-        :param csv_path: Percorso del file CSV contenente i dati di tutte le simulazioni.
-        """
-        # Carica il file CSV
-        df = pd.read_csv(csv_path, delimiter=";")
-
-        # Ordina per numero di simulazione, robot number e millisecondo
-        df_sorted = df.sort_values(by=['simulation number', 'robot number', 'ms'], ascending=[True, True, False])
-
-        # Prendi l'ultimo millisecondo per ogni robot in ogni simulazione
-        last_millisecond_per_robot = df_sorted.drop_duplicates(subset=['simulation number', 'robot number'], keep='first')
-
-        # Conta i timbri per ogni simulazione
-        timbre_counts_per_simulation = last_millisecond_per_robot.groupby("simulation number")['timbre'].value_counts().unstack(fill_value=0)
-
-        # Grafico Boxplot per visualizzare la distribuzione
-        plt.figure(figsize=(10, 6))
-        sns.boxplot(data=timbre_counts_per_simulation)
-
-        # Aggiungi etichette al grafico
-        plt.title('Timbre disttibution for multiple simulations')
+        # Etichette del grafico
+        plt.title('Timbre distribution for different robot groups')
         plt.xlabel('Timbre')
         plt.ylabel('Count')
-
-        # Ruota le etichette dell'asse X per leggibilità
+        plt.legend(title='Num Robots', loc='upper right')
         plt.xticks(rotation=45, ha='right')
 
         # Mostra il grafico
@@ -208,10 +210,13 @@ def phase_synchrony(sim_data):
 
     return synchrony_values
 
-    
+#analyzer = DataAnalyzer(analysis_function = None)
+# Analisi per il numero di timbri
+#analyzer.analyze_parameter("timbres_number")
+#csv_files = analyzer.get_csv_files()
+#print("File CSV trovati:", csv_files)
+#analyzer.timbre_analysis_across_robots()
 
-analyzer = DataAnalyzer(analysis_function = phase_synchrony)
-print(analyzer.get_csv_files())
 #analyzer.analyze()    
 #print(analyzer.get_csv_files())
 #print(analyzer.extract_robot_number(analyzer.get_csv_files())) 

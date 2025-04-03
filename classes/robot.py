@@ -99,11 +99,14 @@ class Robot:
         self.first_beat_ms = 0
         self.first_saved_beat = False
         self.supposed_scales = []
-        # bioinspired variables
+        # BIO-INSPIRED VARIABLES
         # Booleano per tracciare la prima chiamata
         self.first_call = True
-        self.alpha = 10
-        self.beta = 3
+        # learning rate
+        self.learing_rate = 10
+        # forgetting rate
+        self.forgetting_rate = 3
+        # probability to stop the task
         self.p = 0.2
         self.timbre_dictionary = orchestra_to_midi_range
         self.timbre_list = [instrument for instruments in self.timbre_dictionary.values() for instrument in instruments]
@@ -111,7 +114,11 @@ class Robot:
         self.num_timbres = sum(len(instruments) for instruments in self.timbre_dictionary.values())
         self.timbre_thresholds =  np.full(self.num_timbres, 500, dtype=float)
         self.timbre_threshold_history = []
+        self.timbre_threshold_history.append(self.timbre_thresholds.copy())
         self.last_timbre = None  # Ultimo timbro suonato
+        self.elle = 0
+        self.effe = 0
+
 
     def __repr__(self):
         return f"Robot(number = {self.number}, phase = {self.phase})"
@@ -152,11 +159,16 @@ class Robot:
         self.compass = ((self.x, self.y), (end_x, end_y))        
 
     def clean_buffers(self):
+        # buffers for local communication
         self.forwarded_message.clear()
         self.recieved_message.clear()
+        # buffer for instantneous note
         self.my_spartito.clear()
+        # buffer for neighbors notes
         self.orchestra_spartito.clear()
+        # buffer for notes played by neighbors
         self.music_map.clear()
+        # buffer for robot harmony suppositions.
         self.supposed_scales.clear()
 
     # manage differently the collision
@@ -173,7 +185,6 @@ class Robot:
         return math.atan2(self.vx,self.vy)
     
     def move_robot(self,new_x, new_y, new_vx, new_vy):
-        
         self.x = new_x
         self.y = new_y
         self.vx = new_vx
@@ -197,6 +208,14 @@ class Robot:
     
     # method to to compute harmonicity with other robots.
     def update_note(self):
+        # I store note info.
+        for sublist in self.orchestra_spartito:  
+            for entry in sublist: 
+                note = entry.get("note")  
+                if note is not None:
+                    pitch_note = note % 12
+                    self.music_map.append(pitch_note)  # If it's full, it removes the older one.
+
         # extract only notes from my dictionary
         notes_to_check = list(self.music_map)
         #mas = 0
@@ -291,15 +310,9 @@ class Robot:
             print("NOOOOOOOOOOOOOOOOO")
         print()  
 
+    # return the range of the actual timbre.
     def get_midi_range_from_timbre(self):
-        """
-        Restituisce il range MIDI per il timbro attuale (self.timbre).
-        Se il timbro non è trovato nel dizionario, restituisce None.
-        """
-        # Inizializza il range a None
         midi_range = None
-
-        # Cerca il range del timbro nel dizionario degli strumenti
         for category in self.timbre_dictionary.values():
             if self.timbre in category:
                 midi_range = category[self.timbre]
@@ -322,9 +335,7 @@ class Robot:
     
     # method to set the timbre based on thresholds and stimuli.
     def choose_timbre(self, stimuli):
-        """
-        Il robot sceglie un timbro in base agli stimoli e alle soglie
-        """
+        self.elle += 1
         chosen_timbre = None
         probabilities = []
         
@@ -350,39 +361,33 @@ class Robot:
         # Update the timbre with the new one.
         self.timbre = chosen_timbre
         self.last_timbre = chosen_timbre
-
+        # Threshold's updates based on choosen timbre.
+        self.update_thresholds(chosen_timbre)
         new_midi_range = self.get_midi_range_from_timbre()
-        
-        # only for the second method call 
+        # only from the second method call: I check if the midinote is within the range of my new timbre,
+        # # otherwise I change note octave. 
         if not self.first_call:
             if self.note.midinote in new_midi_range:
                 return
             else:
                 #print(self.note.midinote, " non è nel range del nuovo timbro", self.timbre)
                 #print(f"Pitch relativo da cercare: {self.note.pitch}")
-                
                 new_midinote = self.find_closest_midinote(new_midi_range)
                 self.note.midinote = new_midinote
                 #print(f"Nuova nota MIDI: {new_midinote}")
         
-        # Threshold's updates based on choosen timbre.
-        self.update_thresholds(chosen_timbre)
         # once I enter into the method for the first time I set the first call to false.
         self.first_call = False 
-        #self.set_colour_by_timbre()
+
         return chosen_timbre
     
+    # method to update thresholds based on chosen timbre.
     def update_thresholds(self, chosen_timbre):
-        """
-            Aggiorna le soglie in base al timbro scelto.
-            - Diminuisce la soglia del timbro selezionato (rinforzo positivo).
-            - Aumenta le soglie degli altri timbri (rinforzo negativo).
-            - Salva la storia delle soglie per l'analisi nel tempo.
-        """
         # no change
         if chosen_timbre is None:
-            return
+            print("problemaaaaaaaaaaaaaaaaaaaaa")
         # Trova l'indice del timbro scelto
+        #print(f"R: ", self.number, " Updating thresholds for chosen timbre: {chosen_timbre}")
         chosen_index = self.timbre_list.index(chosen_timbre)
         task_performed = np.zeros(self.num_timbres)  # Indica se il timbro è stato scelto (1 se sì, 0 se no)
         
@@ -390,13 +395,14 @@ class Robot:
         for j in range(self.num_timbres):
             if j == chosen_index:
                 # Rinforzo positivo: abbassa la soglia per il timbro scelto
-                self.timbre_thresholds[j] = max(10, self.timbre_thresholds[j] - self.alpha)
+                self.timbre_thresholds[j] = max(10, self.timbre_thresholds[j] - self.learing_rate)
             else:
                 # Rinforzo negativo: aumenta le soglie degli altri timbri
-                self.timbre_thresholds[j] = min(1000, self.timbre_thresholds[j] + self.beta)
+                self.timbre_thresholds[j] = min(1000, self.timbre_thresholds[j] + self.forgetting_rate)
         
         # Salvataggio dello stato attuale nella storia delle soglie
         self.timbre_threshold_history.append(self.timbre_thresholds.copy())
+        #print(f"Threshold history updated: {self.timbre_threshold_history}")
 
     def find_closest_midinote(self, new_midi_range):
         """
@@ -416,62 +422,6 @@ class Robot:
         else:
             #print("Nessuna nota con lo stesso pitch trovata nel nuovo range.")
             return None  # Nessuna nota corrispondente trovata
-
-    # Every robot has a dictionary on what is the last note that others are playing.
-    # With this structure I can predict the next note to play consulting music scales dictionary.
-    # last 4 notes for every of my neighbourghs whom I reach treshold.
-    def get_note_info(self):
-        if self.recieved_message:
-            for entry in self.recieved_message:  # Itera direttamente sui dizionari nel buffer
-                if isinstance(entry, dict):  # Assicura che l'elemento sia un dizionario
-                    robot_number = entry.get("robot number")
-                    note = entry.get("note")
-                    if robot_number is not None and note is not None:
-                        # If the robot is not in the dictionar, initilize it.
-                        if robot_number not in self.local_music_map:
-                            self.local_music_map[robot_number] = deque(maxlen = self.max_notes_per_neighbourg)
-
-                        # add a new note in the robot queue.
-                        self.local_music_map[robot_number].append(note)
-            
-            # if the dictionary reaches maximum limit, remove the oldest data on it.
-            while len(self.local_music_map) > self.max_music_neighbourgs:
-                oldest_robot = next(iter(self.local_music_map))
-                del self.local_music_map[oldest_robot]
-
-    # timbre dictionary with the same functions of notes dictionary
-    def get_timbre_info(self):
-        if self.recieved_message:
-            for entry in self.recieved_message:
-                if isinstance(entry, dict):
-                    robot_number = entry.get("robot number")
-                    timbre = entry.get("timbre")
-
-                    if robot_number is not None and timbre is not None:
-                        if robot_number not in self.local_timbre_map:
-                            self.local_timbre_map[robot_number] = deque(maxlen=self.max_notes_per_neighbourg)
-                        
-                        self.local_timbre_map[robot_number].append(timbre)
-            
-            while len(self.local_timbre_map) > self.max_music_neighbourgs:
-                oldest_timbre = next(iter(self.local_timbre_map))
-                del self.local_timbre_map[oldest_timbre]
-    
-    # delay dictionary with the same functions of notes dictionary
-    def get_beat_info(self):
-        if self.recieved_message:
-            for entry in self.recieved_message:
-                if isinstance(entry, dict):
-                    robot_number = entry.get("robot number")
-                    beat = entry.get("beat")
-
-                    if robot_number is not None and beat is not None:
-                        # Inizializza la mappa per il robot se non esiste
-                        if robot_number not in self.local_beat_map:
-                            self.local_beat_map[robot_number] = beat  # Memorizza solo l'ultimo beat
-
-                        # Aggiorna il beat del robot con il più recente
-                        self.local_beat_map[robot_number] = beat
 
     # method to print note messages. 
     def print_musical_buffers(self):
@@ -512,20 +462,9 @@ class Robot:
         # method to control if I have the permission to play.
         self.control_playing_flag(millisecond)
     
-    def get_phase_info(self):
-        if self.recieved_message:
-            for entry in self.recieved_message:  
-                if isinstance(entry, dict):  
-                    robot_number = entry.get("robot number")
-                    phase_value = entry.get("phase")
-                    if robot_number is not None and phase_value is not None:
-                        self.local_phase_map[robot_number].append(phase_value)
-
-        # clear the dictionary after computing values.
-        self.local_phase_map.clear()
-    
     # kuramoto model that works with orchestra spartito 
     def update_phase_kuramoto_model(self, millisecond):
+        
         for sublist in self.orchestra_spartito:
             for entry in sublist:
                 if entry["ms"] == millisecond:  # Filtra solo l'entry corrispondente al millisecondo attuale
@@ -578,42 +517,60 @@ class Robot:
         
         # Se nessuna delle due condizioni precedenti, il colore dipende dal timbro
         if self.beat_counter != self.delay and self.beat_counter != 1:
+            
             if self.timbre == "Fl":
                 self.colour = colours['pink']
             elif self.timbre == "ClBb":
                 self.colour = colours['purple']
             elif self.timbre == "Bn":
                 self.colour = colours['blue']
-            
             elif self.timbre == "TpC":
                 self.colour = colours['yellow']
             elif self.timbre == "Tbn":
                 self.colour = colours['orange']
             elif self.timbre == "BTb":
-                self.colour = colours['yellow']
+                self.colour = colours['brown']
+
+            # Archi
+            elif self.timbre == "Vn":
+                self.colour = colours['light_blue']
+            elif self.timbre == "Va":
+                self.colour = colours['pink']
+            elif self.timbre == "Vc":
+                self.colour = colours['dark_blue']
+            elif self.timbre == "Cb":
+                self.colour = colours['sky_blue']
+            # Legni
+            elif self.timbre == "Ob":
+                self.colour = colours['light_blue']
+            elif self.timbre == "ASax":
+                self.colour = colours['orange']
+            # Ottoni
+            elif self.timbre == "Hn":
+                self.colour = colours['purple']
+
+            # Strumenti a tastiera e altri strumenti (se usati in futuro)
+            else:
+                self.colour = colours['green']  # Colore di default
+
          
-    
     # method to save what the other robots have been played and save notes into a structure.
-    def update_orchestra_spartito(self, full_spartito):
-        
+    def update_orchestra_spartito(self, full_spartito, millisecond, stimuli):
         if full_spartito is None or len(full_spartito) == 0:
             return  # Non aggiorna se lo spartito è vuoto
-        
         # I store all the infos about the other robots.
         self.orchestra_spartito.append([entry for entry in full_spartito if entry["musician"] != self.number])
-
-        # I sotre note info.
-        for sublist in self.orchestra_spartito:  
-            for entry in sublist: 
-                note = entry.get("note")  
-                if note is not None:
-                    pitch_note = note % 12
-                    self.music_map.append(pitch_note)  # Se piena, rimuove la più vecchia
-        #print("robot ",self.number, " music map: ", self.music_map)
         
-        if self.music_map:
+        if self.orchestra_spartito:
+            # HARMONY MODULE
             self.update_note()
-    
+            # PHASE MODULE
+            self.update_phase_kuramoto_model(millisecond)
+            # BEAT MODULE
+            self.update_beat_firefly(millisecond)
+            # TIMBRE MODULE
+            self.choose_timbre(stimuli)
+
     def update_beat_firefly(self,millisecond):
         # Trova tutti gli eventi con dynamic == 'ff'
         ff_entries = [entry for sublist in self.orchestra_spartito 
@@ -669,30 +626,77 @@ class Robot:
         self.beat_counter += move
         #print(f"robot {self.number} si sposta di {move} beat")
 
-
-    def set_colour_by_timbre(self):
-        if self.timbre == "Tbn":
-            self.colour = colours['light_blue']
-        elif self.timbre == "BTn":
-            self.colour = colours['blue']
-        elif self.timbre == "TpC":
-            self.colour = colours['grey']
-
 """
-def move_robot(self,new_x, new_y, new_vx, new_vy):
+    # timbre dictionary with the same functions of notes dictionary
+    def get_timbre_info(self):
+        if self.recieved_message:
+            for entry in self.recieved_message:
+                if isinstance(entry, dict):
+                    robot_number = entry.get("robot number")
+                    timbre = entry.get("timbre")
+
+                    if robot_number is not None and timbre is not None:
+                        if robot_number not in self.local_timbre_map:
+                            self.local_timbre_map[robot_number] = deque(maxlen=self.max_notes_per_neighbourg)
+                        
+                        self.local_timbre_map[robot_number].append(timbre)
+            
+            while len(self.local_timbre_map) > self.max_music_neighbourgs:
+                oldest_timbre = next(iter(self.local_timbre_map))
+                del self.local_timbre_map[oldest_timbre]
+    
+    # delay dictionary with the same functions of notes dictionary
+    def get_beat_info(self):
+        if self.recieved_message:
+            for entry in self.recieved_message:
+                if isinstance(entry, dict):
+                    robot_number = entry.get("robot number")
+                    beat = entry.get("beat")
+
+                    if robot_number is not None and beat is not None:
+                        # Inizializza la mappa per il robot se non esiste
+                        if robot_number not in self.local_beat_map:
+                            self.local_beat_map[robot_number] = beat  # Memorizza solo l'ultimo beat
+
+                        # Aggiorna il beat del robot con il più recente
+                        self.local_beat_map[robot_number] = beat
+    
+    def get_phase_info(self):
+        if self.recieved_message:
+            for entry in self.recieved_message:  
+                if isinstance(entry, dict):  
+                    robot_number = entry.get("robot number")
+                    phase_value = entry.get("phase")
+                    if robot_number is not None and phase_value is not None:
+                        self.local_phase_map[robot_number].append(phase_value)
+
+        # clear the dictionary after computing values.
+        self.local_phase_map.clear()
+    
+    # Every robot has a dictionary on what is the last note that others are playing.
+    # With this structure I can predict the next note to play consulting music scales dictionary.
+    # last 4 notes for every of my neighbourghs whom I reach treshold.
+    def get_note_info(self):
+        if self.recieved_message:
+            for entry in self.recieved_message:  # Itera direttamente sui dizionari nel buffer
+                if isinstance(entry, dict):  # Assicura che l'elemento sia un dizionario
+                    robot_number = entry.get("robot number")
+                    note = entry.get("note")
+                    if robot_number is not None and note is not None:
+                        # If the robot is not in the dictionar, initilize it.
+                        if robot_number not in self.local_music_map:
+                            self.local_music_map[robot_number] = deque(maxlen = self.max_notes_per_neighbourg)
+
+                        # add a new note in the robot queue.
+                        self.local_music_map[robot_number].append(note)
+            
+            # if the dictionary reaches maximum limit, remove the oldest data on it.
+            while len(self.local_music_map) > self.max_music_neighbourgs:
+                oldest_robot = next(iter(self.local_music_map))
+                del self.local_music_map[oldest_robot]
+
+    
         
-        self.x = new_x
-        self.y = new_y
-        self.vx = new_vx
-        self.vy = new_vy
-        # method to compute the bussola for visualing robot orientation.
-        self.compute_robot_compass()
-        
-        # Boundaries collision control
-        if self.x - self.radius <= 10 or self.x + self.radius >= self.rectangleArea_width:
-            self.change_direction_x_axes()
-        if self.y - self.radius <= 10 or self.y + self.radius >= self.rectangleArea_heigth:
-            self.change_direction_y_axes()
 """
 
 

@@ -24,15 +24,12 @@ class MIDIMessage():
         self.final_csv_music_path = os.path.join(csv_directory, self.music_csv_file)
         #print(self.final_csv_music_path)
         #os.makedirs(self.directory, exist_ok=True)
-        
         # if it necessary to write first row
         first_iteration = not os.path.exists(self.final_csv_music_path)
         
-        print (" first iteraction ", first_iteration)
-        
         # mode w writes the file, mode a appends vaues on the file.
         mode = "w" if first_iteration else "a"
-
+        
         with open(self.final_csv_music_path, mode= mode, newline = '') as file:
             writer = csv.DictWriter(file, fieldnames=["simulation number", "ms", "musician", "note", "dur","bpm", "timbre", "delay", "dynamic", "harmony"], delimiter=';')
             

@@ -78,28 +78,28 @@ orchestra_to_midi_range = {
     },
     "Woodwinds": {
         # flute
-        #"Fl": list(range(59, 98)),         # B3–D7
+        "Fl": list(range(59, 98)),         # B3–D7
         #"Piccolo": list(range(74, 109)),      # D5–C8
         # oboe
-        #"Ob": list(range(58, 92)),          # B3–G6
+        "Ob": list(range(58, 92)),          # B3–G6
         #"English Horn": list(range(52, 85)),  # E3–C6
         # clarinet Bb
-        #"ClBb": list(range(52, 92)),      # E3–C7
+        "ClBb": list(range(52, 92)),      # E3–C7
         #"Bass Clarinet": list(range(38, 66)), # D2–F5
         # bassoon
-        #"Bn": list(range(34, 75)),       # B1–E5
+        "Bn": list(range(34, 75)),       # B1–E5
         
     },
     "Brass": {
         # trumpet in C
-        "TpC": list(range(54, 87)),            # F#3–D6
+        #"TpC": list(range(54, 87)),            # F#3–D6
         # Trombone
-        "Tbn": list(range(34, 73)),           # E2–F5
+        #"Tbn": list(range(34, 73)),           # E2–F5
         #"Bass Trombone": list(range(36, 66)),      # C2–F4
         # horn
         #"Hn": list(range(31, 77)),        # F2–F5
         # Bass tuba
-        "BTb": list(range(30, 65))                # D1–F4
+        #"BTb": list(range(30, 65))                # D1–F4
     },
     "Percussion": {
         #"Timpani": list(range(38, 61)),            # D2–C4
@@ -122,7 +122,7 @@ orchestra_to_midi_range = {
     },
     "Other Instruments": {
         # alto sax
-        #"ASax": list(range(49, 81)),          # Bb3–F6
+        "ASax": list(range(49, 81)),          # Bb3–F6
         #"Accordion": list(range(41, 85)),          # F2–C6
         #"Classical Guitar": list(range(40, 89)),   # E2–E6
         #"Mandolin": list(range(55, 101))           # G3–E7
