@@ -10,6 +10,10 @@ from classes.analyzer import DataAnalyzer
 
 # I pass parameters in the main.           
 def main():
+    # Se stai eseguendo il debug, aggiungi i parametri manualmente
+    if len(sys.argv) == 1:  # Se non ci sono argomenti da linea di comando
+        sys.argv.extend(["1", "false"])  # Imposta valori di test
+    
     parser = argparse.ArgumentParser(description =" Esempio di script con un intero e due booleani")
     parser.add_argument("int_param", type=int, help = "Un parametro intero.")
     parser.add_argument("bool_param1", type=lambda x: x.lower() in ("true", "1", "yes"), help ="boolean video and audio (true/false).")
@@ -18,15 +22,11 @@ def main():
     args = parser.parse_args()
     int_param = args.int_param
     bool_video_audio = args.bool_param1 
-
+    
     # Controllo della condizione
     if int_param > 1 and bool_video_audio:
         print("Errore: se il parametro intero è maggiore di 1, il booleano deve essere False.")
         sys.exit(1)  # Terminare il programma con codice di errore 1
-
-    # Se stai eseguendo il debug, aggiungi i parametri manualmente
-    if len(sys.argv) == 1:  # Se non ci sono argomenti da linea di comando
-        sys.argv.extend(["1", "false"])  # Imposta valori di test
 
     print(f"Parametri accettati: int_param={int_param}, bool_video_audio={bool_video_audio}")
 

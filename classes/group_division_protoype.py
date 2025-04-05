@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 # Parametri del modello
 N = 10  # Numero di individui
 M = 3  # Numero di task
-T = 1000  # Numero di iterazioni
+T = 2000  # Numero di iterazioni
 
 alpha = 10  # Rinforzo positivo per chi fa il task
 beta = 3    # Rinforzo negativo per chi NON fa il task
@@ -47,7 +47,7 @@ for t in range(T):
     current_distribution = np.sum(task_performed, axis=0) / np.sum(task_performed) if np.sum(task_performed) > 0 else np.zeros(M)
     
     # Modifica dinamica degli stimoli in base alla differenza con la distribuzione target
-    delta_stimuli = (target_distribution - current_distribution) * 2  # Il fattore 2 amplifica la correzione
+    delta_stimuli = (target_distribution - current_distribution) * 5  # Il fattore 2 amplifica la correzione
     stimuli += delta_stimuli
     stimuli = np.clip(stimuli, 0, 1000)
 
@@ -55,27 +55,22 @@ for t in range(T):
     stimuli_history[t] = stimuli
     threshold_history[t] = thresholds
     tasks_performed_history[t] = np.sum(task_performed, axis=0)
-
-# 📊 PLOT EVOLUZIONE STIMOLI
-plt.figure(figsize=(10, 5))
-for j in range(M):
-    plt.plot(stimuli_history[:, j], label=f'Stimolo {j+1}')
-plt.xlabel("Tempo")
-plt.ylabel("Intensità dello stimolo")
-plt.title("Evoluzione degli stimoli nel tempo")
-plt.legend()
-plt.show()
-
+"""
 # 📊 PLOT EVOLUZIONE THRESHOLDS
+# thresholds plot
 plt.figure(figsize=(10, 5))
-plt.plot(np.mean(threshold_history, axis=(1,2)), label="Media Thresholds")
-plt.plot(np.mean(stimuli_history, axis=1), label="Media Stimoli")
-plt.xlabel("Tempo")
-plt.ylabel("Valore Medio")
-plt.title("Andamento Medio di Stimoli e Soglie")
-plt.legend()
-plt.show()
+for i in range(N):
+    for j in range(M):
+        plt.plot(threshold_history[:, i, j], label=f'Indiv {i+1} - Task {j+1}')
 
+    plt.xlabel("Tempo")
+    plt.ylabel("Soglia di risposta")
+    plt.title("Evoluzione delle soglie di risposta nel tempo con 3 task")
+    plt.legend()
+    plt.show()
+"""
+
+"""
 # 📊 PLOT TASK ESEGUITI NEL TEMPO
 plt.figure(figsize=(10, 5))
 for j in range(M):
@@ -85,6 +80,7 @@ plt.ylabel("Numero di volte eseguito")
 plt.title("Numero di volte che ogni task è stato eseguito nel tempo")
 plt.legend()
 plt.show()
+"""
 
 # 📊 CONFRONTO DISTRIBUZIONE DESIDERATA VS EFFETTIVA
 total_tasks = np.sum(tasks_performed_history, axis=0)

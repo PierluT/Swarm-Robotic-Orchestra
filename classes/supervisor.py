@@ -14,7 +14,6 @@ file_reader_valuse = File_Reader()
 values_dictionary = file_reader_valuse.read_configuration_file()
 
 class Supervisor:
-    
     def __init__(self, robots):
         # boundaries of rectangle area
         self.rectangleArea_width = values_dictionary['width_arena']
@@ -57,13 +56,14 @@ class Supervisor:
         self.timbre_list = [instrument for instruments in self.timbre_dictionary.values() for instrument in instruments]
         # I set an array of lenght number of timbres ( as tasks ) with 100 as initial value.
         self.stimuli = np.ones(self.num_timbres) * 100
+        self.target_distribution = np.array([0.6, 0.2, 0.2])
+        # variable to check if everybody has palyed and so I can update stimuli.
         self.reset_count = 0
     
     # method to compute iteratively the min and max midinote value that robot can play.
     def compute_midi_range_values(self):
         min_value = float('inf')  
         max_value = float('-inf') 
-        
         for section in orchestra_to_midi_range.values():
             for instrument_range in section.values():
                 min_value = min(min_value, min(instrument_range))
@@ -83,7 +83,7 @@ class Supervisor:
         s_n = simulation_number
         #csv_file_name = f"s_n{s_n}r_n{self.number_of_robots}_thr{self.threshold}_area{self.arena_area}.csv"
         csv_directory = "csv"
-        csv_folder = f"S_N{s_n}R_N{self.number_of_robots}_BPM{self.initial_bpm}_lambda{self.alpha}_timbres_number{self.num_timbres}"
+        csv_folder = f"S_N{s_n}R_N{self.number_of_robots}_BPM{self.initial_bpm}_timbres_number{self.num_timbres}"
         csv_video_file_name = "video.csv"
         csv_music_file_name = "music.csv"
         if not os.path.exists(csv_directory):
@@ -133,7 +133,8 @@ class Supervisor:
             robot = Robot(number = n, phase_period = phase_bar_value, delay_values = beats_array, sb = seconds_in_a_beat, time_signature = t_s, neighbors_number = self.number_of_robots)
             robot.compute_beat_threshold()
             robot.choose_timbre(self.stimuli)
-            #chosen_timbre = robot.timbre
+            # Memorizzo il robot e il timbro scelto nel set
+            self.robots_that_played.add((robot.number, robot.timbre))
             # I set the initial random note as one the notes that the initial timbre can play.
             notes_range = robot.get_midi_range_from_timbre()
             #robot.min_midinote, robot.max_midinote = self.compute_midi_range_values()
@@ -142,9 +143,11 @@ class Supervisor:
             robot.set_dynamic()
             # the supervisor has a complete dictionary of all the robots.
             self.dictionary_of_robots.append(robot)
+        
         # after the choice of everybody I update the stimuli.
         self.update_stimuli()
-        
+        # Dopo l'aggiornamento, svuoto il set per il prossimo ciclo
+        self.robots_that_played.clear()
 
     # method to set the intial positions of the robots, in order to avoid overlap.
     def compute_initial_positions(self):
@@ -227,7 +230,6 @@ class Supervisor:
 
         return new_x, new_y, new_vx, new_vy  # Ritorna i nuovi valori con traiettoria modificata
 
-
     def find_new_trajectory_angle(self, robot):
         current_angle = math.atan2(robot.vy, robot.vx)
         step = math.radians(10)  # Angolo di ricerca incrementale
@@ -280,10 +282,16 @@ class Supervisor:
     def update_stimuli(self):
         # I compute the timbres perfromed by the robots to compute what is needed to be played.
         task_performed = self.compute_task_performed()
-        # apply the stimuli update formula form the paper.
-        #self.stimuli += self.delta - ( self.alpha / self.number_of_robots) * np.sum(task_performed, axis=0)
-        self.stimuli += self.delta - (self.alpha / self.number_of_robots) * task_performed
-        #print(self.stimuli)
+        total_tasks = np.sum(task_performed)
+        # to see current distributions
+        current_distribution = task_performed / total_tasks
+        # compute difference between actual distibution and thr target one.
+        delta_distribution = (self.target_distribution - current_distribution) * 5
+        # MODIFIED STIMULI UPDATE FORMULA
+        self.stimuli += self.delta * delta_distribution - (self.alpha / self.number_of_robots) * task_performed
+        # STANDARD UPDATE FORMULA
+        #self.stimuli += self.delta - (self.alpha / self.number_of_robots) * task_performed
+        
         self.stimuli = np.clip(self.stimuli, 0, 1000)
 
     # EVERY ROBOT UPDATES ITS GLOBAL SPARTITO TO BE CONSCIOUS OF WHAT HAS BEEN PLAYED.
@@ -369,35 +377,3 @@ class Supervisor:
                 affinity_matrix[instrument1][instrument2] = count / total_pairs
     
         return affinity_matrix
-
-
-"""
-def new_positions_control(self, initial_robot):
-        next_x, next_y = self.compute_next_robot_position(initial_robot)
-        collision = False
-
-        # Controlla se la nuova posizione genera collisioni
-        for j in range(self.number_of_robots):
-            if j != initial_robot.number:
-
-                robot_b = self.dictionary_of_robots[j]
-                if self.compute_distance_with_coordinates(next_x, next_y, robot_b.x, robot_b.y) <= 2 * initial_robot.radius + 20:
-                    collision = True
-                    break
-        if not collision:
-            return next_x, next_y, initial_robot.vx, initial_robot.vy
-        else:
-            # Trova un nuovo angolo di traiettori
-            new_angle = self.find_new_trajectory_angle(initial_robot)
-            
-            # Calcola la nuova velocità in base al nuovo angolo
-            new_vx = initial_robot.velocity * math.cos(new_angle)
-            new_vy = initial_robot.velocity * math.sin(new_angle)
-            
-            # Calcola le nuove coordinate
-            new_x = initial_robot.x + new_vx
-            new_y = initial_robot.y + new_vy
-            
-            return new_x, new_y, new_vx, new_vy
-
-"""
