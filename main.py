@@ -98,20 +98,10 @@ def main():
                 supervisor.clean_robot_buffers()
             #print(supervisor.conductor_spartito)
             midi_class.write_csv(supervisor.conductor_spartito,simulation_number, csv_path)
-            # plot of the timbre threshold evolution
-            """
-            plt.figure(figsize=(10, 5))
+            
+            # plot of the timbre threshold evolution.
             for robot in supervisor.dictionary_of_robots:
-                threshold_history = np.array(robot.timbre_threshold_history)
-                for i in range(supervisor.num_timbres):
-                    plt.plot(threshold_history[:, i], label=f'Indiv {robot.number + 1} - Task {i+1}')
-
-                plt.xlabel("Tempo")
-                plt.ylabel("Soglia di risposta")
-                plt.title("Evoluzione delle soglie di risposta nel tempo con 3 task")
-                plt.legend()
-                plt.show()
-            """
+                robot.print_threshold_history(supervisor.csv_folder_directory)
             # for another simulation I clear all robot data.
             supervisor.dictionary_of_robots.clear()
             supervisor.conductor_spartito.clear() 

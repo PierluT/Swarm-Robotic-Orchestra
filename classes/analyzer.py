@@ -198,9 +198,9 @@ def phase_synchrony(sim_data):
 
     return synchrony_values
 
-analyzer = DataAnalyzer(analysis_function = None)
+#analyzer = DataAnalyzer(analysis_function = None)
 # Analisi per il numero di timbri
-analyzer.timbre_trend_boxplot()
+#analyzer.timbre_trend_boxplot()
 #csv_files = analyzer.get_csv_files()
 #print("File CSV trovati:", csv_files)
 #analyzer.timbre_analysis_across_robots()

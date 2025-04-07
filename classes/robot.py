@@ -5,7 +5,9 @@ import time
 import random
 import math
 import datetime
+import os
 from collections import defaultdict, deque
+import matplotlib.pyplot as plt
 from classes.file_reader import File_Reader
 from classes.dictionaries import colours, major_scales, major_pentatonic_scales, whole_tone_scales, orchestra_to_midi_range
 from classes.tempo import Note
@@ -480,6 +482,7 @@ class Robot:
         self.beat_phase %= (2 * np.pi)
         self.control_beat_flag(millisecond)
     
+    # method to control the beat and the reletive colour.
     def control_beat_flag(self, millisecond):
         # LOGICA PER GESTIRE IL BEAT
         if 0 <= self.beat_phase < self.threshold:  
@@ -553,7 +556,6 @@ class Robot:
             else:
                 self.colour = colours['green']  # Colore di default
 
-         
     # method to save what the other robots have been played and save notes into a structure.
     def update_orchestra_spartito(self, full_spartito, millisecond, stimuli):
         if full_spartito is None or len(full_spartito) == 0:
@@ -570,7 +572,8 @@ class Robot:
             self.update_beat_firefly(millisecond)
             # TIMBRE MODULE
             self.choose_timbre(stimuli)
-
+    
+    # method to update beat with firefly algorithm.
     def update_beat_firefly(self,millisecond):
         # Trova tutti gli eventi con dynamic == 'ff'
         ff_entries = [entry for sublist in self.orchestra_spartito 
@@ -625,6 +628,29 @@ class Robot:
             move = 1
         self.beat_counter += move
         #print(f"robot {self.number} si sposta di {move} beat")
+    
+    # method to print thresholds history.
+    def print_threshold_history(self, base_folder_path):
+        # crea sottocartella thresholds se non esiste
+        thresholds_dir = os.path.join(base_folder_path, "thresholds")
+        os.makedirs(thresholds_dir, exist_ok=True)
+        
+        threshold_history = np.array(self.timbre_threshold_history)
+        
+        plt.figure(figsize=(10, 5))
+        for i in range(self.num_timbres):
+            plt.plot(threshold_history[:, i], label=f'Indiv {self.number + 1} - Task {i+1}')
+        
+        plt.xlabel("Time")
+        plt.ylabel("Threshold")
+        plt.title(f"Threshold Evolution for Robot {self.number + 1} with {self.num_timbres} tasks")
+        plt.legend()
+        # salva il grafico
+        filename = f"robot_{self.number + 1}_thresholds.png"
+        save_path = os.path.join(thresholds_dir, filename)
+        plt.savefig(save_path)
+
+        plt.close()
 
 
 

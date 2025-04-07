@@ -15,6 +15,7 @@ values_dictionary = file_reader_valuse.read_configuration_file()
 
 class Supervisor:
     def __init__(self, robots):
+        self.csv_folder_directory = ""
         # boundaries of rectangle area
         self.rectangleArea_width = values_dictionary['width_arena']
         self.rectangleArea_heigth = values_dictionary['height_arena']
@@ -49,6 +50,7 @@ class Supervisor:
         self.new_note = False
         # TIMBRE MODULE
         # stimuli parameters
+        self.stimuli_update_mode = values_dictionary['stimuli_update']
         self.alpha = 3
         self.delta = 1
         self.timbre_dictionary = orchestra_to_midi_range
@@ -81,11 +83,16 @@ class Supervisor:
     
     def set_up_csv_directory(self,simulation_number):
         s_n = simulation_number
-        #csv_file_name = f"s_n{s_n}r_n{self.number_of_robots}_thr{self.threshold}_area{self.arena_area}.csv"
+        distribution_type = "_target_distribution" if self.stimuli_update_mode == "delta" else "_standard_distribution"
+        
         csv_directory = "csv"
-        csv_folder = f"S_N{s_n}R_N{self.number_of_robots}_BPM{self.initial_bpm}_timbres_number{self.num_timbres}"
+        csv_folder = f"S_N{s_n}R_N{self.number_of_robots}_BPM{self.initial_bpm}_timbres_number{self.num_timbres}{distribution_type}"
+        # to set up the general directory of the csv files.
+        self.csv_folder_directory = os.path.join(csv_directory, csv_folder)
+        
         csv_video_file_name = "video.csv"
         csv_music_file_name = "music.csv"
+        
         if not os.path.exists(csv_directory):
             # creates directory if doesn't exist.
             os.mkdir(csv_directory)  
@@ -93,6 +100,7 @@ class Supervisor:
         if not os.path.exists(csv_folder_directory):
             # creates directory if doesn't exist.
             os.mkdir(csv_folder_directory)  
+        
         csv_final_path = os.path.join(csv_folder_directory,csv_video_file_name)
         # Percorso file music.csv
         csv_music_path = os.path.join(csv_folder_directory, csv_music_file_name)
@@ -287,11 +295,16 @@ class Supervisor:
         current_distribution = task_performed / total_tasks
         # compute difference between actual distibution and thr target one.
         delta_distribution = (self.target_distribution - current_distribution) * 5
-        # MODIFIED STIMULI UPDATE FORMULA
-        self.stimuli += self.delta * delta_distribution - (self.alpha / self.number_of_robots) * task_performed
+        
+        if self.stimuli_update_mode == "delta":
+            # MODIFIED STIMULI UPDATE FORMULA
+            self.stimuli += self.delta * delta_distribution - (self.alpha / self.number_of_robots) * task_performed
+        else:
+            # STANDARD UPDATE FORMULA
+            self.stimuli += self.delta - (self.alpha / self.number_of_robots) * task_performed
+        #self.stimuli += self.delta * delta_distribution - (self.alpha / self.number_of_robots) * task_performed
         # STANDARD UPDATE FORMULA
         #self.stimuli += self.delta - (self.alpha / self.number_of_robots) * task_performed
-        
         self.stimuli = np.clip(self.stimuli, 0, 1000)
 
     # EVERY ROBOT UPDATES ITS GLOBAL SPARTITO TO BE CONSCIOUS OF WHAT HAS BEEN PLAYED.
