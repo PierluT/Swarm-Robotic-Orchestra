@@ -20,6 +20,7 @@ class Supervisor:
         self.rectangleArea_width = values_dictionary['width_arena']
         self.rectangleArea_heigth = values_dictionary['height_arena']
         self.time = values_dictionary['milliseconds']
+        self.delta_incidence = values_dictionary['delta_incidence']
         self.arena_area = self.rectangleArea_width * self.rectangleArea_heigth
         # number of robots in the arena
         self.number_of_robots = values_dictionary['robot_number']
@@ -84,9 +85,23 @@ class Supervisor:
     def set_up_csv_directory(self,simulation_number):
         s_n = simulation_number
         distribution_type = "_target_distribution" if self.stimuli_update_mode == "delta" else "_standard_distribution"
-        
+        minutes = int(self.time / 60000)
         csv_directory = "csv"
-        csv_folder = f"S_N{s_n}R_N{self.number_of_robots}_BPM{self.initial_bpm}_timbres_number{self.num_timbres}{distribution_type}"
+        
+        csv_folder = (
+            # number of simulations
+            f"S_N{s_n}"
+            # number of robots
+            f"R_N{self.number_of_robots}"
+            # bpm of the simulation
+            f"_BPM{self.initial_bpm}"
+            # timbre engaged in the simulation
+            f"_timbres_number{self.num_timbres}"
+            # minutes of the simulation
+            f"_min{minutes}"
+            # type of stimuli update
+            f"{distribution_type}"
+        )
         # to set up the general directory of the csv files.
         self.csv_folder_directory = os.path.join(csv_directory, csv_folder)
         
@@ -294,7 +309,7 @@ class Supervisor:
         # to see current distributions
         current_distribution = task_performed / total_tasks
         # compute difference between actual distibution and thr target one.
-        delta_distribution = (self.target_distribution - current_distribution) * 5
+        delta_distribution = (self.target_distribution - current_distribution) * self.delta_incidence
         
         if self.stimuli_update_mode == "delta":
             # MODIFIED STIMULI UPDATE FORMULA
