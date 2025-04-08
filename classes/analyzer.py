@@ -1,148 +1,174 @@
 import os
 import pandas as pd
 import numpy as np
+import re
 import csv
 import matplotlib.pyplot as plt
 import seaborn as sns
 import glob
 from collections import Counter
+import re
 
 class DataAnalyzer:
+    
     def __init__(self, analysis_function=None):
-        self.csv_directory = "csv/harmony_consensous/robot_numbers_values"
-        self.time_conversion_factor = 1000
-        self.analysis_function = analysis_function  # Funzione di analisi generica
-        self.results_df = None
+        
+        self.csv_directory = ""
+        self.analysis_function = analysis_function  # generic analysis function
 
     def get_csv_files(self):
         """Trova tutti i file video.csv nelle sottocartelle di 'csv/'"""
         return glob.glob("csv/S_N*R_N*BPM*timbres_number*/video.csv", recursive=True)
 
-    def extract_robot_number(self, file_path):
-        """Estrae il numero di robot dal nome della cartella del file CSV."""
-        folder_name = os.path.basename(os.path.dirname(file_path))
-        parts = folder_name.split("R_N")
-        if len(parts) > 1:
-            return int(parts[1].split("_")[0])  # Prende il numero dopo "R_N"
-        return None
-
     def extract_parameter_from_folder(self, folder_path, parameter_name):
         """
-        Estrae il valore di un parametro (es. "timbres_number") dal nome della cartella.
+        Estrae il valore di un parametro (es. "T4min", "T5min", ecc.) dal nome della cartella usando regex.
+        
+        :param folder_path: Il percorso completo della cartella.
+        :param parameter_name: Il nome del parametro (ad esempio 'Tmin').
+        
+        :return: Il valore del parametro estratto, ad esempio 'T4min', 'T5min', ecc.
         """
         folder_name = os.path.basename(folder_path)
-        parts = folder_name.split(f"{parameter_name}")
         
-        if len(parts) > 1:
-            try:
-                return int(parts[1].split("_")[0])  # Prende il numero dopo il parametro
-            except ValueError:
-                return None
+        # Adatta la regex per cercare valori come 'T4min', 'T5min', ecc.
+        pattern = r"T(\d+)min"  # Cerca il formato 'T<number>min'
+        match = re.search(pattern, folder_name)
+        
+        if match:
+            return f"T{match.group(1)}min"  # Restituisce il parametro, ad esempio 'T4min', 'T5min'
+        
         return None
     
-    def analyze_parameter(self, parameter_name):
+    def timbres_trend_per_param(self, step_size=15000, param_name="Tmin"):
         """
-        Analizza la distribuzione dei timbri o di altri parametri (es. numero di robot, BPM, lambda, etc.).
+        Questa funzione genera grafici per l'evoluzione dei timbri in base al parametro passato (es. 'Tmin', 'number_of_robots', 'timbre').
         
-        :param parameter_name: Nome del parametro da analizzare (es. "timbres_number", "Num Robots").
+        :param step_size: La dimensione del passo per il binning temporale (default è 15000ms, ovvero 15 secondi).
+        :param param_name: Il parametro in base al quale fare la suddivisione (es. 'Tmin', 'number_of_robots', 'timbre').
         """
-        all_results = []
-
-        csv_folders = glob.glob(f"csv/S_N*R_N*BPM*lambda*timbres_number*")  # Trova tutte le cartelle
-
-        for folder in csv_folders:
-            param_value = self.extract_parameter_from_folder(folder, parameter_name)  # Estrai il valore del parametro
-            if param_value is None:
-                continue
-
-            csv_path = os.path.join(folder, "video.csv")  # Percorso del file CSV
-            if not os.path.exists(csv_path):
-                continue  # Salta se il file non esiste
-
-            df = pd.read_csv(csv_path, delimiter=";")
-            df_sorted = df.sort_values(by=['simulation number', 'robot number', 'ms'], ascending=[True, True, False])
-            last_millisecond_per_robot = df_sorted.drop_duplicates(subset=['simulation number', 'robot number'], keep='first')
-
-            # Conta i timbri per ogni simulazione
-            timbre_counts_per_simulation = last_millisecond_per_robot.groupby("simulation number")['timbre'].value_counts().unstack(fill_value=0)
-            timbre_counts_per_simulation[parameter_name] = param_value  # Aggiunge il valore del parametro come colonna
-
-            all_results.append(timbre_counts_per_simulation)
-
-        if not all_results:
-            print(f"Nessun dato disponibile per l'analisi del parametro: {parameter_name}")
-            return
-
-        # Unisce tutti i DataFrame
-        combined_df = pd.concat(all_results)
-
-        # Creazione del DataFrame in formato lungo
-        df_long = combined_df.reset_index().melt(id_vars=[parameter_name], var_name="Timbre", value_name="Count")
-
-        # Se il parametro è "timbres_number", correggi il nome della colonna per coerenza con i dati
-        if parameter_name == "timbres_number":
-            df_long.rename(columns={"Timbre": "timbre"}, inplace=True)
-
-        # Creazione del boxplot
-        plt.figure(figsize=(10, 6))
-        sns.boxplot(x=parameter_name, y="Count", data=df_long, palette='Set2')
-
-        # Aggiungi etichette al grafico
-        plt.title(f'Distribuzione Timbri per {parameter_name}')
-        plt.xlabel(parameter_name)
-        plt.ylabel('Count')
-
-        plt.xticks(rotation=45, ha='right')
-        plt.tight_layout()
-        plt.show()
-    
-    def timbre_trend_boxplot(self, step_size=15000):
-        """
-        Mostra l'evoluzione della percentuale dei timbri nel tempo (normalizzata per robot),
-        con linee tratteggiate che indicano la distribuzione attesa (TpC=60%, altri=20%).
-        """
-        import matplotlib.pyplot as plt
-        import seaborn as sns
-        import pandas as pd
-
         all_data = []
-
         csv_files = self.get_csv_files()
 
         for file_path in csv_files:
-            df = pd.read_csv(file_path, delimiter=";")
-            df['time_bin'] = ((df['ms'] // step_size) * step_size) / 1000  # tempo in secondi
+            try:
+                df = pd.read_csv(file_path, delimiter=";")
+            except Exception as e:
+                print(f"Errore nel file {file_path}: {e}")
+                continue
 
-            # Prendiamo il timbro più recente di ogni robot in ogni intervallo di tempo
+            # Estrai il parametro dal percorso della cartella
+            folder = os.path.dirname(file_path)
+            param_value = self.extract_parameter_from_folder(folder, param_name)
+            
+            if param_value is None:
+                print(f"⚠️ {param_name} non trovato in {folder}")
+                continue
+
+            # Binning temporale (es. ogni 15 sec)
+            df['time_bin'] = ((df['ms'] // step_size) * step_size) / 1000  # secondi
+
+            # Prendiamo il timbro più recente di ogni robot in ogni intervallo
             latest_timbre = df.sort_values(by='ms').groupby(['simulation number', 'robot number', 'time_bin']).last().reset_index()
 
-            # Conta i timbri per ciascun intervallo e normalizza (10 robot = totale 1.0)
+            # Conta timbri per ogni bin temporale e simulazione
             timbre_counts = latest_timbre.groupby(['simulation number', 'time_bin', 'timbre']).size().reset_index(name='count')
-            timbre_counts['percentage'] = timbre_counts['count'] / 10  # perché ci sono 10 robot
+            timbre_counts['percentage'] = timbre_counts['count'] / len(df['robot number'].unique())  # Usa il numero totale di robot nel dataset
+            timbre_counts[param_name] = param_value  # Aggiungi il parametro come colonna
 
             all_data.append(timbre_counts)
 
         if not all_data:
-            print("Nessun dato disponibile per l'analisi.")
+            print("❌ Nessun dato disponibile.")
             return
 
         final_df = pd.concat(all_data)
 
-        plt.figure(figsize=(18, 8))
-        sns.boxplot(x="time_bin", y="percentage", hue="timbre", data=final_df, palette="Set2")
+        # Plot multipli per ogni valore del parametro
+        unique_values = sorted(final_df[param_name].unique())  # Trova i valori unici del parametro
+        num_plots = len(unique_values)
 
-        # Linee tratteggiate per percentuali attese
-        #plt.axhline(0.6, ls='--', color='gray', label='TpC desired (60%)')
-        #plt.axhline(0.2, ls='--', color='gray', label='BTb/Tbn desired (20%)')
+        plt.figure(figsize=(16, 5 * num_plots))
 
-        plt.title('Percentage Distribution of timbre Over Time')
-        plt.xlabel('Time (seconds)')
-        plt.ylabel('Percentage of Robots per timbre')
-        plt.xticks(rotation=45)
-        plt.legend(title='Timbre', loc='upper right')
+        for i, value in enumerate(unique_values, 1):
+            plt.subplot(num_plots, 1, i)
+            subset = final_df[final_df[param_name] == value]
+            sns.boxplot(x="time_bin", y="percentage", hue="timbre", data=subset, palette="Set2")
+            plt.axhline(0.6, ls='--', color='gray', label='TpC desired (60%)')
+            plt.axhline(0.2, ls='--', color='gray', label='BTb/Tbn desired (20%)')
+            plt.title(f"Timbres evolution for {param_name} = {value}", fontsize=10, pad=20)
+            plt.xlabel("Time (s)", fontsize=8, labelpad=20, loc='left')  # Etichetta 'Time' a sinistra
+            plt.ylabel("Robot percentage per timbre", fontsize=8)
+            plt.legend(title="Timbre", loc="upper right")
+
+        # Aggiungi margini extra tra i subplot
+        plt.subplots_adjust(hspace=0.5, left=0.1)
+
+        # Ottimizza il layout
         plt.tight_layout()
         plt.show()
 
+    def timbre_trend_per_robot_count(self, step_size=15000):
+        all_data = []
+        csv_files = self.get_csv_files()
+
+        for file_path in csv_files:
+            try:
+                df = pd.read_csv(file_path, delimiter=";")
+            except Exception as e:
+                print(f"Errore nel file {file_path}: {e}")
+                continue
+
+            # Estrai numero di robot dalla cartella
+            folder = os.path.dirname(file_path)
+            num_robots = self.extract_parameter_from_folder(folder, "R_N")
+            if num_robots is None:
+                print(f"⚠️ Numero di robot non trovato in {folder}")
+                continue
+
+            # Binning temporale (es. ogni 15 sec)
+            df['time_bin'] = ((df['ms'] // step_size) * step_size) / 1000  # secondi
+
+            # Prendiamo il timbro più recente di ogni robot in ogni intervallo
+            latest_timbre = df.sort_values(by='ms').groupby(['simulation number', 'robot number', 'time_bin']).last().reset_index()
+
+            # Conta timbri per ogni bin temporale e simulazione
+            timbre_counts = latest_timbre.groupby(['simulation number', 'time_bin', 'timbre']).size().reset_index(name='count')
+            timbre_counts['percentage'] = timbre_counts['count'] / num_robots
+            timbre_counts['number_of_robots'] = num_robots
+
+            all_data.append(timbre_counts)
+
+        if not all_data:
+            print("❌ Nessun dato disponibile.")
+            return
+
+        final_df = pd.concat(all_data)
+
+        # Plot multipli per ogni configurazione di numero di robot
+        unique_robot_counts = sorted(final_df['number_of_robots'].unique())
+        num_plots = len(unique_robot_counts)
+
+        plt.figure(figsize=(16, 5 * num_plots))
+
+        for i, robot_count in enumerate(unique_robot_counts, 1):
+            plt.subplot(num_plots, 1, i)
+            subset = final_df[final_df['number_of_robots'] == robot_count]
+            sns.boxplot(x="time_bin", y="percentage", hue="timbre", data=subset, palette="Set2")
+            plt.axhline(0.6, ls='--', color='gray', label='TpC desired (60%)')
+            plt.axhline(0.2, ls='--', color='gray', label='BTb/Tbn desired (20%)')
+            plt.title(f"Timbres evolution for - {robot_count} robots", fontsize=10, pad=20)  # Pad per il titolo
+            plt.xlabel("Time (s)", fontsize=8, labelpad=20, loc='left')  # Posiziona 'Time' a sinistra
+            plt.ylabel("Robot percentage per timbre", fontsize=8)
+            plt.legend(title="Timbre", loc="upper right")
+
+        # Aggiungi margini extra tra i subplot
+        plt.subplots_adjust(hspace=0.5, left=0.1)  # Aggiungi margine sinistro e spazio tra i subplot
+
+        # Ottimizza il layout
+        plt.tight_layout()
+        plt.show()
+    
 def harmony_consensus(sim_data):
     """
     Compute harmony consensus H(t) for a dataset.
@@ -198,7 +224,12 @@ def phase_synchrony(sim_data):
 
     return synchrony_values
 
-#analyzer = DataAnalyzer(analysis_function = None)
+"""
+analyzer = DataAnalyzer(analysis_function = None)
+a = analyzer.get_csv_files()
+folder_path = os.path.dirname(a[0])
+print("File CSV trovati:", folder_path)
+print(analyzer.extract_parameter_from_folder(folder_path, "timbres_number"))
 # Analisi per il numero di timbri
 #analyzer.timbre_trend_boxplot()
 #csv_files = analyzer.get_csv_files()
@@ -210,58 +241,6 @@ def phase_synchrony(sim_data):
 #print(analyzer.extract_robot_number(analyzer.get_csv_files())) 
 
 """
-#  PLOT METHODS FOR TIMBRE ALLOCATION
-    
-    def timbre_analysis_across_robots(self):
-        all_results = []
-
-        # Trova tutti i file CSV nelle cartelle specificate
-        csv_files = self.get_csv_files()
-
-        for file_path in csv_files:
-            num_robots = self.extract_robot_number(file_path)
-            if num_robots is None:
-                continue  # Salta file non validi
-
-            # Carica il file CSV
-            df = pd.read_csv(file_path, delimiter=";")
-
-            # Ordina per numero di simulazione, robot number e millisecondo
-            df_sorted = df.sort_values(by=['simulation number', 'robot number', 'ms'], ascending=[True, True, False])
-
-            # Prendi l'ultimo millisecondo per ogni robot in ogni simulazione
-            last_millisecond_per_robot = df_sorted.drop_duplicates(subset=['simulation number', 'robot number'], keep='first')
-
-            # Conta i timbri per ogni simulazione
-            timbre_counts = last_millisecond_per_robot.groupby("simulation number")['timbre'].value_counts().unstack(fill_value=0)
-
-            # Aggiungi una colonna per il numero di robot
-            timbre_counts['Num Robots'] = num_robots
-
-            all_results.append(timbre_counts)
-
-        # Unisce tutti i DataFrame raccolti
-        if not all_results:
-            print("Nessun dato disponibile per l'analisi dei timbri.")
-            return
-
-        final_df = pd.concat(all_results)
-
-        # Boxplot per visualizzare la distribuzione dei timbri nei diversi setup di robot
-        plt.figure(figsize=(12, 6))
-        sns.boxplot(data=final_df.melt(id_vars=['Num Robots'], var_name='Timbre', value_name='Count'),
-                    x='Timbre', y='Count', hue='Num Robots', palette='Set1')
-
-        # Etichette del grafico
-        plt.title('Distribuzione dei Timbri nelle Simulazioni')
-        plt.xlabel('Timbre')
-        plt.ylabel('Conteggio')
-        plt.legend(title='Num Robots', loc='upper right')
-        plt.xticks(rotation=45, ha='right')
-
-        # Mostra il grafico
-        plt.tight_layout()
-        plt.show()
-
-    
-        """
+analyzer = DataAnalyzer(analysis_function = None)
+#analyzer.timbre_trend_per_robot_count()
+analyzer.timbres_trend_per_param(step_size=15000, param_name="Tmin")

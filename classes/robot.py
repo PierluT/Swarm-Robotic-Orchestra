@@ -4,7 +4,6 @@ import numpy as np
 import time
 import random
 import math
-import datetime
 import os
 from collections import defaultdict, deque
 import matplotlib.pyplot as plt
@@ -118,9 +117,6 @@ class Robot:
         self.timbre_threshold_history = []
         self.timbre_threshold_history.append(self.timbre_thresholds.copy())
         self.last_timbre = None  # Ultimo timbro suonato
-        self.elle = 0
-        self.effe = 0
-
 
     def __repr__(self):
         return f"Robot(number = {self.number}, phase = {self.phase})"
@@ -198,7 +194,6 @@ class Robot:
             self.change_direction_x_axes()
         if self.y - self.radius <= 10 or self.y + self.radius >= self.rectangleArea_heigth:
             self.change_direction_y_axes()
-
 
     # method to set the dynamics based on the delay, to stress the first note of the measure.
     def set_dynamic(self):
@@ -337,7 +332,7 @@ class Robot:
     
     # method to set the timbre based on thresholds and stimuli.
     def choose_timbre(self, stimuli):
-        self.elle += 1
+
         chosen_timbre = None
         probabilities = []
         
@@ -391,7 +386,7 @@ class Robot:
         # Trova l'indice del timbro scelto
         #print(f"R: ", self.number, " Updating thresholds for chosen timbre: {chosen_timbre}")
         chosen_index = self.timbre_list.index(chosen_timbre)
-        task_performed = np.zeros(self.num_timbres)  # Indica se il timbro è stato scelto (1 se sì, 0 se no)
+        #task_performed = np.zeros(self.num_timbres)  # Indica se il timbro è stato scelto (1 se sì, 0 se no)
         
         # Aggiornamento delle soglie
         for j in range(self.num_timbres):

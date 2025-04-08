@@ -44,12 +44,9 @@ def main():
             print("##################################")
             print(f"EXECUTION NUMBER {simulation_number}")
             # CLEAN EVERYTHING BEFORE EXECUTION 
-            # method to clean previous png files in order to not overlap them.
             arena.clean_png_folder()
             # method to set robot positions and initial random notes.
             supervisor.setup_robots()
-            #print("lista")
-            #print(supervisor.timbre_list)
             
             for millisecond in range(0,supervisor.time):          
                 # ROBOTS WRITE A note IN THE GLOBAL SPARTITO
@@ -97,17 +94,16 @@ def main():
                 # to clean the robot ears.
                 supervisor.clean_robot_buffers()
             #print(supervisor.conductor_spartito)
-            midi_class.write_csv(supervisor.conductor_spartito,simulation_number, csv_path)
-            
-            # plot of the timbre threshold evolution.
-            for robot in supervisor.dictionary_of_robots:
-                robot.print_threshold_history(supervisor.csv_folder_directory)
+            midi_class.write_csv(supervisor.conductor_spartito,simulation_number, csv_path)            
             # for another simulation I clear all robot data.
             supervisor.dictionary_of_robots.clear()
             supervisor.conductor_spartito.clear() 
     #analyzer.timbre_analysis_across_robots(csv_path)
     
     if bool_video_audio: 
+        # plot of the timbre threshold evolution.
+        for robot in supervisor.dictionary_of_robots:
+            robot.print_threshold_history(supervisor.csv_folder_directory)
         # VISUALIZATION PART       
         arena.load_robot_data(csv_path, simulation_number)
         arena.draw_all_robots()
