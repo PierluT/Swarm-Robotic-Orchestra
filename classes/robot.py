@@ -16,8 +16,9 @@ values_dictionary = file_reader_valuse.read_configuration_file()
 
 class Robot:
     
-    def __init__(self, number, phase_period, delay_values, sb, time_signature, neighbors_number):
+    def __init__(self, number, phase_period, delay_values, sb, time_signature):
         self.number = number
+        self.total_robots = values_dictionary['robot_number']
         # value for robot set.
         self.radius = values_dictionary['radius']
         self.rectangleArea_width = values_dictionary['width_arena']
@@ -46,10 +47,6 @@ class Robot:
         self.playing_flag = False
         self.triggered_playing_flag = False
         self.last_direction_change_time = time.time()
-        # moving status
-        self.moving_status = ""
-        self.stop_counter = 0
-        self.moving_counter = 0
         # MUSIC VARIABLES
         self.scales = major_pentatonic_scales
         self.note = None
@@ -86,33 +83,42 @@ class Robot:
         #self.beat_phase = 0
         self.beat_phase = np.random.uniform(0, 2 * np.pi)
         self.beat_phase_denominator = phase_period / self.number_of_beats
-        #self.beat_counter = 1
         #self.beat_counter = random.choice(self.d_values)
         self.beat_counter = random.choice([val for val in self.d_values if val != self.delay])
         self.first_beat_control_flag = True
         self.threshold = 0
         self.last_beat_phase = 0
-        self.neighbors_number = neighbors_number - 1
-        # orchestra spartito
+        self.neighbors_number = self.total_robots - 1
+        # ORCHESTRA SPARTITO
         self.orchestra_spartito = []
         self.ms_dynamic_ff = []
         self.music_map = deque(maxlen = self.neighbors_number)
         self.first_beat_ms = 0
         self.first_saved_beat = False
         self.supposed_scales = []
-        # BIO-INSPIRED VARIABLES
-        # Booleano per tracciare la prima chiamata
+        # TIMBRE MODULE
+        # boolean for the first call of the method
         self.first_call = True
-        # learning rate
+        # learning rate for thresholds
         self.learing_rate = 10
-        # forgetting rate
+        # forgetting rate for thresholds
         self.forgetting_rate = 3
-        # probability to stop the task
-        self.p = 0.2
+        # variables for stimuli
+        self.stimuli_update_mode = values_dictionary['stimuli_update']
+        self.alpha = 3
+        self.delta = 5
+        self.delta_incidence = values_dictionary['delta_incidence']
+        # variabile to store robots that played on this measure
+        self.robots_that_played = set()
+        # variable to check if everybody has palyed and so I can update stimuli.
+        self.reset_count = 0
+        # corresponds to number of the tasks.
         self.timbre_dictionary = orchestra_to_midi_range
+        self.num_timbres = sum(len(instruments) for instruments in self.timbre_dictionary.values())
+        self.stimuli = np.ones(self.num_timbres) * 100
+        self.target_distribution = np.array([0.6, 0.2, 0.2])
         self.timbre_list = [instrument for instruments in self.timbre_dictionary.values() for instrument in instruments]
         self.timbre = ""
-        self.num_timbres = sum(len(instruments) for instruments in self.timbre_dictionary.values())
         self.timbre_thresholds =  np.full(self.num_timbres, 500, dtype=float)
         self.timbre_threshold_history = []
         self.timbre_threshold_history.append(self.timbre_thresholds.copy())
@@ -206,13 +212,11 @@ class Robot:
     # method to to compute harmonicity with other robots.
     def update_note(self):
         # I store note info.
-        for sublist in self.orchestra_spartito:  
-            for entry in sublist: 
-                note = entry.get("note")  
-                if note is not None:
-                    pitch_note = note % 12
-                    self.music_map.append(pitch_note)  # If it's full, it removes the older one.
-
+        for entry in self.orchestra_spartito:  
+            note = entry.get("note") 
+            if note is not None:
+                pitch_note = note % 12
+                self.music_map.append(pitch_note)  # If it's full, it removes the older one.
         # extract only notes from my dictionary
         notes_to_check = list(self.music_map)
         #mas = 0
@@ -331,14 +335,14 @@ class Robot:
         #print("nota "+str(self.note.pitch))
     
     # method to set the timbre based on thresholds and stimuli.
-    def choose_timbre(self, stimuli):
+    def choose_timbre(self):
 
         chosen_timbre = None
         probabilities = []
         
         # compute the probabilities to choose each timbre
         for j in range(self.num_timbres):
-            prob = stimuli[j] ** 2 / (stimuli[j] ** 2 + self.timbre_thresholds[j] ** 2)
+            prob = self.stimuli[j] ** 2 / (self.stimuli[j] ** 2 + self.timbre_thresholds[j] ** 2)
             probabilities.append(prob)
         
         # Choose the timbre based on the probabilities
@@ -362,7 +366,7 @@ class Robot:
         self.update_thresholds(chosen_timbre)
         new_midi_range = self.get_midi_range_from_timbre()
         # only from the second method call: I check if the midinote is within the range of my new timbre,
-        # # otherwise I change note octave. 
+        # otherwise I change note octave. 
         if not self.first_call:
             if self.note.midinote in new_midi_range:
                 return
@@ -372,7 +376,6 @@ class Robot:
                 new_midinote = self.find_closest_midinote(new_midi_range)
                 self.note.midinote = new_midinote
                 #print(f"Nuova nota MIDI: {new_midinote}")
-        
         # once I enter into the method for the first time I set the first call to false.
         self.first_call = False 
 
@@ -450,6 +453,14 @@ class Robot:
         }
 
         self.my_spartito.append(spartito_entry)
+        # wjen I play anote I add to the list of heard notes the note I played and wich ibstrument I played.
+        self.robots_that_played.add((self.number, self.timbre))
+        # Controlla se tutti i robot hanno suonato
+        unique_musicians = {robot for robot, _ in self.robots_that_played}  # Estrai solo i numeri dei robot
+        if len(unique_musicians) == self.total_robots:
+            #print(f"Reset numero {self.reset_count + 1}: Tutti i robot hanno suonato. ({self.robots_that_played})")
+            self.update_stimuli()  # Aggiorna gli stimoli
+            
     
     # method to update internal robot phase.
     def update_phase(self,millisecond):
@@ -462,11 +473,10 @@ class Robot:
     # kuramoto model that works with orchestra spartito 
     def update_phase_kuramoto_model(self, millisecond):
         
-        for sublist in self.orchestra_spartito:
-            for entry in sublist:
-                if entry["ms"] == millisecond:  # Filtra solo l'entry corrispondente al millisecondo attuale
-                    received_phase = entry["beat phase"]
-                    self.beat_phase += self.K * np.sin(received_phase - self.beat_phase)
+        for entry in self.orchestra_spartito:
+            if entry["ms"] == millisecond:
+                received_phase = entry["beat phase"]
+                self.beat_phase += self.K * np.sin(received_phase - self.beat_phase)
 
         # Normalizzazione della fase nel range [0, 2π]
         self.beat_phase %= (2 * np.pi)
@@ -487,9 +497,8 @@ class Robot:
                 self.first_beat_control_flag = True  
         else:
             self.first_beat_control_flag = False  
-        
         # LOGIC TO UPDATE MY SPARTITO.
-        # ADD DELAY VALUE TO SIMULATE IN A MORE REALISTIC WAY.
+        # if I am in the first beat of the measure, I play.
         if self.beat_counter == self.delay:
             self.colour = colours['grey']
             if not self.triggered_playing_flag:
@@ -513,7 +522,7 @@ class Robot:
         else:
             self.first_saved_beat = False
         
-        # Se nessuna delle due condizioni precedenti, il colore dipende dal timbro
+        # if noone of the previous conditions is true, than the color depends on the timbre.
         if self.beat_counter != self.delay and self.beat_counter != 1:
             
             if self.timbre == "Fl":
@@ -552,12 +561,14 @@ class Robot:
                 self.colour = colours['green']  # Colore di default
 
     # method to save what the other robots have been played and save notes into a structure.
-    def update_orchestra_spartito(self, full_spartito, millisecond, stimuli):
-        if full_spartito is None or len(full_spartito) == 0:
-            return  # Non aggiorna se lo spartito è vuoto
-        # I store all the infos about the other robots.
-        self.orchestra_spartito.append([entry for entry in full_spartito if entry["musician"] != self.number])
+    def update_orchestra_spartito(self, full_spartito, millisecond):
         
+        if full_spartito is None or len(full_spartito) == 0:
+            return  # Non aggiorna se lo spartito è vuot
+        # I store all the infos about the other robots.
+        #self.orchestra_spartito.append([entry for entry in full_spartito if entry["musician"] != self.number])
+        self.orchestra_spartito.extend(entry for entry in full_spartito if entry["musician"] != self.number)
+
         if self.orchestra_spartito:
             # HARMONY MODULE
             self.update_note()
@@ -566,13 +577,22 @@ class Robot:
             # BEAT MODULE
             self.update_beat_firefly(millisecond)
             # TIMBRE MODULE
-            self.choose_timbre(stimuli)
-    
+            self.choose_timbre()
+
+        # I check If everyone has played to update stimuli.
+        for entry in self.orchestra_spartito:
+            self.robots_that_played.add((entry['musician'], entry['timbre']))
+        
+        # Controlla se tutti i robot hanno suonato
+        unique_musicians = {robot for robot, _ in self.robots_that_played}  # Estrai solo i numeri dei robot
+        if len(unique_musicians) == self.total_robots:
+            #print(f"Reset numero {self.reset_count + 1}: Tutti i robot hanno suonato. ({self.robots_that_played})")
+            self.update_stimuli()  # Aggiorna gli stimoli
+        
     # method to update beat with firefly algorithm.
     def update_beat_firefly(self,millisecond):
         # Trova tutti gli eventi con dynamic == 'ff'
-        ff_entries = [entry for sublist in self.orchestra_spartito 
-              for entry in sublist 
+        ff_entries = [entry for entry in self.orchestra_spartito 
               if entry["ms"] == millisecond and entry["dynamic"] == "ff"]
         
         if not ff_entries:
@@ -646,6 +666,55 @@ class Robot:
         plt.savefig(save_path)
 
         plt.close()
+
+    def compute_task_performed(self):
+        """
+        Compute task performed base on supervisor conductor spartito.
+        Every timbre has 1 if it is recently played, otherwise 0.
+
+        """
+        # initialize the array of task performed by the robots.
+        task_performed = np.zeros(self.num_timbres)
+        # Conta quante volte ogni timbro è stato suonato
+        timbre_counts = {}  # Dizionario per contare le occorrenze di ogni timbro
+        for robot, timbre in self.robots_that_played:
+            if timbre in timbre_counts:
+                timbre_counts[timbre] += 1
+            else:
+                timbre_counts[timbre] = 1
+
+        # Popola l'array task_performed con il conteggio dei timbri suonati
+        for i, timbre in enumerate(self.timbre_list):
+            if timbre in timbre_counts:
+                task_performed[i] = timbre_counts[timbre]
+
+        #print(task_performed)
+        return task_performed
+    
+    def update_stimuli(self):
+        # I compute the timbres perfromed by the robots to compute what is needed to be played.
+        task_performed = self.compute_task_performed()
+        total_tasks = np.sum(task_performed)
+        # to see current distributions
+        current_distribution = task_performed / total_tasks
+        # compute difference between actual distibution and thr target one.
+        # delta_distribution = (self.target_distribution - current_distribution) * self.delta_incidence
+        delta_distribution = (self.target_distribution - current_distribution) # delta=5 ## in questo caso mi aspetto performance IDENTICHE. Il vantaggio è che ti rimuovi un parametro
+        #2nd delta_distribution = self.target_distribution # delta=10
+
+        if self.stimuli_update_mode == "delta":
+            # MODIFIED STIMULI UPDATE FORMULA
+            self.stimuli += self.delta * delta_distribution - (self.alpha / self.total_robots) * task_performed
+        else:
+            # STANDARD UPDATE FORMULA
+            self.stimuli += self.delta - (self.alpha / self.total_robots) * task_performed
+        #self.stimuli += self.delta * delta_distribution - (self.alpha / self.number_of_robots) * task_performed
+        # STANDARD UPDATE FORMULA
+        #self.stimuli += self.delta - (self.alpha / self.number_of_robots) * task_performed
+        self.stimuli = np.clip(self.stimuli, 0, 1000)
+        self.reset_count += 1
+        self.robots_that_played.clear()  # Resetta il set di robot che hanno suonato
+    
 
 
 

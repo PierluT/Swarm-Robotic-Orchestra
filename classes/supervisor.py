@@ -20,7 +20,7 @@ class Supervisor:
         self.rectangleArea_width = values_dictionary['width_arena']
         self.rectangleArea_heigth = values_dictionary['height_arena']
         self.time = values_dictionary['milliseconds']
-        self.delta_incidence = values_dictionary['delta_incidence']
+        #self.delta_incidence = values_dictionary['delta_incidence']
         self.arena_area = self.rectangleArea_width * self.rectangleArea_heigth
         # number of robots in the arena
         self.number_of_robots = values_dictionary['robot_number']
@@ -35,7 +35,7 @@ class Supervisor:
         # final music sheet that will be converted into audio file.
         self.conductor_spartito = []
         # variabile to store robots that played on this measure
-        self.robots_that_played = set()
+        #self.robots_that_played = set()
         # to found the minimum a maximum mid value.
         self.min_midinote = 0
         self.max_midinote = 0
@@ -52,16 +52,17 @@ class Supervisor:
         # TIMBRE MODULE
         # stimuli parameters
         self.stimuli_update_mode = values_dictionary['stimuli_update']
-        self.alpha = 3
-        self.delta = 1
+        #self.alpha = 3
+        #self.delta = 1
         self.timbre_dictionary = orchestra_to_midi_range
         self.num_timbres = sum(len(instruments) for instruments in self.timbre_dictionary.values())
-        self.timbre_list = [instrument for instruments in self.timbre_dictionary.values() for instrument in instruments]
+        #self.timbre_list = [instrument for instruments in self.timbre_dictionary.values() for instrument in instruments]
         # I set an array of lenght number of timbres ( as tasks ) with 100 as initial value.
-        self.stimuli = np.ones(self.num_timbres) * 100
-        self.target_distribution = np.array([0.6, 0.2, 0.2])
+        #self.stimuli = np.ones(self.num_timbres) * 100
+        # read from config file
+        #self.target_distribution = np.array([0.6, 0.2, 0.2])
         # variable to check if everybody has palyed and so I can update stimuli.
-        self.reset_count = 0
+        #self.reset_count = 0
     
     # method to compute iteratively the min and max midinote value that robot can play.
     def compute_midi_range_values(self):
@@ -90,17 +91,17 @@ class Supervisor:
         
         csv_folder = (
             # number of simulations
-            f"S_N{s_n}"
+            f"S_N{s_n}_"
             # number of robots
-            f"R_N{self.number_of_robots}"
+            f"R_N{self.number_of_robots}_"
             # bpm of the simulation
-            f"_BPM{self.initial_bpm}"
+            f"_BPM{self.initial_bpm}_"
             # timbre engaged in the simulation
-            f"_timbres_number{self.num_timbres}"
+            f"_timbres_number{self.num_timbres}_"
             # minutes of the simulation
-            f"_min{minutes}"
+            f"_min{minutes}_"
             # type of stimuli update
-            f"{distribution_type}"
+            f"{distribution_type}_"
         )
         # to set up the general directory of the csv files.
         self.csv_folder_directory = os.path.join(csv_directory, csv_folder)
@@ -150,14 +151,16 @@ class Supervisor:
 
     # method to return the list of robots and assign a phase to each of them.
     def create_dictionary_of_robots(self):  
+        # TIME SIGNATURE SETUP.
         number_of_beats, phase_bar_value, seconds_in_a_beat, t_s = self.compute_phase_bar_value()
         beats_array = list(range(1, number_of_beats +1))
+        
         for n in range(self.number_of_robots):
-            robot = Robot(number = n, phase_period = phase_bar_value, delay_values = beats_array, sb = seconds_in_a_beat, time_signature = t_s, neighbors_number = self.number_of_robots)
+            robot = Robot(number = n, phase_period = phase_bar_value, delay_values = beats_array, sb = seconds_in_a_beat, time_signature = t_s)
             robot.compute_beat_threshold()
-            robot.choose_timbre(self.stimuli)
+            robot.choose_timbre()
             # Memorizzo il robot e il timbro scelto nel set
-            self.robots_that_played.add((robot.number, robot.timbre))
+            #self.robots_that_played.add((robot.number, robot.timbre))
             # I set the initial random note as one the notes that the initial timbre can play.
             notes_range = robot.get_midi_range_from_timbre()
             #robot.min_midinote, robot.max_midinote = self.compute_midi_range_values()
@@ -168,9 +171,9 @@ class Supervisor:
             self.dictionary_of_robots.append(robot)
         
         # after the choice of everybody I update the stimuli.
-        self.update_stimuli()
+        #self.update_stimuli()
         # Dopo l'aggiornamento, svuoto il set per il prossimo ciclo
-        self.robots_that_played.clear()
+        #self.robots_that_played.clear()
 
     # method to set the intial positions of the robots, in order to avoid overlap.
     def compute_initial_positions(self):
@@ -278,56 +281,12 @@ class Supervisor:
         
         return current_angle  # Se non trova alternative, mantiene la direzione attuale
 
-    def compute_task_performed(self):
-        """
-        Compute task performed base on supervisor conductor spartito.
-        Every timbre has 1 if it is recently played, otherwise 0.
-
-        """
-        # initialize the array of task performed by the robots.
-        task_performed = np.zeros(self.num_timbres)
-        # Conta quante volte ogni timbro è stato suonato
-        timbre_counts = {}  # Dizionario per contare le occorrenze di ogni timbro
-        for robot, timbre in self.robots_that_played:
-            if timbre in timbre_counts:
-                timbre_counts[timbre] += 1
-            else:
-                timbre_counts[timbre] = 1
-
-        # Popola l'array task_performed con il conteggio dei timbri suonati
-        for i, timbre in enumerate(self.timbre_list):
-            if timbre in timbre_counts:
-                task_performed[i] = timbre_counts[timbre]
-
-        #print(task_performed)
-        return task_performed
-
-    def update_stimuli(self):
-        # I compute the timbres perfromed by the robots to compute what is needed to be played.
-        task_performed = self.compute_task_performed()
-        total_tasks = np.sum(task_performed)
-        # to see current distributions
-        current_distribution = task_performed / total_tasks
-        # compute difference between actual distibution and thr target one.
-        delta_distribution = (self.target_distribution - current_distribution) * self.delta_incidence
-        
-        if self.stimuli_update_mode == "delta":
-            # MODIFIED STIMULI UPDATE FORMULA
-            self.stimuli += self.delta * delta_distribution - (self.alpha / self.number_of_robots) * task_performed
-        else:
-            # STANDARD UPDATE FORMULA
-            self.stimuli += self.delta - (self.alpha / self.number_of_robots) * task_performed
-        #self.stimuli += self.delta * delta_distribution - (self.alpha / self.number_of_robots) * task_performed
-        # STANDARD UPDATE FORMULA
-        #self.stimuli += self.delta - (self.alpha / self.number_of_robots) * task_performed
-        self.stimuli = np.clip(self.stimuli, 0, 1000)
-
     # EVERY ROBOT UPDATES ITS GLOBAL SPARTITO TO BE CONSCIOUS OF WHAT HAS BEEN PLAYED.
     def update_global_robot_spartito(self, millisecond):
         # I update the global infos of every robot.
         for robot in self.dictionary_of_robots:
             # robot stores what the other ones have been played.
-            robot.update_orchestra_spartito(self.conductor_spartito, millisecond, self.stimuli)    
+            robot.update_orchestra_spartito(self.conductor_spartito, millisecond)    
 
     def send_neighborg_positions(self):
         for robot in self.dictionary_of_robots.values():
@@ -368,8 +327,8 @@ class Supervisor:
         self.conductor_spartito.extend(robot_spartito)
         # orders the conductor spartito by ms value.
         self.conductor_spartito.sort(key=lambda x: x["ms"])
-
-        # I sotre the number of the robot that played to check if everyone played
+        """
+        # I store the number of the robot that played to check if everyone played
         # for this measure
         for entry in robot_spartito:
             self.robots_that_played.add((entry['musician'], entry['timbre']))
@@ -381,7 +340,7 @@ class Supervisor:
             self.update_stimuli()  # Aggiorna gli stimoli
             self.robots_that_played.clear()  # Resetta il set
             self.reset_count += 1
-        
+        """
         return self.conductor_spartito
 
     def calculate_instrument_affinity(self):
@@ -405,3 +364,48 @@ class Supervisor:
                 affinity_matrix[instrument1][instrument2] = count / total_pairs
     
         return affinity_matrix
+
+"""
+def compute_task_performed(self):
+    # Initialize the array of task performed by the robots.
+        # initialize the array of task performed by the robots.
+        task_performed = np.zeros(self.num_timbres)
+        # Conta quante volte ogni timbro è stato suonato
+        timbre_counts = {}  # Dizionario per contare le occorrenze di ogni timbro
+        for robot, timbre in self.robots_that_played:
+            if timbre in timbre_counts:
+                timbre_counts[timbre] += 1
+            else:
+                timbre_counts[timbre] = 1
+
+        # Popola l'array task_performed con il conteggio dei timbri suonati
+        for i, timbre in enumerate(self.timbre_list):
+            if timbre in timbre_counts:
+                task_performed[i] = timbre_counts[timbre]
+
+        #print(task_performed)
+        return task_performed
+
+    def update_stimuli(self):
+        # I compute the timbres perfromed by the robots to compute what is needed to be played.
+        task_performed = self.compute_task_performed()
+        total_tasks = np.sum(task_performed)
+        # to see current distributions
+        current_distribution = task_performed / total_tasks
+        # compute difference between actual distibution and thr target one.
+        delta_distribution = (self.target_distribution - current_distribution) * self.delta_incidence
+        #1st delta_distribution = (self.target_distribution - current_distribution) # delta=5 ## in questo caso mi aspetto performance IDENTICHE. Il vantaggio è che ti rimuovi un parametro
+        #2nd delta_distribution = self.target_distribution # delta=10
+
+        if self.stimuli_update_mode == "delta":
+            # MODIFIED STIMULI UPDATE FORMULA
+            self.stimuli += self.delta * delta_distribution - (self.alpha / self.number_of_robots) * task_performed
+        else:
+            # STANDARD UPDATE FORMULA
+            self.stimuli += self.delta - (self.alpha / self.number_of_robots) * task_performed
+        #self.stimuli += self.delta * delta_distribution - (self.alpha / self.number_of_robots) * task_performed
+        # STANDARD UPDATE FORMULA
+        #self.stimuli += self.delta - (self.alpha / self.number_of_robots) * task_performed
+        self.stimuli = np.clip(self.stimuli, 0, 1000)
+
+"""

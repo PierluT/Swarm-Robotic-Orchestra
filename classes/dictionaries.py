@@ -97,9 +97,9 @@ orchestra_to_midi_range = {
         "Tbn": list(range(34, 73)),           # E2–F5
         #"Bass Trombone": list(range(36, 66)),      # C2–F4
         # horn
-        #"Hn": list(range(31, 77)),        # F2–F5
+        "Hn": list(range(31, 77)),        # F2–F5
         # Bass tuba
-        "BTb": list(range(30, 65))                # D1–F4
+        #"BTb": list(range(30, 65))                # D1–F4
     },
     "Percussion": {
         #"Timpani": list(range(38, 61)),            # D2–C4
