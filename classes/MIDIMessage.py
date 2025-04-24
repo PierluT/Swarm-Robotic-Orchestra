@@ -6,10 +6,6 @@ import pandas as pd
 from scipy.io.wavfile import write
 from pathlib import Path
 import soundfile as sf
-from classes.file_reader import File_Reader
-
-file_reader_valuse = File_Reader()
-values_dictionary = file_reader_valuse.read_configuration_file()
 
 class MIDIMessage():
     
