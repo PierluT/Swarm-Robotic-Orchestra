@@ -1,4 +1,3 @@
-
 import math
 import numpy as np
 import time
@@ -6,25 +5,26 @@ import random
 import math
 import os
 from collections import defaultdict, deque
+from configparser import ConfigParser
 import matplotlib.pyplot as plt
-from classes.file_reader import File_Reader
 from classes.dictionaries import colours, major_scales, major_pentatonic_scales, whole_tone_scales, orchestra_to_midi_range
 from classes.tempo import Note
 
-file_reader_valuse = File_Reader()
-values_dictionary = file_reader_valuse.read_configuration_file()
+# Leggi il file
+config = ConfigParser()
+config.read('configuration.ini')
 
 class Robot:
     
     def __init__(self, number, phase_period, delay_values, sb, time_signature):
         self.number = number
-        self.total_robots = values_dictionary['robot_number']
+        self.total_robots = int(config['PARAMETERS']['robot_number'])
         # value for robot set.
-        self.radius = values_dictionary['radius']
-        self.rectangleArea_width = values_dictionary['width_arena']
-        self.rectangleArea_heigth = values_dictionary['height_arena']
+        self.radius = int(config['PARAMETERS']['radius'])
+        self.rectangleArea_width = int(config['PARAMETERS']['width_arena'])
+        self.rectangleArea_heigth = int(config['PARAMETERS']['height_arena'])
         self.colour = colours['green']
-        self.velocity = float(values_dictionary['velocity'])
+        self.velocity = float(config['PARAMETERS']['velocity'])
         self.vx = random.choice([-1, 1]) * self.velocity
         self.vy = random.choice([-1, 1]) * self.velocity
         # initial position for the robot
@@ -100,14 +100,14 @@ class Robot:
         # boolean for the first call of the method
         self.first_call = True
         # learning rate for thresholds
-        self.learing_rate = 10
+        self.learing_rate = 8
         # forgetting rate for thresholds
         self.forgetting_rate = 3
         # variables for stimuli
-        self.stimuli_update_mode = values_dictionary['stimuli_update']
+        self.stimuli_update_mode = config['PARAMETERS']['stimuli_update']
         self.alpha = 3
-        self.delta = 5
-        self.delta_incidence = values_dictionary['delta_incidence']
+        self.delta = 2
+        #self.delta_incidence = values_dictionary['delta_incidence']
         # variabile to store robots that played on this measure
         self.robots_that_played = set()
         # variable to check if everybody has palyed and so I can update stimuli.
@@ -448,8 +448,8 @@ class Robot:
             "bpm": self.note.bpm,
             "timbre": self.timbre,
             "delay": self.delay,
-            "beat phase": self.beat_phase,
-            "harmony": self.harmony
+            "beat phase": self.beat_phase
+            #"harmony": self.harmony
         }
 
         self.my_spartito.append(spartito_entry)
@@ -460,7 +460,6 @@ class Robot:
         if len(unique_musicians) == self.total_robots:
             #print(f"Reset numero {self.reset_count + 1}: Tutti i robot hanno suonato. ({self.robots_that_played})")
             self.update_stimuli()  # Aggiorna gli stimoli
-            
     
     # method to update internal robot phase.
     def update_phase(self,millisecond):
@@ -697,14 +696,17 @@ class Robot:
         total_tasks = np.sum(task_performed)
         # to see current distributions
         current_distribution = task_performed / total_tasks
-        # compute difference between actual distibution and thr target one.
-        # delta_distribution = (self.target_distribution - current_distribution) * self.delta_incidence
-        delta_distribution = (self.target_distribution - current_distribution) # delta=5 ## in questo caso mi aspetto performance IDENTICHE. Il vantaggio è che ti rimuovi un parametro
-        #2nd delta_distribution = self.target_distribution # delta=10
+        # 1st delta update distribution formula WORKS
+        delta_distribution = (self.target_distribution - current_distribution) 
+        # 2nd delta distribution formula
+        # delta_distribution = self.target_distribution
 
         if self.stimuli_update_mode == "delta":
             # MODIFIED STIMULI UPDATE FORMULA
-            self.stimuli += self.delta * delta_distribution - (self.alpha / self.total_robots) * task_performed
+            # try to remove alpha from the formula.
+            # WORKS
+            #self.stimuli += self.delta * delta_distribution - (self.alpha / self.total_robots) * task_performed
+            self.stimuli+= self.delta* delta_distribution
         else:
             # STANDARD UPDATE FORMULA
             self.stimuli += self.delta - (self.alpha / self.total_robots) * task_performed
@@ -715,7 +717,8 @@ class Robot:
         self.reset_count += 1
         self.robots_that_played.clear()  # Resetta il set di robot che hanno suonato
     
-
-
-
-
+    # to compute dinamically the target distributuion based on the number of instruments.
+    def compute_target_distribution(self):
+        number_of_instruments = self.total_robots // max(self.d_values)
+        print("number of instruments: ", number_of_instruments)
+    

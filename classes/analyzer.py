@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import glob
 from collections import Counter
+from configparser import ConfigParser
 import re
 
 class DataAnalyzer:
@@ -86,6 +87,71 @@ class DataAnalyzer:
             plt.legend(title="Timbre", loc="upper right")
 
         plt.subplots_adjust(hspace=0.5, left=0.1)
+        plt.tight_layout()
+        plt.show()
+
+    def timbre_trend_by_parameter(self, parameter_name="R_N", step_size=15000):
+        all_data = []
+        csv_files = self.get_csv_files()
+
+        for file_path in csv_files:
+            try:
+                df = pd.read_csv(file_path, delimiter=";")
+            except Exception as e:
+                print(f"❌ Errore nel file {file_path}: {e}")
+                continue
+
+            folder = os.path.dirname(file_path)
+
+            # Estrai parametro per suddividere i grafici (in questo caso la lunghezza della simulazione)
+            parameter_value = self.extract_parameter_from_folder(folder, parameter_name)
+            # Estrai numero di robot per calcolare le percentuali
+            num_robots = self.extract_parameter_from_folder(folder, "R_N")
+
+            if parameter_value is None:
+                print(f"⚠️ Valore '{parameter_name}' non trovato in {folder}")
+                continue
+            if num_robots is None:
+                print(f"⚠️ Numero di robot non trovato in {folder}")
+                continue
+
+            df['time_bin'] = ((df['ms'] // step_size) * step_size) / 1000  # bin in secondi
+
+            # Estrai l'ultimo timbro di ogni robot per ogni intervallo di tempo
+            latest_timbre = df.sort_values(by='ms').groupby(['simulation number', 'robot number', 'time_bin']).last().reset_index()
+
+            # Conta i timbri per ciascun bin temporale
+            timbre_counts = latest_timbre.groupby(['simulation number', 'time_bin', 'timbre']).size().reset_index(name='count')
+            timbre_counts['percentage'] = timbre_counts['count'] / num_robots  # Calcola la percentuale rispetto al numero di robot
+            timbre_counts[parameter_name] = parameter_value  # Aggiungi il valore del parametro per ogni file
+
+            all_data.append(timbre_counts)
+
+        if not all_data:
+            print("❌ Nessun dato disponibile.")
+            return
+
+        final_df = pd.concat(all_data)
+
+        unique_values = sorted(final_df[parameter_name].unique())  # Valori unici per 'min'
+        num_plots = len(unique_values)  # Numero di plot da fare
+
+        # Crea la figura con dimensioni adeguate
+        plt.figure(figsize=(16, 4 * num_plots))
+
+        for i, val in enumerate(unique_values, 1):
+            plt.subplot(num_plots, 1, i)
+            subset = final_df[final_df[parameter_name] == val]  # Seleziona i dati per ogni lunghezza della simulazione
+            sns.boxplot(x="time_bin", y="percentage", hue="timbre", data=subset, palette="Set2")
+            plt.axhline(0.6, ls='--', color='gray', label='TpC desired (60%)')
+            plt.axhline(0.2, ls='--', color='gray', label='BTb/Tbn desired (20%)')
+            plt.title(f"Timbres evolution for {parameter_name} = {val} minutes", fontsize=12, pad=10)
+            plt.xlabel("Time (s)", fontsize=8, labelpad=20, loc='left')
+            plt.ylabel("Robot percentage per timbre", fontsize=10)
+            plt.ylim(0, 1)  # Limita l'asse y tra 0 e 1 (percentuali)
+            plt.legend(title="Timbre", loc="upper right")
+
+        plt.subplots_adjust(hspace=0.5, top=0.95)
         plt.tight_layout()
         plt.show()
 
@@ -212,6 +278,32 @@ analyzer.timbre_analysis_across_robots()
 #print(analyzer.extract_robot_number(analyzer.get_csv_files())) #
 
 """
-analyzer = DataAnalyzer(analysis_function = None)
-analyzer.timbre_trend_per_robot_count()
+#analyzer = DataAnalyzer(analysis_function = None)
+#analyzer.timbre_trend_by_parameter(parameter_name="R_N", step_size=15000)
 
+
+
+"""
+# Leggi il file
+config = ConfigParser()
+config.read('configuration.ini')
+
+# Estrai parametri
+robot_number = int(config['PARAMETERS']['robot_number'])
+width_arena = int(config['PARAMETERS']['width_arena'])
+height_arena = int(config['PARAMETERS']['height_arena'])
+velocity = float(config['PARAMETERS']['velocity'])
+radius = int(config['PARAMETERS']['radius'])
+radar = int(config['PARAMETERS']['radar'])
+threshold = int(config['PARAMETERS']['threshold'])
+milliseconds = int(config['PARAMETERS']['milliseconds'])
+sensor = int(config['PARAMETERS']['sensor'])
+bpm = int(config['PARAMETERS']['bpm'])
+stimuli_update = config['PARAMETERS']['stimuli_update']
+delta_incidence = int(config['PARAMETERS']['delta_incidence'])
+
+
+print(f"Numero di robot: {robot_number}")
+print(f"Larghezza dell'arena: {width_arena}")
+print(f"Altezza dell'arena: {height_arena}")
+"""

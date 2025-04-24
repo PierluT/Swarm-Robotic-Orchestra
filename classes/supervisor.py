@@ -1,41 +1,38 @@
 import math
-import numpy as np
 import random
 import time
 import os
 import shutil
 from classes.robot import Robot
-from classes.file_reader import File_Reader
 from classes.tempo import TimeSignature
 from classes.dictionaries import orchestra_to_midi_range, music_formations
 from collections import defaultdict
+from configparser import ConfigParser
 
-file_reader_valuse = File_Reader()
-values_dictionary = file_reader_valuse.read_configuration_file()
+config = ConfigParser()
+config.read('configuration.ini')
 
 class Supervisor:
     def __init__(self, robots):
         self.csv_folder_directory = ""
         # boundaries of rectangle area
-        self.rectangleArea_width = values_dictionary['width_arena']
-        self.rectangleArea_heigth = values_dictionary['height_arena']
-        self.time = values_dictionary['milliseconds']
+        self.rectangleArea_width = int(config['PARAMETERS']['width_arena'])
+        self.rectangleArea_heigth = int(config['PARAMETERS']['height_arena'])
+        self.time = int(config['PARAMETERS']['milliseconds'])
         #self.delta_incidence = values_dictionary['delta_incidence']
         self.arena_area = self.rectangleArea_width * self.rectangleArea_heigth
         # number of robots in the arena
-        self.number_of_robots = values_dictionary['robot_number']
+        self.number_of_robots = int(config['PARAMETERS']['robot_number'])
         # dictionary of created robots
         self.dictionary_of_robots = []
         # value for communication
-        self.threshold = values_dictionary['threshold']
+        self.threshold = int(config['PARAMETERS']['threshold'])
         # value for collision
-        self.collision_margin = values_dictionary['radar']
+        self.collision_margin = int(config['PARAMETERS']['radar'])
         # dictionary of distance bewteen a robot and each others.
         self.distances = [[0 for _ in range(self.number_of_robots)] for _ in range(self.number_of_robots)] 
         # final music sheet that will be converted into audio file.
         self.conductor_spartito = []
-        # variabile to store robots that played on this measure
-        #self.robots_that_played = set()
         # to found the minimum a maximum mid value.
         self.min_midinote = 0
         self.max_midinote = 0
@@ -44,25 +41,16 @@ class Supervisor:
         # time interval for phases check 
         self.last_check_time = time.time()
         # this value is the ability of a robot to see thing around it.
-        self.sensor = values_dictionary['sensor']
-        self.initial_bpm = values_dictionary['bpm']
+        self.sensor = int(config['PARAMETERS']['sensor'])
+        self.initial_bpm = int(config['PARAMETERS']['bpm'])
         self.music_formations = music_formations
         self.csv_folder = ""
         self.new_note = False
         # TIMBRE MODULE
         # stimuli parameters
-        self.stimuli_update_mode = values_dictionary['stimuli_update']
-        #self.alpha = 3
-        #self.delta = 1
+        self.stimuli_update_mode = config['PARAMETERS']['stimuli_update']
         self.timbre_dictionary = orchestra_to_midi_range
         self.num_timbres = sum(len(instruments) for instruments in self.timbre_dictionary.values())
-        #self.timbre_list = [instrument for instruments in self.timbre_dictionary.values() for instrument in instruments]
-        # I set an array of lenght number of timbres ( as tasks ) with 100 as initial value.
-        #self.stimuli = np.ones(self.num_timbres) * 100
-        # read from config file
-        #self.target_distribution = np.array([0.6, 0.2, 0.2])
-        # variable to check if everybody has palyed and so I can update stimuli.
-        #self.reset_count = 0
     
     # method to compute iteratively the min and max midinote value that robot can play.
     def compute_midi_range_values(self):
@@ -91,21 +79,20 @@ class Supervisor:
         
         csv_folder = (
             # number of simulations
-            f"S_N{s_n}_"
+            f"S_N_{s_n}"
             # number of robots
-            f"R_N{self.number_of_robots}_"
+            f"_R_N_{self.number_of_robots}"
             # bpm of the simulation
-            f"_BPM{self.initial_bpm}_"
+            f"_BPM_{self.initial_bpm}"
             # timbre engaged in the simulation
-            f"_timbres_number{self.num_timbres}_"
+            f"_timbres_number_{self.num_timbres}"
             # minutes of the simulation
-            f"_min{minutes}_"
+            f"_min_{minutes}"
             # type of stimuli update
-            f"{distribution_type}_"
+            f"{distribution_type}"
         )
         # to set up the general directory of the csv files.
         self.csv_folder_directory = os.path.join(csv_directory, csv_folder)
-        
         csv_video_file_name = "video.csv"
         csv_music_file_name = "music.csv"
         
@@ -154,26 +141,18 @@ class Supervisor:
         # TIME SIGNATURE SETUP.
         number_of_beats, phase_bar_value, seconds_in_a_beat, t_s = self.compute_phase_bar_value()
         beats_array = list(range(1, number_of_beats +1))
-        
         for n in range(self.number_of_robots):
             robot = Robot(number = n, phase_period = phase_bar_value, delay_values = beats_array, sb = seconds_in_a_beat, time_signature = t_s)
             robot.compute_beat_threshold()
             robot.choose_timbre()
-            # Memorizzo il robot e il timbro scelto nel set
-            #self.robots_that_played.add((robot.number, robot.timbre))
             # I set the initial random note as one the notes that the initial timbre can play.
             notes_range = robot.get_midi_range_from_timbre()
-            #robot.min_midinote, robot.max_midinote = self.compute_midi_range_values()
+            # robot.min_midinote, robot.max_midinote = self.compute_midi_range_values()
             initial_random_note = random.choice(notes_range)
             robot.create_new_note(initial_random_note, bpm = self.initial_bpm, duration = seconds_in_a_beat)
             robot.set_dynamic()
             # the supervisor has a complete dictionary of all the robots.
             self.dictionary_of_robots.append(robot)
-        
-        # after the choice of everybody I update the stimuli.
-        #self.update_stimuli()
-        # Dopo l'aggiornamento, svuoto il set per il prossimo ciclo
-        #self.robots_that_played.clear()
 
     # method to set the intial positions of the robots, in order to avoid overlap.
     def compute_initial_positions(self):
@@ -243,7 +222,6 @@ class Supervisor:
                 if self.compute_distance_with_coordinates(next_x, next_y, robot_b.x, robot_b.y) <= 2 * initial_robot.radius + 20:
                     collision = True
                     break
-
         if not collision:
             return next_x, next_y, new_vx, new_vy  #  Nessuna collisione, il robot può muoversi normalmente
 
@@ -327,20 +305,6 @@ class Supervisor:
         self.conductor_spartito.extend(robot_spartito)
         # orders the conductor spartito by ms value.
         self.conductor_spartito.sort(key=lambda x: x["ms"])
-        """
-        # I store the number of the robot that played to check if everyone played
-        # for this measure
-        for entry in robot_spartito:
-            self.robots_that_played.add((entry['musician'], entry['timbre']))
-        
-        # Controlla se tutti i robot hanno suonato
-        unique_musicians = {robot for robot, _ in self.robots_that_played}  # Estrai solo i numeri dei robot
-        if len(unique_musicians) == self.number_of_robots:
-            #print(f"Reset numero {self.reset_count + 1}: Tutti i robot hanno suonato. ({self.robots_that_played})")
-            self.update_stimuli()  # Aggiorna gli stimoli
-            self.robots_that_played.clear()  # Resetta il set
-            self.reset_count += 1
-        """
         return self.conductor_spartito
 
     def calculate_instrument_affinity(self):

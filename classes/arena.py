@@ -8,23 +8,25 @@ from pathlib import Path
 import csv
 import pandas as pd
 import shutil
-from classes.file_reader import File_Reader
 from collections import defaultdict
-
-file_reader_valuse = File_Reader()
-values_dictionary = file_reader_valuse.read_configuration_file()
+from configparser import ConfigParser
+config = ConfigParser()
+config.read('configuration.ini')
 
 class Arena:
 
     def __init__(self):
-        self.width = values_dictionary['width_arena']
-        self.height = values_dictionary['height_arena']
+        self.width = int(config['PARAMETERS']['width_arena'])
+        self.height = int(config['PARAMETERS']['height_arena'])
         self.arena = np.ones((self.height, self.width, 3), dtype=np.uint8) * np.array([200, 220, 240], dtype=np.uint8)
         self.robot_data = defaultdict(list)
         self.frame_counter = 0
         self.png_folder = "png"   
 
     def clean_png_folder(self):
+
+        # 🔽 Crea la cartella se non esiste
+        os.makedirs(self.png_folder, exist_ok=True)
 
         for filename in os.listdir(self.png_folder):
             file_path = os.path.join(self.png_folder, filename)
@@ -185,7 +187,7 @@ class Arena:
   
     def draw_robot(self,robot):
         #print(f"robot  numero: {robot.number}, Velocità X: {robot.vx}, Velocità Y: {robot.vy}")
-        cv2.circle(self.arena, (int(robot['x']), int(robot['y'])), values_dictionary['radius'], robot['colour'], -1)
+        cv2.circle(self.arena, (int(robot['x']), int(robot['y'])), int(config['PARAMETERS']['radius']), robot['colour'], -1)
         #cv2.circle(self.arena, (int(robot.x), int(robot.y)), robot.radar_radius, robot.colour)
         start_point, end_point = robot['compass']
         start_point = (int(start_point[0]), int(start_point[1]))
@@ -193,6 +195,6 @@ class Arena:
         cv2.line(self.arena, start_point, end_point, (255, 255, 255), 2)  # Linea bianca per l'orientamento
         
         # add a label for the number of the robot
-        label_position = (int(robot['x']) - 10, int(robot['y']) - values_dictionary['radius'] - 10)  # Regola la posizione sopra il robot
+        label_position = (int(robot['x']) - 10, int(robot['y']) - int(config['PARAMETERS']['radius']) - 10)  # Regola la posizione sopra il robot
         cv2.putText(self.arena, str(robot['robot_number']), label_position, 
                     cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 0), 2)  # Testo nero con spessore 2

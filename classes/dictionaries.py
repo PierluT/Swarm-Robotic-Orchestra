@@ -67,13 +67,13 @@ orchestra_to_midi_range = {
 
     "Strings": {
         # violin
-        #"Vn": list(range(55, 100)),      
+        "Vn": list(range(55, 100)),      
         # viola
         #"Va": list(range(48, 96)),         # C3–E6
         # violoncello
-        #"Vc": list(range(36, 84)),         # C2–E5
+        "Vc": list(range(36, 84)),         # C2–E5
         # contrabbasso
-        #"Cb": list(range(28, 72))  # B0–B3
+        "Cb": list(range(28, 72))  # B0–B3
         #"Harp": list(range(24, 104))          # C1–G7
     },
     "Woodwinds": {
@@ -92,12 +92,12 @@ orchestra_to_midi_range = {
     },
     "Brass": {
         # trumpet in C
-        "TpC": list(range(54, 87)),            # F#3–D6
+        #"TpC": list(range(54, 87)),            # F#3–D6
         # Trombone
-        "Tbn": list(range(34, 73)),           # E2–F5
+        #"Tbn": list(range(34, 73)),           # E2–F5
         #"Bass Trombone": list(range(36, 66)),      # C2–F4
         # horn
-        "Hn": list(range(31, 77)),        # F2–F5
+        #"Hn": list(range(31, 77)),        # F2–F5
         # Bass tuba
         #"BTb": list(range(30, 65))                # D1–F4
     },
