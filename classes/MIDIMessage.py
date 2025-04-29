@@ -57,7 +57,7 @@ class MIDIMessage():
         # dictionary to found needed WAV files.
         matched_files = []
         wav_folder_name = 'samples'
-        self.directory = Path(__file__).parent
+        self.directory = Path(__file__).parent.parent
         samples_directory = os.path.join(self.directory,wav_folder_name)
         
         for index, row in enumerate(data):
@@ -117,6 +117,7 @@ class MIDIMessage():
             # sampling frequency
             sr = 44100
             audio_data = np.zeros(int(((last_ms + 1000) / 1000) * sr))
+            
             for line, input_file in zip(lines[1:], wav_files):
                 parts = line.strip().split(';')
                 
@@ -138,8 +139,7 @@ class MIDIMessage():
 
                 except Exception as e:
                     print(f"Errore durante l'elaborazione della riga o del file {input_file}: {e}")
-
-        
+       
             sf.write(self.final_audio_file, audio_data, sr)
             print(f"File audio finale generato: {self.final_audio_file}")
 
