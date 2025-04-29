@@ -93,8 +93,8 @@ def main():
                 supervisor.new_note = False
                 # to clean the robot ears.
                 supervisor.clean_robot_buffers()
-            #for robot in supervisor.dictionary_of_robots:
-                #print("ROBOT:", robot.number, " reset count ", robot.reset_count)
+            for robot in supervisor.dictionary_of_robots:
+                print("ROBOT:", robot.number, " a ", robot.a)
                 #robot.print_threshold_history(supervisor.csv_folder_directory)
             #print(supervisor.conductor_spartito)
             midi_class.write_csv(supervisor.conductor_spartito,simulation_number, csv_path)            
