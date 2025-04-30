@@ -5,7 +5,7 @@ import os
 import shutil
 from classes.robot import Robot
 from classes.tempo import TimeSignature
-from classes.dictionaries import orchestra_to_midi_range, music_formations
+from classes.dictionaries import orchestra_to_midi_range
 from collections import defaultdict
 from configparser import ConfigParser
 
@@ -43,7 +43,6 @@ class Supervisor:
         # this value is the ability of a robot to see thing around it.
         self.sensor = int(config['PARAMETERS']['sensor'])
         self.initial_bpm = int(config['PARAMETERS']['bpm'])
-        self.music_formations = music_formations
         self.csv_folder = ""
         self.new_note = False
         # TIMBRE MODULE

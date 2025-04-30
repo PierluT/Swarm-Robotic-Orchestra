@@ -94,8 +94,8 @@ def process_wav_files(input_directory, output_directory, desired_duration):
             print(f"ATTENZIONE: La durata del file {new_filename} non corrisponde a quella desiderata!")
             print(f"Durata desiderata: {desired_duration}s, durata ottenuta: {output_duration}s.")
 
-input_directory = r"C:/Users/pierl\Downloads/TinySOL/TinySOL/audio/Winds/Sax_Alto/ordinario"
-output_directory = r"C:/Users/pierl/Desktop/samples/ASax"
+input_directory = r"C:/Users/pierl/Downloads/TinySOL/TinySOL/audio/Keyboards/Accordion/ordinario"
+output_directory = r"C:/Users/pierl/Desktop/samples/Acc"
 
 final_duration = 0.5
 
@@ -133,4 +133,4 @@ def generate_mixed_audio(output_file, duration=20.0):
     print(f"Audio finale sovrapposto salvato in: {output_file}")
 
 #output_final_wav_file = r"C:/Users/pierl/Desktop/MMI/tesi/robotic-orchestra/classes/samples/Mix-Audio.wav"
-#generate_mixed_audio(output_final_wav_file, duration=15.0)
+#generate_mixed_audio(output_final_wav_file, duration=1)

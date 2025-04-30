@@ -7,7 +7,7 @@ import os
 from collections import defaultdict, deque
 from configparser import ConfigParser
 import matplotlib.pyplot as plt
-from classes.dictionaries import colours, major_scales, major_pentatonic_scales, whole_tone_scales, orchestra_to_midi_range
+from classes.dictionaries import colours, major_scales, major_pentatonic_scales, whole_tone_scales, orchestra_to_midi_range, instrument_ensembles
 from classes.tempo import Note
 
 # Leggi il file
@@ -105,7 +105,7 @@ class Robot:
         # variables for stimuli
         self.stimuli_update_mode = config['PARAMETERS']['stimuli_update']
         self.alpha = 3
-        self.delta = 2
+        self.delta = 15
         #self.delta_incidence = values_dictionary['delta_incidence']
         # variabile to store robots that played on this measure
         self.robots_that_played = set()
@@ -124,8 +124,10 @@ class Robot:
         self.timbre_threshold_history = []
         self.timbre_threshold_history.append(self.timbre_thresholds.copy())
         self.last_timbre = None  # Ultimo timbro suonato
-        self.target_instrument = []
+        self.target_instruments = []
         self.a = 0
+        # AVAILABLE ENSEMBLES
+        self.ensembles = instrument_ensembles
 
     def __repr__(self):
         return f"Robot(number = {self.number}, phase = {self.phase})"
@@ -457,7 +459,6 @@ class Robot:
         # when I play a note I add to the list of heard notes the note I played and wich instrument I played.
         self.robots_that_played.add((self.number, self.timbre))
 
-    
     # method to update internal robot phase.
     def update_phase(self,millisecond):
         self.phase += (2 * np.pi / self.bar_phase_denominator)
@@ -577,15 +578,15 @@ class Robot:
             (entry["musician"], entry["timbre"]) for entry in current_entries
         )
 
-        # Controlla se ci sono nuovi musicisti
+        # Check if there're any new musicians.
         for entry in current_entries:
             musician_id = entry["musician"]
             if musician_id not in self.musicians_seen:
                 self.musicians_seen.add(musician_id)
                 new_musician_joined = True
-
+        # if I listen some new musician I update the target and instrument distribution.
         if new_musician_joined:
-            self.update_target_distribution()
+            self.update_target_and_instrument_distribution()
 
         if self.orchestra_spartito:
             # HARMONY MODULE
@@ -602,7 +603,7 @@ class Robot:
         unique_musicians = {robot for robot, _ in self.robots_that_played}
         # If the number of unique musicians is equal to the total number of robots, I update stimuli.
         if len(unique_musicians) == self.total_robots:
-            self.update_stimuli()  # Qui fai anche il clear, quindi tutto ok
+            self.update_stimuli() 
  
     # method to update beat with firefly algorithm.
     def update_beat_firefly(self):
@@ -710,7 +711,7 @@ class Robot:
         return task_performed
     
     def update_stimuli(self):
-        self.a += 1
+        
         # I compute the timbres perfromed by the robots to compute what is needed to be played.
         task_performed = self.compute_task_performed()
         total_tasks = np.sum(task_performed)
@@ -723,6 +724,7 @@ class Robot:
                 idx = self.timbre_list.index(target)
                 current_distribution.append(full_distribution[idx])
             else:
+                print("ciao")
                 current_distribution.append(0.0)
 
         # Ora i due array sono allineati
@@ -751,32 +753,27 @@ class Robot:
         self.reset_count += 1
         self.robots_that_played.clear()  
     
-    def update_target_distribution(self):
-        
+    def update_target_and_instrument_distribution(self):
+        #self.a += 1
         number_of_instruments = (len(self.musicians_seen) +1) // max(self.d_values)
 
         if number_of_instruments > 0:
-            # Distribuzione uniforme
+            # Uniform distribution
             self.target_distribution = [1 / number_of_instruments] * number_of_instruments
-
-            # Estrai tutti i nomi degli strumenti dal dizionario
-            all_instruments = []
-            for family in self.timbre_dictionary.values():
-                all_instruments.extend(family.keys())
-
-            # Se ci sono abbastanza strumenti, seleziona N a caso
-            if number_of_instruments <= len(all_instruments):
-                self.target_instruments = random.sample(all_instruments, number_of_instruments)
+            
+            # Recupera l'ensemble corrispondente, se esiste
+            if number_of_instruments in self.ensembles:
+                self.target_instruments = self.ensembles[number_of_instruments]
+                # Flatten se è una lista di liste
+                if isinstance(self.target_instruments[0], list):
+                    self.target_instruments = [instr for group in self.target_instruments for instr in group]
             else:
-                # Se ce ne sono pochi, prendi tutti quelli disponibili
-                self.target_instruments = all_instruments
-
+                self.target_instruments = []
         else:
             self.target_distribution = []
             self.target_instruments = []
 
-        print("🎯 Target distribution:", self.target_distribution)
-        print("🎵 Target instruments (random):", self.target_instruments)
+
 
 """
  # method to save what the other robots have been played and save notes into a structure.
