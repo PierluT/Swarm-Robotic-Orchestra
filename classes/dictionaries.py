@@ -123,171 +123,26 @@ orchestra_to_midi_range = {
     "Other Instruments": {
         # alto sax
         "ASax": list(range(49, 81)),                # Bb3–F6
-        #"Accordion": list(range(41, 85)),          # F2–C6
+        "Acc": list(range(28, 109)),          # F2–C6
         #"Classical Guitar": list(range(40, 89)),   # E2–E6
         #"Mandolin": list(range(55, 101))           # G3–E7
     }
 }
 
-music_formations = {
-    
-    "String Quartet": [
-        "Violin", "Violin", "Viola", "Cello"
-    ],
-    "Brass Decet": [
-        "Trumpet", "Trumpet", "Trombone", "Trombone", "Bass Trombone", 
-        "French Horn", "French Horn", "Tuba"
-    ],
-    "Piano and Cello": [
-        "Piano", "Cello"
-    ],
-    "Piano and Trumpet": [
-        "Piano", "Trumpet"
-    ],
-    "String Trio": [
-        "Violin", "Viola", "Cello"
-    ],
-    "Woodwind Septet": [
-        "Flute", "Oboe", "Clarinet", "Bassoon", 
-    ],
-    "Brass Sextet": [
-        "Trumpet", "Trumpet", "Trombone", "Trombone", "French Horn", "Tuba"
-    ],
-    "Chamber Orchestra": [
-        "Violin", "Viola", "Cello", "Double Bass", "Flute", "Oboe", "Clarinet"
-    ],
-    "Symphony Orchestra": [
-        "Violin", "Violin", "Viola", "Cello", "Double Bass", 
-        "Flute", "Oboe", "Clarinet", "Bassoon", 
-        "Trumpet", "Trumpet", "Trombone", "Trombone", "French Horn", "Tuba", 
-        "Timpani", "Harp"
-    ],
-    "Big Band" : [
-        "Trumpet", "Trumpet", "Trombone", "Trombone", "Saxophone", "Saxophone", 
-        "Saxophone", "Saxophone", "Piano", "Bass", "Drums"
-    ],
-    "Wind Ensemble": [
-        "Flute", "Oboe", "Clarinet", "Bassoon", "French Horn", "Trumpet", 
-        "Trombone", "Tuba", "Percussion"
-    ],
-    "Trombone Quartet" : [
-        "Trombone", "Trombone", "Bass Trombone", "Bass Trombone"
-    ],
-    "Trumpet Quartet" : [
-        "Trumpet", "Trumpet", "Trumpet", "Trumpet"
-    ],
-    "French Horn Quartet": [
-        "French Horn", "French Horn", "French Horn", "French Horn"
-    ],
-    "Percussion Ensemble" : [
-        "Timpani", "Snare Drum", "Bass Drum", "Cymbals", "Tambourine", "Triangle"
-    ],
-    "Marimba-Vibraphone Duo" : [
-        "Marimba", "Vibraphone"
-    ],
-    "Xylophone-Glockenspiel Duo" : [
-        "Xylophone", "Glockenspiel"
-    ],
-    "Percussion Trio" : [
-        "Timpani", "Marimba", "Snare Drum"
-    ],
-    "Orchestral Percussion Section" : [
-        "Timpani", "Glockenspiel", "Xylophone", "Vibraphone", "Bass Drum", "Cymbals", "Tambourine", "Triangle"
-    ],
-    "Solo Percussion Performance" : [
-        "Snare Drum", "Bass Drum", "Cymbals"
-    ],
-    "Marimba-Timpani Duo" : [
-        "Marimba", "Timpani"
-    ],
-    "Percussion Quartet" : [
-        "Snare Drum", "Bass Drum", "Xylophone", "Vibraphone"
-    ],
-    "Saxophone Quartet" : [
-        "Saxophone", "Saxophone", "Saxophone", "Saxophone"
-    ],
-    "Accordion-Guitar Duo" : [
-        "Accordion", "Classical Guitar"
-    ],
-    "Mandolin-Saxophone Duo" : [
-        "Mandolin", "Saxophone"
-    ],
-    "Other Instruments Ensemble" : [
-        "Saxophone", "Accordion", "Classical Guitar", "Mandolin"
-    ],
-    "Accordion Quartet" : [
-        "Accordion", "Accordion", "Accordion", "Accordion"
-    ],
-    "Mandolin Quartet" : [
-        "Mandolin", "Mandolin", "Mandolin", "Mandolin"
-    ],
-    "Guitar-Saxophone Duo" : [
-        "Classical Guitar", "Saxophone"
-    ],
-    "Guitar-Mandolin Duo" : [
-        "Classical Guitar", "Mandolin"
-    ],
-    "Marching Band" : [
-        "Trumpet", "Trumpet", "Trombone", "Trombone", "French Horn", "Sousaphone", 
-        "Snare Drum", "Bass Drum", "Cymbals", "Tambourine", "Timpani"
-    ],
-    "Piano and Violin": [
-        "Piano", "Violin"
-    ],
-    "Piano and Viola": [
-        "Piano", "Viola"
-    ],
-    "Piano and Cello": [
-        "Piano", "Cello"
-    ],
-    "Piano and Flute": [
-        "Piano", "Flute"
-    ],
-    "Piano and Clarinet": [
-        "Piano", "Clarinet"
-    ],
-    "Piano and Trumpet": [
-        "Piano", "Trumpet"
-    ],
-    "Piano and Trombone": [
-        "Piano", "Trombone"
-    ],
-    "Piano and French Horn": [
-        "Piano", "French Horn"
-    ],
-    "Piano and Saxophone": [
-        "Piano", "Saxophone"
-    ],
-    "Piano and Accordion": [
-        "Piano", "Accordion"
-    ],
-    "Piano and Classical Guitar": [
-        "Piano", "Classical Guitar"
-    ],
-    "Piano and Mandolin": [
-        "Piano", "Mandolin"
-    ],
-    "Swing Band": [
-    "Trumpet", "Trumpet", "Trombone", "Trombone", "Saxophone", "Saxophone", 
-    "Saxophone", "Saxophone", "Piano", "Bass", "Drums"
-    ],
-    "Baroque Orchestra": [
-    "Violin", "Violin", "Viola", "Cello", "Double Bass", "Flute", "Oboe", 
-    "Bassoon", "Trumpet", "French Horn", "Timpani", "Harpsichord"
-    ],
-    "Orchestra": [
-    "Violin", "Violin", "Viola", "Cello", "Double Bass", "Flute", "Oboe", 
-    "Clarinet", "Bassoon", "Trumpet", "Trombone", "French Horn", "Tuba", 
-    "Timpani", "Harp", "Piano"
-    ],
-    "Bebop Band": [
-    "Trumpet", "Saxophone", "Piano", "Double Bass", "Drums"
-    ],
-    "Gipsy Band": [
-    "Violin", "Accordion", "Guitar", "Double Bass", "Drums"
-    ]
-
+instrument_ensembles = {
+    2: ["Vn", "Va"],
+    3: ["Fl", "ClBb", "Vc"],
+    4: ["TpC", "Hn", "Tbn", "Bn"],
+    5: ["Ob", "Fl", "ClBb", "Bn", "Hn"],
+    6: ["Vn", "Va", "Vc", "Cb", "Fl", "Ob"],
+    7: ["TpC", "Tbn", "Hn", "BTb", "ClBb", "ASax", "Vc"],
+    8: ["Vn", "Va", "Vc", "Cb", "Fl", "Ob", "ClBb", "Bn"],
+    9: ["TpC", "Tbn", "Hn", "BTb", "Fl", "Ob", "ClBb", "Bn", "Acc"],
+    10: ["Vn", "Va", "Vc", "Cb", "Fl", "Ob", "ClBb", "Bn", "TpC", "Acc"]
 }
+
+
+
 
 
 

@@ -94,7 +94,7 @@ def main():
                 # to clean the robot ears.
                 supervisor.clean_robot_buffers()
             for robot in supervisor.dictionary_of_robots:
-                print("ROBOT:", robot.number, " a ", robot.a)
+                print("ROBOT:", robot.number, " stimuli ", robot.target_instruments)
                 #robot.print_threshold_history(supervisor.csv_folder_directory)
             #print(supervisor.conductor_spartito)
             midi_class.write_csv(supervisor.conductor_spartito,simulation_number, csv_path)            
