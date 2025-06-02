@@ -19,7 +19,6 @@ class Note:
                                 "octave: %d" % self.octave
                                 ])
                                 #"amplitude: %.1f"%self.amp
-
 class TimeSignature:
 
     def __init__(self):

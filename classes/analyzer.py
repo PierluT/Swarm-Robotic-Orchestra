@@ -8,14 +8,19 @@ import seaborn as sns
 import glob
 from collections import Counter
 from configparser import ConfigParser
+from scipy.special import rel_entr
 import re
+from scipy.stats import entropy
+from sklearn.metrics import mean_squared_error
+from dictionaries import colours, major_scales, major_pentatonic_scales, whole_tone_scales, orchestra_to_midi_range, instrument_ensembles, instrument_target_distributions_full, ensemble_names 
 
 class DataAnalyzer:
     
-    def __init__(self, analysis_function=None):
-        
+    def __init__(self):
         self.csv_directory = ""
-        self.analysis_function = analysis_function  # generic analysis function
+        self.timbre_dictionary = orchestra_to_midi_range
+        self.timbre_list = [instrument for instruments in self.timbre_dictionary.values() for instrument in instruments]
+        self.distribution_dictionary = instrument_target_distributions_full
 
     def get_csv_files(self):
         """Trova tutti i file video.csv nelle sottocartelle di 'csv/'"""
@@ -36,175 +41,274 @@ class DataAnalyzer:
             return int(match.group(1))
         return None
     
-    def timbre_trend_per_robot_count(self, step_size=15000):
+    def timbre_trend_across_configs(self, base_dir="csv", step_size=30000):
         all_data = []
-        csv_files = self.get_csv_files()
+        for folder in os.listdir(base_dir):
+            folder_path = os.path.join(base_dir, folder)
+            video_csv = os.path.join(folder_path, "video.csv")
 
-        for file_path in csv_files:
+            if not os.path.exists(video_csv):
+                continue
+
             try:
-                df = pd.read_csv(file_path, delimiter=";")
+                df = pd.read_csv(video_csv, delimiter=";")
             except Exception as e:
-                print(f"❌ Errore nel file {file_path}: {e}")
+                print(f"❌ Errore nel file {video_csv}: {e}")
                 continue
 
-            folder = os.path.dirname(file_path)
-            num_robots = self.extract_parameter_from_folder(folder, "R_N")
-
-            if num_robots is None:
-                print(f"⚠️ Numero di robot non trovato in {folder}")
+            # Estrai delta e numero di robot dalla cartella
+            try:
+                parts = folder.split("_")
+                delta = int(parts[parts.index("delta") + 1])
+                num_robots = int(parts[parts.index("R") + 2])
+            except Exception as e:
+                print(f"⚠️ Parametri non trovati in {folder}: {e}")
                 continue
 
-            df['time_bin'] = ((df['ms'] // step_size) * step_size) / 1000  # bin in secondi
+            df['time_bin'] = ((df['ms'] // step_size) * step_size) / 1000
 
-            latest_timbre = df.sort_values(by='ms').groupby(['simulation number', 'robot number', 'time_bin']).last().reset_index()
+            latest_timbre = df.sort_values(by='ms').groupby(
+                ['simulation number', 'robot number', 'time_bin']
+            ).last().reset_index()
 
-            timbre_counts = latest_timbre.groupby(['simulation number', 'time_bin', 'timbre']).size().reset_index(name='count')
+            timbre_counts = latest_timbre.groupby(
+                ['simulation number', 'time_bin', 'timbre']
+            ).size().reset_index(name='count')
+
             timbre_counts['percentage'] = timbre_counts['count'] / num_robots
-            timbre_counts['number_of_robots'] = num_robots
+            timbre_counts['delta'] = delta
+            timbre_counts['robots'] = num_robots
+            timbre_counts['config'] = f"R{num_robots}_d{delta}"
 
             all_data.append(timbre_counts)
 
         if not all_data:
-            print("❌ Nessun dato disponibile.")
+            print("❌ Nessun dato valido.")
             return
 
         final_df = pd.concat(all_data)
+        unique_configs = sorted(final_df['config'].unique())
+        num_plots = len(unique_configs)
 
-        unique_robot_counts = sorted(final_df['number_of_robots'].unique())
-        num_plots = len(unique_robot_counts)
+        fig, axes = plt.subplots(num_plots, 1, figsize=(16, 5 * num_plots), sharex=True)
+        if num_plots == 1:
+            axes = [axes]
 
-        plt.figure(figsize=(16, 5 * num_plots))
+        for ax, config in zip(axes, unique_configs):
+            subset = final_df[final_df['config'] == config]
+            sns.boxplot(
+                x="time_bin", y="percentage", hue="timbre", data=subset,
+                hue_order=self.timbre_list,
+                palette="tab20", ax=ax
+            )
+            ax.set_title(f"set up: {config}", fontsize=8, pad=15)
+            ax.set_xlabel("Time (s)", fontsize=12)
+            ax.set_ylabel("robot per timbre", fontsize=8)
+            ax.legend_.remove()
 
-        for i, robot_count in enumerate(unique_robot_counts, 1):
-            plt.subplot(num_plots, 1, i)
-            subset = final_df[final_df['number_of_robots'] == robot_count]
-            sns.boxplot(x="time_bin", y="percentage", hue="timbre", data=subset, palette="Set2")
-            plt.axhline(0.6, ls='--', color='gray', label='TpC desired (60%)')
-            plt.axhline(0.2, ls='--', color='gray', label='BTb/Tbn desired (20%)')
-            plt.title(f"Timbres evolution for - {robot_count} robots", fontsize=10, pad=20)
-            plt.xlabel("Time (s)", fontsize=8, labelpad=20, loc='left')
-            plt.ylabel("Robot percentage per timbre", fontsize=8)
-            plt.legend(title="Timbre", loc="upper right")
+        # Legenda unica e orizzontale
+        handles, labels = ax.get_legend_handles_labels()
+        fig.legend(
+            handles, labels, title="Timbre", loc="lower center",
+            ncol=len(self.timbre_list),  # Legenda su una sola riga
+            bbox_to_anchor=(0.5, -0.01), fontsize=12, title_fontsize=13
+        )
 
-        plt.subplots_adjust(hspace=0.5, left=0.1)
-        plt.tight_layout()
+        # Migliora la disposizione evitando sovrapposizioni
+        plt.subplots_adjust(hspace=0.4)  # più spazio tra i grafici
+        plt.tight_layout(rect=[0, 0.05, 1, 1])  # lascia spazio per la legenda
         plt.show()
 
-    def timbre_trend_by_parameter(self, parameter_name="R_N", step_size=15000):
-        all_data = []
-        csv_files = self.get_csv_files()
+    def timbre_variance_and_entropy(self, base_dir="csv", step_size=4000):
+        results = []
 
-        for file_path in csv_files:
+        for folder in os.listdir(base_dir):
+            folder_path = os.path.join(base_dir, folder)
+            video_csv = os.path.join(folder_path, "video.csv")
+
+            if not os.path.exists(video_csv):
+                continue
+
             try:
-                df = pd.read_csv(file_path, delimiter=";")
+                df = pd.read_csv(video_csv, delimiter=";")
             except Exception as e:
-                print(f"❌ Errore nel file {file_path}: {e}")
+                print(f"❌ Errore nel file {video_csv}: {e}")
                 continue
 
-            folder = os.path.dirname(file_path)
-
-            # Estrai parametro per suddividere i grafici (in questo caso la lunghezza della simulazione)
-            parameter_value = self.extract_parameter_from_folder(folder, parameter_name)
-            # Estrai numero di robot per calcolare le percentuali
-            num_robots = self.extract_parameter_from_folder(folder, "R_N")
-
-            if parameter_value is None:
-                print(f"⚠️ Valore '{parameter_name}' non trovato in {folder}")
-                continue
-            if num_robots is None:
-                print(f"⚠️ Numero di robot non trovato in {folder}")
+            try:
+                parts = folder.split("_")
+                delta = int(parts[parts.index("delta") + 1])
+                num_robots = int(parts[parts.index("R") + 2])
+                beats = int(parts[parts.index("beats") + 1])
+            except Exception as e:
+                print(f"⚠️ Parametri non trovati in {folder}: {e}")
                 continue
 
-            df['time_bin'] = ((df['ms'] // step_size) * step_size) / 1000  # bin in secondi
+            # Target distribution in base al rapporto robot/beats
+            try:
+                ratio = num_robots // beats
+                target_dist = instrument_target_distributions_full[ratio]
+                target_timbres = list(target_dist.keys())
+                target_probs = np.array([target_dist[t] for t in target_timbres])
+                print(f"Target timbres: {target_timbres}")
+                ideal_entropy = entropy(target_probs, base=2)
+                ideal_variance = np.var(target_probs)
+            except KeyError:
+                print(f"⚠️ Nessuna distribuzione target per il rapporto {num_robots}/{beats} (={ratio})")
+                continue
 
-            # Estrai l'ultimo timbro di ogni robot per ogni intervallo di tempo
-            latest_timbre = df.sort_values(by='ms').groupby(['simulation number', 'robot number', 'time_bin']).last().reset_index()
+            df['time_bin'] = ((df['ms'] // step_size) * step_size) / 1000
 
-            # Conta i timbri per ciascun bin temporale
-            timbre_counts = latest_timbre.groupby(['simulation number', 'time_bin', 'timbre']).size().reset_index(name='count')
-            timbre_counts['percentage'] = timbre_counts['count'] / num_robots  # Calcola la percentuale rispetto al numero di robot
-            timbre_counts[parameter_name] = parameter_value  # Aggiungi il valore del parametro per ogni file
+            latest = df.sort_values(by='ms').groupby(['simulation number', 'robot number', 'time_bin']).last().reset_index()
+            grouped = latest.groupby(['simulation number', 'time_bin', 'timbre']).size().reset_index(name='count')
+            grouped['percentage'] = grouped['count'] / num_robots
 
-            all_data.append(timbre_counts)
+            for (sim, time_bin), group in grouped.groupby(['simulation number', 'time_bin']):
+                observed = group.set_index('timbre')['percentage'].reindex(target_timbres, fill_value=0.0)
+                var = observed.var()
+                kl = entropy(observed.values, target_probs, base=2)
 
-        if not all_data:
-            print("❌ Nessun dato disponibile.")
+
+                results.append({
+                    "simulation": sim,
+                    "time_bin": time_bin,
+                    "delta": delta,
+                    "robots": num_robots,
+                    "variance": var,
+                    "kl_divergence": kl,
+                    "ideal_entropy": ideal_entropy,
+                    "ideal_variance": ideal_variance,
+                    "config": f"R{num_robots}_d{delta}_b{beats}"
+                })
+
+        if not results:
+            print("❌ Nessun dato valido.")
             return
 
-        final_df = pd.concat(all_data)
+        df_results = pd.DataFrame(results)
 
-        unique_values = sorted(final_df[parameter_name].unique())  # Valori unici per 'min'
-        num_plots = len(unique_values)  # Numero di plot da fare
+        # 🎨 Plot
+        fig, axes = plt.subplots(2, 1, figsize=(16, 10), sharex=True)
 
-        # Crea la figura con dimensioni adeguate
-        plt.figure(figsize=(16, 4 * num_plots))
+        # VARIANZA
+        sns.lineplot(data=df_results, x="time_bin", y="variance", hue="config", ax=axes[0])
+        for config, group in df_results.groupby("config"):
+            axes[0].axhline(y=group["ideal_variance"].iloc[0], linestyle="--", color="gray", alpha=0.5)
+        axes[0].set_title("Variance (Filtered on Target Timbres) Over Time")
+        axes[0].set_ylabel("Variance")
 
-        for i, val in enumerate(unique_values, 1):
-            plt.subplot(num_plots, 1, i)
-            subset = final_df[final_df[parameter_name] == val]  # Seleziona i dati per ogni lunghezza della simulazione
-            sns.boxplot(x="time_bin", y="percentage", hue="timbre", data=subset, palette="Set2")
-            plt.axhline(0.6, ls='--', color='gray', label='TpC desired (60%)')
-            plt.axhline(0.2, ls='--', color='gray', label='BTb/Tbn desired (20%)')
-            plt.title(f"Timbres evolution for {parameter_name} = {val} minutes", fontsize=12, pad=10)
-            plt.xlabel("Time (s)", fontsize=8, labelpad=20, loc='left')
-            plt.ylabel("Robot percentage per timbre", fontsize=10)
-            plt.ylim(0, 1)  # Limita l'asse y tra 0 e 1 (percentuali)
-            plt.legend(title="Timbre", loc="upper right")
+        # KL DIVERGENCE
+        sns.lineplot(data=df_results, x="time_bin", y="kl_divergence", hue="config", ax=axes[1])
 
-        plt.subplots_adjust(hspace=0.5, top=0.95)
+        # ⚠️ RIMUOVI questa linea: l'ideale di KL divergence è sempre 0 (nessuna differenza con la distribuzione target)
+        # quindi aggiungerla come linea orizzontale non ha senso informativo.
+        # for config, group in df_results.groupby("config"):
+        #     axes[1].axhline(y=group["ideal_entropy"].iloc[0], linestyle="--", color="gray", alpha=0.5)
+
+        axes[1].set_title("Kullback-Leibler Divergence vs Target Timbre Distribution Over Time")
+        axes[1].set_ylabel("KL Divergence (base 2)")
+        axes[1].set_xlabel("Time (s)")
+
         plt.tight_layout()
         plt.show()
 
-    def timbre_analysis_across_robots(self):
-         all_results = []
- 
-         # Trova tutti i file CSV nelle cartelle specificate
-         csv_files = self.get_csv_files()
- 
-         for file_path in csv_files:
-             num_robots = self.extract_robot_number(file_path)
-             if num_robots is None:
-                 continue  # Salta file non validi
- 
-             # Carica il file CSV
-             df = pd.read_csv(file_path, delimiter=";")
- 
-             # Ordina per numero di simulazione, robot number e millisecondo
-             df_sorted = df.sort_values(by=['simulation number', 'robot number', 'ms'], ascending=[True, True, False])
- 
-             # Prendi l'ultimo millisecondo per ogni robot in ogni simulazione
-             last_millisecond_per_robot = df_sorted.drop_duplicates(subset=['simulation number', 'robot number'], keep='first')
- 
-             # Conta i timbri per ogni simulazione
-             timbre_counts = last_millisecond_per_robot.groupby("simulation number")['timbre'].value_counts().unstack(fill_value=0)
- 
-             # Aggiungi una colonna per il numero di robot
-             timbre_counts['Num Robots'] = num_robots
- 
-             all_results.append(timbre_counts)
- 
-         # Unisce tutti i DataFrame raccolti
-         if not all_results:
-             print("Nessun dato disponibile per l'analisi dei timbri.")
-             return
- 
-         final_df = pd.concat(all_results)
- 
-         # Boxplot per visualizzare la distribuzione dei timbri nei diversi setup di robot
-         plt.figure(figsize=(12, 6))
-         sns.boxplot(data=final_df.melt(id_vars=['Num Robots'], var_name='Timbre', value_name='Count'),
-                     x='Timbre', y='Count', hue='Num Robots', palette='Set1')
- 
-         # Etichette del grafico
-         plt.title('Distribuzione dei Timbri nelle Simulazioni')
-         plt.xlabel('Timbre')
-         plt.ylabel('Conteggio')
-         plt.legend(title='Num Robots', loc='upper right')
-         plt.xticks(rotation=45, ha='right')
- 
-         # Mostra il grafico
-         plt.tight_layout()
-         plt.show()
+    def timbre_mse_over_time(self, base_dir="csv", step_size=1000):
+        results = []
+
+        for folder in os.listdir(base_dir):
+            folder_path = os.path.join(base_dir, folder)
+            video_csv = os.path.join(folder_path, "video.csv")
+
+            if not os.path.exists(video_csv):
+                continue
+
+            try:
+                df = pd.read_csv(video_csv, delimiter=";")
+            except Exception as e:
+                print(f"❌ Errore nel file {video_csv}: {e}")
+                continue
+
+            # 📦 Estrai parametri dal nome della cartella
+            try:
+                parts = folder.split("_")
+                delta = int(parts[parts.index("delta") + 1])
+                num_robots = int(parts[parts.index("R") + 2])
+                beats = int(parts[parts.index("beats") + 1])
+            except Exception as e:
+                print(f"⚠️ Parametri non trovati in {folder}: {e}")
+                continue
+
+            df['time_bin'] = ((df['ms'] // step_size) * step_size) / 1000
+
+            latest = df.sort_values(by='ms').groupby(['simulation number', 'robot number', 'time_bin']).last().reset_index()
+            grouped = latest.groupby(['simulation number', 'time_bin', 'timbre']).size().reset_index(name='count')
+            grouped['percentage'] = grouped['count'] / num_robots
+
+            # 🎯 Calcola la chiave per target finale: robot / beats
+            try:
+                ratio = num_robots // beats
+                target_dist = instrument_target_distributions_full[ratio]
+            except KeyError:
+                print(f"⚠️ Nessuna distribuzione target per il rapporto {num_robots}/{beats} (={ratio})")
+                continue
+
+            # 🧪 MSE per ogni time_bin
+            for (sim, time_bin), group in grouped.groupby(['simulation number', 'time_bin']):
+                observed = group.set_index('timbre')['percentage'].reindex(self.timbre_list, fill_value=0.0)
+                target = [target_dist.get(t, 0.0) for t in self.timbre_list]
+
+                mse = mean_squared_error(target, observed.values)
+                rmse_percent = (np.sqrt(mse) * 100)
+                ensemble_number = num_robots // beats
+                ensemble_label = ensemble_names.get(ensemble_number, f"{ensemble_number}-group")
+
+                results.append({
+                    "simulation": sim,
+                    "time_bin": time_bin,
+                    "delta": delta,
+                    "robots": num_robots,
+                    "beats": beats,
+                    "mse": mse,
+                    "rmse_percent": rmse_percent,
+                    "config": f"{ensemble_label},delta = {delta})"
+                })
+
+        if not results:
+            print("❌ Nessun dato valido.")
+            return
+
+        df_results = pd.DataFrame(results)
+
+        # 📊 Plot con annotazione del minimo MSE per configurazione
+        plt.figure(figsize=(16, 6))
+        ax = sns.lineplot(data=df_results, x="time_bin", y="mse", hue="config", ci=None)
+
+        # Annotazioni min MSE per config
+        grouped = df_results.groupby("config")["mse"]
+        for config, values in grouped:
+            min_val = values.min()
+            ax.annotate(f"{min_val:.3f}",
+                        xy=(df_results["time_bin"].max(), min_val),
+                        xytext=(5, 0),
+                        textcoords='offset points',
+                        va='center',
+                        fontsize=9,
+                        color='black')
+        # Uso del nome nel titolo
+        plt.title("Mean Squared Error (MSE) vs Final Target Distribution Over Time")
+        plt.xlabel("Time (s)")
+        plt.ylabel("MSE (annotated min per config)")
+        plt.tight_layout()
+        plt.show()
+
+        # 📉 Stampa terminale ultimi valori
+        print("\n📊 Ultimi valori di MSE e RMSE% per configurazione:\n")
+        last_values = (
+            df_results.sort_values("time_bin")
+                    .groupby("config")
+                    .tail(1)[["config", "time_bin", "mse", "rmse_percent"]]
+                    .sort_values(by="mse")
+        )
 
 def harmony_consensus(sim_data):
     """
@@ -278,32 +382,11 @@ analyzer.timbre_analysis_across_robots()
 #print(analyzer.extract_robot_number(analyzer.get_csv_files())) #
 
 """
-#analyzer = DataAnalyzer(analysis_function = None)
-#analyzer.timbre_trend_by_parameter(parameter_name="R_N", step_size=15000)
+analyzer = DataAnalyzer()
+#analyzer.timbre_trend_across_configs(base_dir="csv", step_size=30000)
+#analyzer.timbre_variance_and_entropy(base_dir="csv", step_size=40)
+analyzer.timbre_mse_over_time(base_dir="csv", step_size=4000)
+#analyzer.count_perfect_distributions(base_dir="csv", mse_threshold=1e-6, kl_threshold=1e-6)
 
 
 
-"""
-# Leggi il file
-config = ConfigParser()
-config.read('configuration.ini')
-
-# Estrai parametri
-robot_number = int(config['PARAMETERS']['robot_number'])
-width_arena = int(config['PARAMETERS']['width_arena'])
-height_arena = int(config['PARAMETERS']['height_arena'])
-velocity = float(config['PARAMETERS']['velocity'])
-radius = int(config['PARAMETERS']['radius'])
-radar = int(config['PARAMETERS']['radar'])
-threshold = int(config['PARAMETERS']['threshold'])
-milliseconds = int(config['PARAMETERS']['milliseconds'])
-sensor = int(config['PARAMETERS']['sensor'])
-bpm = int(config['PARAMETERS']['bpm'])
-stimuli_update = config['PARAMETERS']['stimuli_update']
-delta_incidence = int(config['PARAMETERS']['delta_incidence'])
-
-
-print(f"Numero di robot: {robot_number}")
-print(f"Larghezza dell'arena: {width_arena}")
-print(f"Altezza dell'arena: {height_arena}")
-"""
