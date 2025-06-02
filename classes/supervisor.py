@@ -13,7 +13,8 @@ config = ConfigParser()
 config.read('configuration.ini')
 
 class Supervisor:
-    def __init__(self, robots):
+    
+    def __init__(self, number_of_robots):
         self.csv_folder_directory = ""
         # boundaries of rectangle area
         self.rectangleArea_width = int(config['PARAMETERS']['width_arena'])
@@ -22,11 +23,11 @@ class Supervisor:
         #self.delta_incidence = values_dictionary['delta_incidence']
         self.arena_area = self.rectangleArea_width * self.rectangleArea_heigth
         # number of robots in the arena
-        self.number_of_robots = int(config['PARAMETERS']['robot_number'])
+        self.number_of_robots = number_of_robots
         # dictionary of created robots
         self.dictionary_of_robots = []
         # value for communication
-        self.threshold = int(config['PARAMETERS']['threshold'])
+        #self.threshold = int(config['PARAMETERS']['threshold'])
         # value for collision
         self.collision_margin = int(config['PARAMETERS']['radar'])
         # dictionary of distance bewteen a robot and each others.
@@ -64,15 +65,15 @@ class Supervisor:
         
         return self.min_midinote, self.max_midinote
     
-    def setup_robots(self):
+    def setup_robots(self, delta_val, number_of_robots, ts):
         # I associate a note and a timbre for each robot.
-        self.create_dictionary_of_robots()
+        self.create_dictionary_of_robots(delta_val, number_of_robots, ts)
         # I set the initial positions of the robots.
         self.compute_initial_positions()
     
-    def set_up_csv_directory(self,simulation_number):
+    def set_up_csv_directory(self,simulation_number,delta_val, ts):
         s_n = simulation_number
-        distribution_type = "_target_distribution" if self.stimuli_update_mode == "delta" else "_standard_distribution"
+        #distribution_type = "_target_distribution" if self.stimuli_update_mode == "delta" else "_standard_distribution"
         minutes = int(self.time / 60000)
         csv_directory = "csv"
         
@@ -83,12 +84,12 @@ class Supervisor:
             f"_R_N_{self.number_of_robots}"
             # bpm of the simulation
             f"_BPM_{self.initial_bpm}"
-            # timbre engaged in the simulation
-            f"_timbres_number_{self.num_timbres}"
             # minutes of the simulation
             f"_min_{minutes}"
-            # type of stimuli update
-            f"{distribution_type}"
+            # delta value to study
+            f"_delta_{delta_val}"
+            # number of beats in the measure
+            f"_beats_{ts.denominator_time_signature[0]}"
         )
         # to set up the general directory of the csv files.
         self.csv_folder_directory = os.path.join(csv_directory, csv_folder)
@@ -126,9 +127,9 @@ class Supervisor:
                     print(f"Errore durante la rimozione del file {file_path}: {e}")
         print(f"Tutti i file nella cartella {self.csv_folder} sono stati eliminati.")       
 
-    def compute_phase_bar_value(self):
+    def compute_phase_bar_value(self, ts):
         seconds_in_a_beat = 60 / self.initial_bpm
-        ts = TimeSignature()
+        
         number_of_beats, denominator = ts.time_signature_combiantion
         phase_bar_value = 1000 * (seconds_in_a_beat * number_of_beats)
         # By now I set the notes length as the beat seoconds duration. Then
@@ -136,12 +137,14 @@ class Supervisor:
         return number_of_beats, phase_bar_value, seconds_in_a_beat, ts.time_signature_combiantion
 
     # method to return the list of robots and assign a phase to each of them.
-    def create_dictionary_of_robots(self):  
+    def create_dictionary_of_robots(self,delta_val, number_of_robots, ts):  
         # TIME SIGNATURE SETUP.
-        number_of_beats, phase_bar_value, seconds_in_a_beat, t_s = self.compute_phase_bar_value()
+        number_of_beats, phase_bar_value, seconds_in_a_beat, t_s = self.compute_phase_bar_value(ts)
         beats_array = list(range(1, number_of_beats +1))
         for n in range(self.number_of_robots):
-            robot = Robot(number = n, phase_period = phase_bar_value, delay_values = beats_array, sb = seconds_in_a_beat, time_signature = t_s)
+            robot = Robot(number = n, phase_period = phase_bar_value, delay_values = beats_array,
+                           sb = seconds_in_a_beat, time_signature = t_s,
+                           delta_val = delta_val, total_robots = number_of_robots)
             robot.compute_beat_threshold()
             robot.choose_timbre()
             # I set the initial random note as one the notes that the initial timbre can play.
@@ -306,28 +309,6 @@ class Supervisor:
         self.conductor_spartito.sort(key=lambda x: x["ms"])
         return self.conductor_spartito
 
-    def calculate_instrument_affinity(self):
-        affinity_dict = defaultdict(lambda: defaultdict(int))
-        instrument_count = defaultdict(int)
-        for formation, instruments in music_formations.items():
-            for instrument in instruments:
-                instrument_count[instrument] += 1
-            # Compute affinity for every instrument that appears in the fomration dictionary.
-            for i in range(len(instruments)):
-                for j in range(i + 1, len(instruments)):
-                    instrument1 = instruments[i]
-                    instrument2 = instruments[j]
-                    affinity_dict[instrument1][instrument2] += 1
-                    affinity_dict[instrument2][instrument1] += 1  
-        affinity_matrix = {}
-        for instrument1, instrument_dict in affinity_dict.items():
-            affinity_matrix[instrument1] = {}
-            total_pairs = len(music_formations)  
-            for instrument2, count in instrument_dict.items():
-                affinity_matrix[instrument1][instrument2] = count / total_pairs
-    
-        return affinity_matrix
-
 """
 def compute_task_performed(self):
     # Initialize the array of task performed by the robots.
@@ -370,5 +351,29 @@ def compute_task_performed(self):
         # STANDARD UPDATE FORMULA
         #self.stimuli += self.delta - (self.alpha / self.number_of_robots) * task_performed
         self.stimuli = np.clip(self.stimuli, 0, 1000)
+    
+    def calculate_instrument_affinity(self):
+        affinity_dict = defaultdict(lambda: defaultdict(int))
+        instrument_count = defaultdict(int)
+        for formation, instruments in music_formations.items():
+            for instrument in instruments:
+                instrument_count[instrument] += 1
+            # Compute affinity for every instrument that appears in the fomration dictionary.
+            for i in range(len(instruments)):
+                for j in range(i + 1, len(instruments)):
+                    instrument1 = instruments[i]
+                    instrument2 = instruments[j]
+                    affinity_dict[instrument1][instrument2] += 1
+                    affinity_dict[instrument2][instrument1] += 1  
+        affinity_matrix = {}
+        for instrument1, instrument_dict in affinity_dict.items():
+            affinity_matrix[instrument1] = {}
+            total_pairs = len(music_formations)  
+            for instrument2, count in instrument_dict.items():
+                affinity_matrix[instrument1][instrument2] = count / total_pairs
+    
+        return affinity_matrix
+
+
 
 """

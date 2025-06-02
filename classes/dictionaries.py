@@ -12,7 +12,8 @@ colours = {
     'light_blue': (255, 200, 100),  # Azzurro chiaro
     'sky_blue': (255, 180, 70),     # Blu cielo
     'dark_blue': (139, 0, 0),       # Blu scuro
-    'grey': (128, 128, 128)         # Grigio
+    'grey': (128, 128, 128),         # Grigio
+    'turquoise': (64, 224, 208)
 }
 
 
@@ -130,6 +131,8 @@ orchestra_to_midi_range = {
 }
 
 instrument_ensembles = {
+    
+    1: ["Tbn"],
     2: ["Vn", "Va"],
     3: ["Fl", "ClBb", "Vc"],
     4: ["TpC", "Hn", "Tbn", "Bn"],
@@ -141,9 +144,38 @@ instrument_ensembles = {
     10: ["Vn", "Va", "Vc", "Cb", "Fl", "Ob", "ClBb", "Bn", "TpC", "Acc"]
 }
 
+ensemble_names = {
+    2: "duo",
+    3: "trio",
+    4: "quartet",
+    5: "quintet",
+    6: "sextet",
+    7: "septet",
+    8: "octet",
+    9: "nonet",
+    10: "decuplet"
+}
 
+instrument_target_distributions_full = {
 
-
-
-
-
+    1: {"Vn": 0.0, "Va": 0.0, "Vc": 0.0, "Cb": 0.0, "Fl": 0.0, "Ob": 0.0, "ClBb": 0.0, "Bn": 0.0,
+        "TpC": 0.0, "Tbn": 1.0, "Hn": 0.0, "BTb": 0.0, "ASax": 0.0, "Acc": 0.0},
+    2: {"Vn": 0.5, "Va": 0.5, "Vc": 0.0, "Cb": 0.0, "Fl": 0.0, "Ob": 0.0, "ClBb": 0.0, "Bn": 0.0,
+        "TpC": 0.0, "Tbn": 0.0, "Hn": 0.0, "BTb": 0.0, "ASax": 0.0, "Acc": 0.0},
+    3: {"Vn": 0.0, "Va": 0.0, "Vc": 1/3, "Cb": 0.0, "Fl": 1/3, "Ob": 0.0, "ClBb": 1/3, "Bn": 0.0,
+        "TpC": 0.0, "Tbn": 0.0, "Hn": 0.0, "BTb": 0.0, "ASax": 0.0, "Acc": 0.0},
+    4: {"Vn": 0.0, "Va": 0.0, "Vc": 0.0, "Cb": 0.0, "Fl": 0.0, "Ob": 0.0, "ClBb": 0.0, "Bn": 0.25,
+        "TpC": 0.25, "Tbn": 0.25, "Hn": 0.25, "BTb": 0.0, "ASax": 0.0, "Acc": 0.0},
+    5: {"Vn": 0.0, "Va": 0.0, "Vc": 0.0, "Cb": 0.0, "Fl": 0.2, "Ob": 0.2, "ClBb": 0.2, "Bn": 0.2,
+        "TpC": 0.0, "Tbn": 0.0, "Hn": 0.2, "BTb": 0.0, "ASax": 0.0, "Acc": 0.0},
+    6: {"Vn": 1/6, "Va": 1/6, "Vc": 1/6, "Cb": 1/6, "Fl": 1/6, "Ob": 1/6, "ClBb": 0.0, "Bn": 0.0,
+        "TpC": 0.0, "Tbn": 0.0, "Hn": 0.0, "BTb": 0.0, "ASax": 0.0, "Acc": 0.0},
+    7: {"Vn": 0.0, "Va": 0.0, "Vc": 1/7, "Cb": 0.0, "Fl": 0.0, "Ob": 0.0, "ClBb": 1/7, "Bn": 0.0,
+        "TpC": 1/7, "Tbn": 1/7, "Hn": 1/7, "BTb": 1/7, "ASax": 1/7, "Acc": 0.0},
+    8: {"Vn": 1/8, "Va": 1/8, "Vc": 1/8, "Cb": 1/8, "Fl": 1/8, "Ob": 1/8, "ClBb": 1/8, "Bn": 1/8,
+        "TpC": 0.0, "Tbn": 0.0, "Hn": 0.0, "BTb": 0.0, "ASax": 0.0, "Acc": 0.0},
+    9: {"Vn": 0.0, "Va": 0.0, "Vc": 0.0, "Cb": 0.0, "Fl": 1/9, "Ob": 1/9, "ClBb": 1/9, "Bn": 1/9,
+        "TpC": 1/9, "Tbn": 1/9, "Hn": 1/9, "BTb": 1/9, "ASax": 0.0, "Acc": 1/9},
+    10: {"Vn": 1/10, "Va": 1/10, "Vc": 1/10, "Cb": 1/10, "Fl": 1/10, "Ob": 1/10, "ClBb": 1/10, "Bn": 1/10,
+         "TpC": 1/10, "Tbn": 0.0, "Hn": 0.0, "BTb": 0.0, "ASax": 0.0, "Acc": 1/10}
+}

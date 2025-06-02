@@ -2,6 +2,7 @@
 png
 plot
 csv
+samples
 
 # Ignora la cartella della libreria Python
 *robotic-orchestra-venv/

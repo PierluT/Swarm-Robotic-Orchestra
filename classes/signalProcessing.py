@@ -1,10 +1,13 @@
 import os
 import librosa
-import librosa.display
 import soundfile as sf
 import numpy as np
 import glob
 import re    
+import numpy as np
+import matplotlib.pyplot as plt
+import soundfile as sf
+from scipy.fft import rfft, rfftfreq
 
 
 # Mappa per le note MIDI
@@ -94,12 +97,12 @@ def process_wav_files(input_directory, output_directory, desired_duration):
             print(f"ATTENZIONE: La durata del file {new_filename} non corrisponde a quella desiderata!")
             print(f"Durata desiderata: {desired_duration}s, durata ottenuta: {output_duration}s.")
 
-input_directory = r"C:/Users/pierl/Downloads/TinySOL/TinySOL/audio/Keyboards/Accordion/ordinario"
-output_directory = r"C:/Users/pierl/Desktop/samples/Acc"
+#input_directory = r"C:/Users/pierl/Downloads/TinySOL/TinySOL/audio/Keyboards/Accordion/ordinario"
+#output_directory = r"C:/Users/pierl/Desktop/samples/Acc"
 
-final_duration = 0.5
+#final_duration = 0.5
 
-process_wav_files(input_directory, output_directory, final_duration)
+#process_wav_files(input_directory, output_directory, final_duration)
 
 def generate_mixed_audio(output_file, duration=20.0):
     """
@@ -134,3 +137,43 @@ def generate_mixed_audio(output_file, duration=20.0):
 
 #output_final_wav_file = r"C:/Users/pierl/Desktop/MMI/tesi/robotic-orchestra/classes/samples/Mix-Audio.wav"
 #generate_mixed_audio(output_final_wav_file, duration=1)
+
+
+
+def plot_fft_spectrum(audio_path, max_freq=10000):
+    """
+    Carica un file WAV e mostra il suo spettro di frequenza con FFT.
+
+    Parameters:
+        audio_path (str): percorso al file WAV
+        max_freq (int): frequenza massima da visualizzare (Hz)
+
+    Output:
+        Un grafico con l'ampiezza in funzione della frequenza.
+    """
+    # Carica il file audio
+    y, sr = sf.read(audio_path)
+    
+    # Se stereo, prendi solo un canale
+    if len(y.shape) > 1:
+        y = y[:, 0]
+
+    # Esegui la FFT
+    N = len(y)
+    yf = rfft(y)
+    xf = rfftfreq(N, 1 / sr)
+
+    # Grafico dello spettro
+    plt.figure(figsize=(10, 4))
+    plt.plot(xf, np.abs(yf), color='blue')
+    plt.title("Spettro di Frequenza (FFT)")
+    plt.xlabel("Frequenza (Hz)")
+    plt.ylabel("Ampiezza")
+    plt.xlim(0, max_freq)
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
+
+
+plot_fft_spectrum(r"C:/Users/pierl/Desktop/MMI/tesi/robotic-orchestra/classes/samples/Ob/Ob_86_2_ff.wav", max_freq=8000)
+
