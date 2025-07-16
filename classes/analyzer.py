@@ -6,10 +6,9 @@ import csv
 import matplotlib.pyplot as plt
 import seaborn as sns
 import glob
-from collections import Counter
-from configparser import ConfigParser
 from scipy.special import rel_entr
 import re
+import warnings
 from scipy.stats import entropy
 from sklearn.metrics import mean_squared_error
 from dictionaries import colours, major_scales, major_pentatonic_scales, whole_tone_scales, orchestra_to_midi_range, instrument_ensembles, instrument_target_distributions_full, ensemble_names 
@@ -61,6 +60,9 @@ class DataAnalyzer:
                 parts = folder.split("_")
                 delta = int(parts[parts.index("delta") + 1])
                 num_robots = int(parts[parts.index("R") + 2])
+                beats = int(parts[parts.index("beats") + 1])
+                ensemble_number = num_robots // beats
+                ensemble_label = ensemble_names.get(ensemble_number, f"{ensemble_number}-group")
             except Exception as e:
                 print(f"⚠️ Parametri non trovati in {folder}: {e}")
                 continue
@@ -78,7 +80,7 @@ class DataAnalyzer:
             timbre_counts['percentage'] = timbre_counts['count'] / num_robots
             timbre_counts['delta'] = delta
             timbre_counts['robots'] = num_robots
-            timbre_counts['config'] = f"R{num_robots}_d{delta}"
+            timbre_counts['config'] = f"{ensemble_label} \u03B4 = {delta}"
 
             all_data.append(timbre_counts)
 
@@ -101,9 +103,9 @@ class DataAnalyzer:
                 hue_order=self.timbre_list,
                 palette="tab20", ax=ax
             )
-            ax.set_title(f"set up: {config}", fontsize=8, pad=15)
-            ax.set_xlabel("Time (s)", fontsize=12)
-            ax.set_ylabel("robot per timbre", fontsize=8)
+            ax.set_title(config, fontsize=25, pad=15)
+            ax.set_xlabel("Time (s)", fontsize=25)
+            ax.set_ylabel("robot per timbre", fontsize=25)
             ax.legend_.remove()
 
         # Legenda unica e orizzontale
@@ -162,6 +164,8 @@ class DataAnalyzer:
             latest = df.sort_values(by='ms').groupby(['simulation number', 'robot number', 'time_bin']).last().reset_index()
             grouped = latest.groupby(['simulation number', 'time_bin', 'timbre']).size().reset_index(name='count')
             grouped['percentage'] = grouped['count'] / num_robots
+            ensemble_number = num_robots // beats
+            ensemble_label = ensemble_names.get(ensemble_number, f"{ensemble_number}-group")
 
             for (sim, time_bin), group in grouped.groupby(['simulation number', 'time_bin']):
                 observed = group.set_index('timbre')['percentage'].reindex(target_timbres, fill_value=0.0)
@@ -178,7 +182,7 @@ class DataAnalyzer:
                     "kl_divergence": kl,
                     "ideal_entropy": ideal_entropy,
                     "ideal_variance": ideal_variance,
-                    "config": f"R{num_robots}_d{delta}_b{beats}"
+                    "config": f"{ensemble_label}_delta = {delta}_beats = {beats}"
                 })
 
         if not results:
@@ -234,6 +238,12 @@ class DataAnalyzer:
                 delta = int(parts[parts.index("delta") + 1])
                 num_robots = int(parts[parts.index("R") + 2])
                 beats = int(parts[parts.index("beats") + 1])
+                
+                if "deltatype" in parts:
+                    delta_type = parts[parts.index("deltatype") + 1]
+                else:
+                    delta_type = "standard"
+            
             except Exception as e:
                 print(f"⚠️ Parametri non trovati in {folder}: {e}")
                 continue
@@ -270,7 +280,7 @@ class DataAnalyzer:
                     "beats": beats,
                     "mse": mse,
                     "rmse_percent": rmse_percent,
-                    "config": f"{ensemble_label},delta = {delta})"
+                    "config": f"{ensemble_label}, delta={delta}, {delta_type}"
                 })
 
         if not results:
@@ -309,6 +319,144 @@ class DataAnalyzer:
                     .tail(1)[["config", "time_bin", "mse", "rmse_percent"]]
                     .sort_values(by="mse")
         )
+
+    def beat_sync_normalized_boxplot(self, base_dir="csv", time_limit_ms=180000, step_size=1000):
+    
+        warnings.filterwarnings("ignore", category=FutureWarning)
+        all_data = []
+
+        for folder in os.listdir(base_dir):
+            folder_path = os.path.join(base_dir, folder)
+            video_csv = os.path.join(folder_path, "video.csv")
+
+            if not os.path.exists(video_csv):
+                continue
+
+            try:
+                df = pd.read_csv(video_csv, delimiter=";")
+            except Exception as e:
+                print(f"❌ Errore nel file {video_csv}: {e}")
+                continue
+
+            try:
+                parts = folder.split("_")
+                delta = int(parts[parts.index("delta") + 1])
+                num_robots = int(parts[parts.index("R") + 2])
+                beats = int(parts[parts.index("beats") + 1])
+                label = f"R={num_robots}, δ={delta}, beats={beats}"
+            except Exception as e:
+                print(f"⚠️ Parametri non trovati in {folder}: {e}")
+                continue
+
+            df = df[df["ms"] <= time_limit_ms]
+            df["time_bin"] = (df["ms"] // step_size) * step_size / 1000
+
+            grouped = df.groupby(["simulation number", "time_bin"])
+            metric_df = grouped["beat counter"].agg(
+                lambda x: (max(x) - min(x)) / (beats - 1)
+            ).reset_index(name="normalized_divergence")
+
+            metric_df["config"] = label
+            all_data.append(metric_df)
+
+        if not all_data:
+            print("❌ Nessun dato valido.")
+            return
+
+        final_df = pd.concat(all_data)
+
+        # Plot boxplot
+        g = sns.catplot(
+            data=final_df,
+            x="time_bin", y="normalized_divergence",
+            kind="box",
+            col="config", col_wrap=2,
+            height=5, aspect=1.5,
+            showfliers=False
+        )
+        g.set_titles("{col_name}")
+        g.set_axis_labels("Tempo (s)", "Divergenza normalizzata dei beat")
+        g.fig.suptitle("Evoluzione della sincronizzazione dei beat (normalizzata)", fontsize=16)
+        g.tight_layout()
+        plt.show()
+
+    
+    def phase_synchrony_over_time(self, base_dir="csv", step_size=1000):
+        results = []
+
+        def compute_delta_theta(phases):
+            M = len(phases)
+            if M < 2:
+                return np.nan
+            total_diff = 0.0
+            for i in range(M):
+                for j in range(i + 1, M):
+                    diff = abs(phases[i] - phases[j])
+                    total_diff += diff % np.pi
+            return (2 / (M * (M - 1))) * total_diff
+
+        for folder in os.listdir(base_dir):
+            folder_path = os.path.join(base_dir, folder)
+            video_csv = os.path.join(folder_path, "video.csv")
+
+            if not os.path.exists(video_csv):
+                continue
+
+            try:
+                df = pd.read_csv(video_csv, delimiter=";")
+            except Exception as e:
+                print(f"❌ Errore nel file {video_csv}: {e}")
+                continue
+
+            # Estrai parametri della simulazione dalla cartella
+            try:
+                parts = folder.split("_")
+                delta = int(parts[parts.index("delta") + 1])
+                num_robots = int(parts[parts.index("R") + 2])
+                beats = int(parts[parts.index("beats") + 1])
+
+                if "deltatype" in parts:
+                    delta_type = parts[parts.index("deltatype") + 1]
+                else:
+                    delta_type = "standard"
+
+                ensemble_number = num_robots // beats
+                ensemble_label = ensemble_names.get(ensemble_number, f"{ensemble_number}-group")
+                config = f"{ensemble_label}, delta={delta}, {delta_type}"
+
+            except Exception as e:
+                print(f"⚠️ Parametri non trovati in {folder}: {e}")
+                continue
+
+            # Raggruppa per step temporale
+            df['time_bin'] = ((df['ms'] // step_size) * step_size) / 1000
+
+            for (sim, time_bin), group in df.groupby(['simulation number', 'time_bin']):
+                phases = group['beat phase'].to_numpy()
+                delta_theta = compute_delta_theta(phases)
+
+                results.append({
+                    "simulation": sim,
+                    "time_bin": time_bin,
+                    "delta_theta": delta_theta,
+                    "config": config
+                })
+
+        if not results:
+            print("❌ Nessun dato valido.")
+            return
+
+        df_results = pd.DataFrame(results)
+
+        # 📊 Plot dell’andamento della ∆Θ(t)
+        plt.figure(figsize=(16, 6))
+        ax = sns.lineplot(data=df_results, x="time_bin", y="delta_theta", hue="config", ci=None)
+        plt.title("Phase Synchrony ΔΘ(t) Over Time")
+        plt.xlabel("Time (s)")
+        plt.ylabel("ΔΘ(t) [0: perfect sync, 1: max async]")
+        plt.ylim(0, 1)
+        plt.tight_layout()
+        plt.show()
 
 def harmony_consensus(sim_data):
     """
@@ -383,10 +531,12 @@ analyzer.timbre_analysis_across_robots()
 
 """
 analyzer = DataAnalyzer()
-#analyzer.timbre_trend_across_configs(base_dir="csv", step_size=30000)
+analyzer.timbre_trend_across_configs(base_dir="csv", step_size=30000)
+#analyzer.beat_sync_normalized_boxplot(base_dir="csv", time_limit_ms=180000, step_size=10000)
 #analyzer.timbre_variance_and_entropy(base_dir="csv", step_size=40)
-analyzer.timbre_mse_over_time(base_dir="csv", step_size=4000)
+#analyzer.timbre_mse_over_time(base_dir="csv", step_size=4000)
 #analyzer.count_perfect_distributions(base_dir="csv", mse_threshold=1e-6, kl_threshold=1e-6)
+#analyzer.phase_synchrony_over_time(base_dir="csv", step_size=1000)
 
 
 

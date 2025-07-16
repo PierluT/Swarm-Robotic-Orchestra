@@ -5,6 +5,7 @@ import subprocess
 import sys
 import os
 from pathlib import Path
+from collections import Counter
 import csv
 import pandas as pd
 import shutil
@@ -25,7 +26,7 @@ class Arena:
 
     def clean_png_folder(self):
 
-        # 🔽 Crea la cartella se non esiste
+        # Crea la cartella se non esiste
         os.makedirs(self.png_folder, exist_ok=True)
 
         for filename in os.listdir(self.png_folder):
@@ -84,7 +85,8 @@ class Arena:
                     "y": float(y),
                     "compass": (start_point, end_point),
                     "phase": beat_counter,
-                    "colour": colour
+                    "colour": colour,
+                    "timbre": timbre
                 } 
 
                 self.robot_data[int(millisecond)].append(robot_info)
@@ -180,7 +182,20 @@ class Arena:
     
     def draw_all_robots(self):
         for millisecond,robots in self.robot_data.items():
-            self.arena.fill(255)           
+            #self.arena.fill(255)    
+            self.arena[:] = np.array([255, 255, 255], dtype=np.uint8) 
+            timbre_counts = Counter([robot['timbre'] for robot in robots])
+            total_robots = sum(timbre_counts.values())
+            timbre_percentages = {
+                timbre: (count / total_robots) * 100
+                for timbre, count in timbre_counts.items()
+            }
+            label_text = " | ".join([f"{timbre}: {perc:.1f}%" for timbre, perc in timbre_percentages.items()])
+        
+            # Scrivi la label sull'immagine
+            cv2.putText(self.arena, label_text, (10, 30),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.7,
+                        (0, 0, 0), 1, cv2.LINE_AA)      
             for robot in robots:
                 self.draw_robot(robot)
             self.save_arena_as_png()

@@ -49,7 +49,7 @@ class Robot:
         self.playing_flag = False
         self.triggered_playing_flag = False
         # MUSIC VARIABLES
-        self.scales = major_pentatonic_scales
+        self.scales = major_scales
         self.note = None
         #self.id_note_counter = 0
         self.max_music_neighbourgs = 4
@@ -71,7 +71,7 @@ class Robot:
         self.local_beat_map = defaultdict(list)
         # dictionary for recieved phases
         self.local_phase_map = defaultdict(list) 
-        self.d_values =[value for value in delay_values if value != 1]
+        self.d_values =[value for value in delay_values]
         self.delay = random.choice(delay_values) 
         # to found the minimum a maximum mid value.
         self.min_midinote = 0
@@ -86,7 +86,7 @@ class Robot:
         self.beat_phase = np.random.uniform(0, 2 * np.pi)
         self.beat_phase_denominator = phase_period / self.number_of_beats
         #self.beat_counter = random.choice(self.d_values)
-        self.beat_counter = random.choice([val for val in self.d_values if val != self.delay])
+        self.beat_counter = max(self.d_values, key=lambda val: abs(val - self.delay))
         self.first_beat_control_flag = True
         self.threshold = 0
         self.last_beat_phase = 0
@@ -102,7 +102,7 @@ class Robot:
         # boolean for the first call of the method
         self.first_call = True
         # learning rate for thresholds
-        self.learing_rate = 5
+        self.learing_rate = 8
         # forgetting rate for thresholds
         self.forgetting_rate = 3
         # variables for stimuli
@@ -122,14 +122,20 @@ class Robot:
         self.num_timbres = sum(len(instruments) for instruments in self.timbre_dictionary.values())
         self.timbre_list = [instrument for instruments in self.timbre_dictionary.values() for instrument in instruments]
         self.stimuli = {timbre: 100 for timbre in self.timbre_list}
+        # to print stimuli history.
+        self.timbre_stimuli_history = []
+        self.timbre_stimuli_history.append(self.stimuli.copy())
         self.target_distribution = np.array([])
         self.timbre = ""
         self.timbre_thresholds = {timbre: 500 for timbre in self.timbre_list}
         self.timbre_threshold_history = []
         self.timbre_threshold_history.append(self.timbre_thresholds.copy())
         self.last_timbre = None  # Ultimo timbro suonato
+        self.tolerance = 0.05
         self.a = 0
-        self.tolerance = 0.01
+        self.b = 0
+        self.distribution_matches = True
+        #self.reached_target_distribution = False
         # AVAILABLE ENSEMBLES
         self.ensembles = instrument_ensembles
 
@@ -302,6 +308,7 @@ class Robot:
             # Aggiusto il midinote in base alla differenza
             #self.note.midinote += midi_diff
             plausible_new_midinote = self.note.midinote + midi_diff
+            
             midi_range_for_control = self.get_midi_range_from_timbre()
 
             if plausible_new_midinote in midi_range_for_control:
@@ -346,7 +353,7 @@ class Robot:
     # method to set the timbre based on thresholds and stimuli.
     # MODIFY THE CHOICE.
     def choose_timbre(self):
-        
+        self.a +=1
         chosen_timbre = None
         probabilities = {}
         # compute the probabilities to choose each timbre
@@ -355,28 +362,24 @@ class Robot:
             threshold = self.timbre_thresholds[timbre]
             prob = stim ** 2 / (stim ** 2 + threshold ** 2)
             probabilities[timbre] = prob
-        
-        # Ordina i timbri per probabilità crescente
+        # Sort the probabilities by increasing value
         sorted_probs = sorted(probabilities.items(), key=lambda x: x[1])
         # Extract only the value
         prob_values = [p for _, p in sorted_probs]
-
-        # Normalizza le probabilità (somma totale 1)
+        # norm probabilities to sum to 1
         total = sum(prob_values)
         normalized_probs = [p / total for p in prob_values]
-
-        # Calcola gli intervalli cumulativi
+        # compute intervals
         cumulative_probs = []
         cumulative_sum = 0
         for p in normalized_probs:
             cumulative_sum += p
             cumulative_probs.append(cumulative_sum)
-        # Genera un numero casuale tra 0 e 1
         r = random.random()
-        # Trova in quale intervallo r ricade
+        # find on wich interval the random number falls
         for i, cum_prob in enumerate(cumulative_probs):
             if r <= cum_prob:
-                chosen_timbre = sorted_probs[i][0]  # timbro corrispondente
+                chosen_timbre = sorted_probs[i][0]  
                 break    
         # if thres's the first call and I don't have a timbre, I choose the one with the highest probability.
         if self.first_call and chosen_timbre is None:
@@ -384,11 +387,9 @@ class Robot:
         # if I didn't choose anything for probabilites I stick with the last timbre.           
         if chosen_timbre is None:
             chosen_timbre = self.last_timbre
-        
         # Update the timbre with the new one.
         self.timbre = chosen_timbre
         self.last_timbre = chosen_timbre
-        
         # Threshold's updates based on choosen timbre.
         self.update_thresholds(chosen_timbre)
         new_midi_range = self.get_midi_range_from_timbre()
@@ -404,8 +405,8 @@ class Robot:
                 self.note.midinote = new_midinote
                 #print(f"Nuova nota MIDI: {new_midinote}")
         # once I enter into the method for the first time I set the first call to false.
-        self.first_call = False 
-
+        self.first_call = False  
+        
         return chosen_timbre
     
     def update_thresholds(self, chosen_timbre):
@@ -422,10 +423,8 @@ class Robot:
             else:
                 # Rinforzo negativo: aumenta le soglie degli altri timbri
                 self.timbre_thresholds[timbre] = min(1000, self.timbre_thresholds[timbre] + self.forgetting_rate)
-        
         # Salvataggio dello stato attuale nella storia delle soglie
         self.timbre_threshold_history.append(self.timbre_thresholds.copy())
-
 
     def find_closest_midinote(self, new_midi_range):
         """
@@ -523,14 +522,15 @@ class Robot:
         else:
             self.first_beat_control_flag = False  
         # LOGIC TO UPDATE MY SPARTITO.
-        # if the baeat where I am corresponds to the beat where I have to play, I set the colour to grey and I play.
+        # if the beat where I am corresponds to the beat where I have to play, I set the colour to grey and I play.
         if self.beat_counter == self.delay:
-            self.colour = colours['grey']
+            self.colour = colours['red']
+            # boolean to declare "play" state only once.
             if not self.triggered_playing_flag:
-                 self.playing_flag = True
-                 self.triggered_playing_flag = True
-                 self.last_played_ms = millisecond
-                 self.add_note_to_spartito(millisecond)
+                self.playing_flag = True
+                self.triggered_playing_flag = True
+                self.last_played_ms = millisecond
+                self.add_note_to_spartito(millisecond)
             else:
                 self.playing_flag = False  
         else:
@@ -544,7 +544,7 @@ class Robot:
                 self.first_beat_ms = millisecond
                 self.first_saved_beat = True
         else:
-            self.first_saved_beat = False
+            self.first_saved_beat = False        
         
         # if no one of the previous conditions is true, than the color depends on the timbre.
         if self.beat_counter != self.delay and self.beat_counter != 1:
@@ -572,7 +572,7 @@ class Robot:
                 self.colour = colours['sky_blue']
             # Legni
             elif self.timbre == "Ob":
-                self.colour = colours['light_blue']
+                self.colour = colours['green']
             elif self.timbre == "ASax":
                 self.colour = colours['orange']
             # Ottoni
@@ -581,26 +581,26 @@ class Robot:
             elif self.timbre == "Acc":
                 self.colour = colours['turquoise']
 
-            # Strumenti a tastiera e altri strumenti (se usati in futuro)
+            # other instruments
             else:
                 self.colour = colours['green']  # Colore di default
-    
+
     # robot's ears simulation.
     def update_orchestra_spartito(self, full_spartito, millisecond):
         
         if not full_spartito:
             return 
         new_musician_joined = False
-        # Filtro: solo entry degli altri musicisti, al millisecondo attuale
+        # I store only entries that are not from myself and that are at the current millisecond.
         current_entries = [
             entry for entry in full_spartito 
             if entry["musician"] != self.number and entry["ms"] == millisecond
         ]
 
-        # Aggiorna spartito con entry solo al millisecondo attuale
+        # update the orchestra spartito with the current entries.
         self.orchestra_spartito.extend(current_entries)
 
-        # Aggiungi i robot (musicisti) relativi a queste entry
+        # add musicians that played in this measure.
         self.robots_that_played.update(
             (entry["musician"], entry["timbre"]) for entry in current_entries
         )
@@ -624,14 +624,16 @@ class Robot:
             self.update_phase_kuramoto_model()
             # FIREFLY MODULE
             self.update_beat_firefly()
-            #unique_musicians = {robot for robot, _ in self.robots_that_played}
-            # If the number of unique musicians is equal to the total number of robots, I update stimuli.
-            #if len(unique_musicians) == self.total_robots:
+            # BIO-INSPIRED MODULE.
             self.update_stimuli()
             
-        # TIBRE MODULE
-        self.choose_timbre()     
- 
+        # I check if every robot has played.  
+        unique_musicians = {robot for robot, _ in self.robots_that_played}    
+        if len(unique_musicians) == self.total_robots and self.distribution_matches == False:
+            # TIBRE MODULE
+            self.choose_timbre()
+            self.robots_that_played.clear()   
+             
     # method to update beat with firefly algorithm.
     def update_beat_firefly(self):
         # Trova tutti gli eventi con dynamic == 'ff'
@@ -689,47 +691,75 @@ class Robot:
         self.beat_counter += move
         #print(f"robot {self.number} si sposta di {move} beat")
     
-    # method to print thresholds history.
     def print_threshold_history(self, base_folder_path):
-        # crea sottocartella thresholds se non esiste
+        # Crea la cartella se non esiste
         thresholds_dir = os.path.join(base_folder_path, "thresholds")
         os.makedirs(thresholds_dir, exist_ok=True)
-        threshold_history = np.array(self.timbre_threshold_history)
-        plt.figure(figsize=(10, 5))
 
-        for i in range(self.num_timbres):
-            plt.plot(threshold_history[:, i], label=f'Indiv {self.number + 1} - Task {i+1}')
-        
+        # Costruisce array 2D con le soglie nel tempo ordinate secondo self.timbre_list
+        threshold_history = np.array([
+            [step[t] for t in self.timbre_list]
+            for step in self.timbre_threshold_history
+        ])
+
+        plt.figure(figsize=(20, 15))
+
+        # Usa il nome reale del timbro come etichetta
+        for i, timbre in enumerate(self.timbre_list):
+            plt.plot(threshold_history[:, i], label=f'{timbre}')
+
         plt.xlabel("Time")
         plt.ylabel("Threshold")
-        plt.title(f"Threshold Evolution for Robot {self.number + 1} with {self.num_timbres} tasks")
-        plt.legend()
-        # salva il grafico
+        plt.title(f"Threshold Evolution for Robot {self.number + 1}")
+        plt.legend(fontsize="small", loc="upper right", ncol=2) 
+
+        # Salva il grafico
         filename = f"robot_{self.number + 1}_thresholds.png"
         save_path = os.path.join(thresholds_dir, filename)
         plt.savefig(save_path)
         plt.close()
 
+    def print_stimuli_history(self, base_folder_path):
+        # creates the directory if it doesn't exist
+        stimuli_dir = os.path.join(base_folder_path, "stimuli")
+        os.makedirs(stimuli_dir, exist_ok=True)
+
+        # Costruisce un array 2D ordinato secondo self.timbre_list
+        stimuli_array = np.array([
+            [step[t] for t in self.timbre_list]
+            for step in self.timbre_stimuli_history
+        ])
+
+        plt.figure(figsize=(20, 15))
+
+        # Plot per ogni timbro
+        for i, timbre in enumerate(self.timbre_list):
+            plt.plot(stimuli_array[:, i], label=f'{timbre}')
+
+        plt.xlabel("Time (s)")
+        plt.ylabel("Stimulus Value")
+        plt.title(f"Stimuli Evolution for Robot {self.number + 1}")
+        plt.legend(fontsize="small", loc="upper right", ncol=2)
+
+        # Salvataggio grafico
+        filename = f"robot_{self.number + 1}_stimuli.png"
+        save_path = os.path.join(stimuli_dir, filename)
+        plt.savefig(save_path)
+        plt.close()
+
     def compute_task_performed(self):
-        """
-        Calcola quante volte ogni timbro è stato suonato dai robot.
-        Restituisce un dizionario con i timbri come chiavi e i conteggi come valori.
-        """
-        # Inizializza un dizionario vuoto per contare i timbri
         timbre_counts = {}
-        # Conta quante volte ogni timbro è stato suonato
+        # counts how many times each timbre has been played by the robots.
         for robot, timbre in self.robots_that_played:
             if timbre in timbre_counts:
-                # Se il timbro è già nel dizionario, incrementa il conteggio
+                # if the timbre is already in the dictionary, increment the count
                 timbre_counts[timbre] = timbre_counts[timbre] + 1
             else:
-                # Altrimenti, inizializza il conteggio a 1
+                
                 timbre_counts[timbre] = 1
 
-        # Prepara il dizionario finale con tutti i timbri della lista
         task_performed = {}
-
-        # Assicurati che tutti i timbri abbiano un valore, anche se zero
+        # if some timbres have not been played, I set the value to 0.
         for timbre in self.timbre_list:
             if timbre in timbre_counts:
                 task_performed[timbre] = timbre_counts[timbre]
@@ -744,10 +774,23 @@ class Robot:
         total_tasks = sum(task_performed.values())
         # to see current distributions
         current_distribution = {}
-        
         for timbre in self.timbre_list:
             current_distribution[timbre] = task_performed.get(timbre, 0) / total_tasks
-            
+        # check if the current distribution matches the target distribution
+        self.distribution_matches = True
+        for timbre, target_value in self.target_distribution.items():
+            actual_value = current_distribution.get(timbre, 0)
+            if actual_value != target_value:
+                self.distribution_matches = False
+                # exit from the cycle.
+                break
+        
+        if self.distribution_matches:
+            # if it matches I exit the method.
+            self.b +=1
+            #self.reached_target_distribution = True
+            return
+
         if self.stimuli_update_mode == "delta":
             max_delta = self.delta
             # MODIFIED STIMULI UPDATE FORMULA
@@ -755,15 +798,12 @@ class Robot:
             # WORKS
             #self.stimuli += self.delta * delta_distribution - (self.alpha / self.total_robots) * task_performed
             #self.stimuli += self.delta * delta_distribution
-            # Applica solo ai target timbri
+            
             for timbre, target_value in self.target_distribution.items():
                 actual_value = current_distribution.get(timbre, 0)
                 difference = target_value - actual_value
                 abs_diff = abs(difference)
-
-                if abs_diff < self.tolerance:
-                    continue  # Se la differenza è piccola, non fare nulla
-                # Delta dinamico proporzionale alla distanza, ma mai troppo piccolo o grande
+                
                 scaled_delta = np.clip(abs_diff * max_delta, self.min_delta, max_delta)
                 #self.stimuli[timbre] += self.delta * difference
                 self.stimuli[timbre] += np.sign(difference) * scaled_delta
@@ -771,19 +811,19 @@ class Robot:
             # STANDARD UPDATE FORMULA
             self.stimuli += self.delta - (self.alpha / self.total_robots) * task_performed
         
-        # Clipping dei valori degli stimoli tra 0 e 100
+        # Clipping of the values to ensure they stay within the range [1, 1000]
         for timbre in self.stimuli:
             self.stimuli[timbre] = min(max(self.stimuli[timbre], 1), 1000)
-        self.reset_count += 1
-        self.robots_that_played.clear()  
+        self.timbre_stimuli_history.append(self.stimuli.copy())
+        self.reset_count += 1  
     
+    # method to update the target distribution based on the musicians seen.
     def update_target_and_instrument_distribution(self):
         number_of_instruments = round((len(self.musicians_seen) + 1) / max(self.d_values))
         if number_of_instruments > 0:
             # Recupera l'ensemble desiderato in base al numero
             instruments = self.ensembles.get(number_of_instruments, [])
             total = len(instruments)
-
             # Costruisce una distribuzione per tutti i timbri (anche quelli non selezionati)
             self.target_distribution = {}
             for timbre in self.timbre_list:
