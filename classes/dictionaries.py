@@ -16,7 +16,6 @@ colours = {
     'turquoise': (64, 224, 208)
 }
 
-
 major_scales = {
     
     0: [0, 2, 4, 5, 7, 9, 11],    # Do maggiore (C Major)
@@ -32,7 +31,6 @@ major_scales = {
     10: [10, 0, 2, 3, 5, 7, 9],   # La# maggiore (A# Major)
     11: [11, 1, 3, 4, 6, 8, 10],  # Si maggiore (B Major)
 }
-
 
 major_pentatonic_scales = {
     0:  [0, 2, 4, 7, 9],     # C major pentatonic
