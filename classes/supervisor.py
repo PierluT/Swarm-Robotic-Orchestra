@@ -20,14 +20,13 @@ class Supervisor:
         self.rectangleArea_width = int(config['PARAMETERS']['width_arena'])
         self.rectangleArea_heigth = int(config['PARAMETERS']['height_arena'])
         self.time = int(config['PARAMETERS']['milliseconds'])
+        self.min_off_duartion = 1000
         #self.delta_incidence = values_dictionary['delta_incidence']
         self.arena_area = self.rectangleArea_width * self.rectangleArea_heigth
         # number of robots in the arena
         self.number_of_robots = number_of_robots
         # dictionary of created robots
         self.dictionary_of_robots = []
-        # value for communication
-        #self.threshold = int(config['PARAMETERS']['threshold'])
         # value for collision
         self.collision_margin = int(config['PARAMETERS']['radar'])
         # dictionary of distance bewteen a robot and each others.
@@ -39,8 +38,6 @@ class Supervisor:
         self.max_midinote = 0
         # to estimate phases convergence
         self.target_precision = 0.01
-        # time interval for phases check 
-        self.last_check_time = time.time()
         # this value is the ability of a robot to see thing around it.
         self.sensor = int(config['PARAMETERS']['sensor'])
         self.initial_bpm = int(config['PARAMETERS']['bpm'])
@@ -137,14 +134,20 @@ class Supervisor:
         return number_of_beats, phase_bar_value, seconds_in_a_beat, ts.time_signature_combiantion
 
     # method to return the list of robots and assign a phase to each of them.
-    def create_dictionary_of_robots(self,delta_val, number_of_robots, ts):  
+    def create_dictionary_of_robots(self,delta_val, number_of_robots, ts): 
+         
         # TIME SIGNATURE SETUP.
         number_of_beats, phase_bar_value, seconds_in_a_beat, t_s = self.compute_phase_bar_value(ts)
         beats_array = list(range(1, number_of_beats +1))
         for n in range(self.number_of_robots):
+            # to set the initial status of the robots.
+            #status = random.choice(["on", "off"])
+            status = "on"
+            # I create a new robot with the initial parameters.
             robot = Robot(number = n, phase_period = phase_bar_value, delay_values = beats_array,
                            sb = seconds_in_a_beat, time_signature = t_s,
-                           delta_val = delta_val, total_robots = number_of_robots)
+                           delta_val = delta_val, total_robots = number_of_robots,
+                            status = status)
             robot.compute_beat_threshold()
             robot.choose_timbre()
             # I set the initial random note as one the notes that the initial timbre can play.
@@ -155,6 +158,28 @@ class Supervisor:
             robot.set_dynamic()
             # the supervisor has a complete dictionary of all the robots.
             self.dictionary_of_robots.append(robot)
+
+    def check_robots_status(self, millisecond):
+        """Check the status of each robot and update their status if necessary."""
+        for robot in self.dictionary_of_robots:
+            if robot.status == "off":
+                # Check if the off duration has passed
+                if millisecond >= robot.off_start_time + robot.off_duration:
+                    # Set the robot to "on" after the off duration
+                    robot.status = "on"
+                    robot.off_start_time = None
+                    robot.on_start_time = millisecond
+                    robot.on_duration = 60000
+            elif robot.status == "on":
+                # Check if the on duration has passed
+                if millisecond >= robot.on_start_time + robot.on_duration:
+                    # Set the robot to "off" after the on duration
+                    robot.status = "off"
+                    robot.on_start_time = None
+                    robot.off_start_time = millisecond
+                    robot.off_duration = 60000
+                    # Set a new off duration for the next cycle
+                    #robot.off_duration = random.randint(self.min_off_duartion, self.time)
 
     # method to set the intial positions of the robots, in order to avoid overlap.
     def compute_initial_positions(self):
@@ -310,70 +335,4 @@ class Supervisor:
         return self.conductor_spartito
 
 """
-def compute_task_performed(self):
-    # Initialize the array of task performed by the robots.
-        # initialize the array of task performed by the robots.
-        task_performed = np.zeros(self.num_timbres)
-        # Conta quante volte ogni timbro è stato suonato
-        timbre_counts = {}  # Dizionario per contare le occorrenze di ogni timbro
-        for robot, timbre in self.robots_that_played:
-            if timbre in timbre_counts:
-                timbre_counts[timbre] += 1
-            else:
-                timbre_counts[timbre] = 1
-
-        # Popola l'array task_performed con il conteggio dei timbri suonati
-        for i, timbre in enumerate(self.timbre_list):
-            if timbre in timbre_counts:
-                task_performed[i] = timbre_counts[timbre]
-
-        #print(task_performed)
-        return task_performed
-
-    def update_stimuli(self):
-        # I compute the timbres perfromed by the robots to compute what is needed to be played.
-        task_performed = self.compute_task_performed()
-        total_tasks = np.sum(task_performed)
-        # to see current distributions
-        current_distribution = task_performed / total_tasks
-        # compute difference between actual distibution and thr target one.
-        delta_distribution = (self.target_distribution - current_distribution) * self.delta_incidence
-        #1st delta_distribution = (self.target_distribution - current_distribution) # delta=5 ## in questo caso mi aspetto performance IDENTICHE. Il vantaggio è che ti rimuovi un parametro
-        #2nd delta_distribution = self.target_distribution # delta=10
-
-        if self.stimuli_update_mode == "delta":
-            # MODIFIED STIMULI UPDATE FORMULA
-            self.stimuli += self.delta * delta_distribution - (self.alpha / self.number_of_robots) * task_performed
-        else:
-            # STANDARD UPDATE FORMULA
-            self.stimuli += self.delta - (self.alpha / self.number_of_robots) * task_performed
-        #self.stimuli += self.delta * delta_distribution - (self.alpha / self.number_of_robots) * task_performed
-        # STANDARD UPDATE FORMULA
-        #self.stimuli += self.delta - (self.alpha / self.number_of_robots) * task_performed
-        self.stimuli = np.clip(self.stimuli, 0, 1000)
-    
-    def calculate_instrument_affinity(self):
-        affinity_dict = defaultdict(lambda: defaultdict(int))
-        instrument_count = defaultdict(int)
-        for formation, instruments in music_formations.items():
-            for instrument in instruments:
-                instrument_count[instrument] += 1
-            # Compute affinity for every instrument that appears in the fomration dictionary.
-            for i in range(len(instruments)):
-                for j in range(i + 1, len(instruments)):
-                    instrument1 = instruments[i]
-                    instrument2 = instruments[j]
-                    affinity_dict[instrument1][instrument2] += 1
-                    affinity_dict[instrument2][instrument1] += 1  
-        affinity_matrix = {}
-        for instrument1, instrument_dict in affinity_dict.items():
-            affinity_matrix[instrument1] = {}
-            total_pairs = len(music_formations)  
-            for instrument2, count in instrument_dict.items():
-                affinity_matrix[instrument1][instrument2] = count / total_pairs
-    
-        return affinity_matrix
-
-
-
 """

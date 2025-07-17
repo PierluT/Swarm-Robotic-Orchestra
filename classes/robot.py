@@ -18,8 +18,17 @@ config.read('configuration.ini')
 class Robot:
     
     def __init__(self, number, phase_period, delay_values, sb, time_signature,
-                 delta_val, total_robots):
+                 delta_val, total_robots, status):
         self.number = number
+        self.status = status
+        # time to repair = 1 minute
+        self.off_duration = 60000 if status == "off" else 0
+        # time to die = 1 minute
+        self.on_duration = 60000 if status == "on" else 0
+        # to keep track of the moment when the robot switches off.
+        self.off_start_time = None
+        # to keep track of the moment when the robot switches on.
+        self.on_start_time = 0 if status == "on" else None
         self.total_robots = total_robots
         # value for robot set.
         self.radius = int(config['PARAMETERS']['radius'])
@@ -131,9 +140,6 @@ class Robot:
         self.timbre_threshold_history = []
         self.timbre_threshold_history.append(self.timbre_thresholds.copy())
         self.last_timbre = None  # Ultimo timbro suonato
-        self.tolerance = 0.05
-        self.a = 0
-        self.b = 0
         self.distribution_matches = True
         #self.reached_target_distribution = False
         # AVAILABLE ENSEMBLES
@@ -318,8 +324,6 @@ class Robot:
                 new_midinote = self.find_closest_midinote(midi_range_for_control)
                 self.note.midinote = new_midinote
                 #print(f"Nuova nota MIDI: {new_midinote}")
-
-            # Stampa per il debug
             #print("pitch: " + str(self.note.pitch))
             #print("midinote: " + str(self.note.midinote))
             #print(self.note)
@@ -333,7 +337,7 @@ class Robot:
         for category in self.timbre_dictionary.values():
             if self.timbre in category:
                 midi_range = category[self.timbre]
-                break  # Esci appena trovi il range corretto
+                break  # exit the loop once the timbre is found
         
         return midi_range
 
@@ -351,9 +355,7 @@ class Robot:
         #print("nota "+str(self.note.pitch))
     
     # method to set the timbre based on thresholds and stimuli.
-    # MODIFY THE CHOICE.
     def choose_timbre(self):
-        self.a +=1
         chosen_timbre = None
         probabilities = {}
         # compute the probabilities to choose each timbre
@@ -406,15 +408,12 @@ class Robot:
                 #print(f"Nuova nota MIDI: {new_midinote}")
         # once I enter into the method for the first time I set the first call to false.
         self.first_call = False  
-        
         return chosen_timbre
     
     def update_thresholds(self, chosen_timbre):
-        
         if chosen_timbre is None:
             print("problemaaaaaaaaaaaaaaaaaaaaa")
             return 
-        
         # Aggiornamento delle soglie
         for timbre in self.timbre_list:
             if timbre == chosen_timbre:
@@ -580,11 +579,7 @@ class Robot:
                 self.colour = colours['purple']
             elif self.timbre == "Acc":
                 self.colour = colours['turquoise']
-
-            # other instruments
-            else:
-                self.colour = colours['green']  # Colore di default
-
+        
     # robot's ears simulation.
     def update_orchestra_spartito(self, full_spartito, millisecond):
         
@@ -787,8 +782,6 @@ class Robot:
         
         if self.distribution_matches:
             # if it matches I exit the method.
-            self.b +=1
-            #self.reached_target_distribution = True
             return
 
         if self.stimuli_update_mode == "delta":

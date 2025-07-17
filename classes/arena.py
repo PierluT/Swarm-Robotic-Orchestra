@@ -65,7 +65,7 @@ class Arena:
             reader1 = csv.reader(file, delimiter=';')
             next(reader1)
             for row in reader1:
-                simulation_number, millisecond, robot_number, x, y,compass, beat_phase, beat_counter,dynamic, colour_str, midinote, pitch, timbre, delay, playing_flag = row
+                simulation_number, millisecond, robot_number,status, x, y,compass, beat_phase, beat_counter,dynamic, colour_str, midinote, pitch, timbre, delay, playing_flag = row
                 
                 colour_str = colour_str.strip().strip('()')  # Rimuove parentesi e spazi extra
                 colour = tuple(map(int, colour_str.split(',')))
@@ -81,6 +81,7 @@ class Arena:
                     "simulation number": simulation_number,
                     "millisecond": int(millisecond),
                     "robot_number": int(robot_number),
+                    "status": status,
                     "x": float(x),
                     "y": float(y),
                     "compass": (start_point, end_point),
@@ -98,6 +99,7 @@ class Arena:
             simulation_number,
             millisecond, 
             robot.number, 
+            robot.status,
             robot.x, 
             robot.y,
             robot.compass, 
