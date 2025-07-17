@@ -9,10 +9,10 @@ colours = {
     'yellow': (0, 255, 255),
     'pink': (255, 192, 203),
     'purple': (128, 0, 128),
-    'light_blue': (255, 200, 100),  # Azzurro chiaro
-    'sky_blue': (255, 180, 70),     # Blu cielo
-    'dark_blue': (139, 0, 0),       # Blu scuro
-    'grey': (128, 128, 128),         # Grigio
+    'light_blue': (255, 200, 100),  
+    'sky_blue': (255, 180, 70),     
+    'dark_blue': (139, 0, 0),       
+    'grey': (128, 128, 128),        
     'turquoise': (64, 224, 208)
 }
 

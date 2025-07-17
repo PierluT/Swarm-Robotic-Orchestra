@@ -143,7 +143,6 @@ class MIDIMessage():
             sf.write(self.final_audio_file, audio_data, sr)
             print(f"File audio finale generato: {self.final_audio_file}")
 
-    
     def generate_metronome_click(self, sample_rate, click_duration=0.05, frequency=1000, amplitude=0.1):
         """Genera un click breve per il metronomo."""
         t = np.linspace(0, click_duration, int(sample_rate * click_duration), endpoint=False)
