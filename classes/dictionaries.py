@@ -13,8 +13,11 @@ colours = {
     'sky_blue': (255, 180, 70),     
     'dark_blue': (139, 0, 0),       
     'grey': (128, 128, 128),        
-    'turquoise': (64, 224, 208)
+    'turquoise': (64, 224, 208),
+    'olive': (85, 107, 47)
 }
+
+
 
 major_scales = {
     
@@ -60,6 +63,12 @@ whole_tone_scales = {
     9:  [9, 11, 1, 3, 5, 7],    # A whole-tone
     10: [10, 0, 2, 4, 6, 8],    # A# whole-tone
     11: [11, 1, 3, 5, 7, 9],    # B whole-tone
+}
+
+SCALE_FAMILIES = {
+    "major": major_scales,
+    #"pentatonic": major_pentatonic_scales,
+    #"wholetone": whole_tone_scales,
 }
 
 orchestra_to_midi_range = {

@@ -30,8 +30,8 @@ def run_simulation(int_param, bool_video_audio, delta_val, number_of_robots):
             for millisecond in range(0,supervisor.time):          
                 # ROBOTS WRITE A note IN THE GLOBAL SPARTITO
                 for robot in supervisor.dictionary_of_robots:
+                        #supervisor.check_robot_status(millisecond, robot)
                         # check if the robot is on or off.
-                        supervisor.check_robots_status(millisecond)
                         if robot.status == "on":
                             # update robot beat phase
                             robot.update_beat_phase(millisecond)
@@ -61,7 +61,12 @@ def run_simulation(int_param, bool_video_audio, delta_val, number_of_robots):
                 # to clean the robot ears.
                 supervisor.clean_robot_buffers()
             #print(supervisor.conductor_spartito)
-            midi_class.write_csv(supervisor.conductor_spartito,simulation_number, csv_path)            
+            midi_class.write_csv(supervisor.conductor_spartito,simulation_number, csv_path)
+            for robot in supervisor.dictionary_of_robots:
+                # save png graphs of robot's thresholds
+                robot.print_threshold_history(supervisor.csv_folder_directory)
+                #  save png files of robot's stimuli history 
+                robot.print_stimuli_history(supervisor.csv_folder_directory)   
             # for another simulation I clear all robot data.
             supervisor.dictionary_of_robots.clear()
             supervisor.conductor_spartito.clear() 
@@ -75,19 +80,15 @@ def run_simulation(int_param, bool_video_audio, delta_val, number_of_robots):
         midi_class.generate_audio_from_csv(wav_files_list)
         # video generation audio included
         arena.create_video(output_path= "video_simulation.mp4", audio_path = "final_output.wav", fps = 25, auto_open= True)
+    
     else:
-        for robot in supervisor.dictionary_of_robots:
-                #print("ROBOT:", robot.number, " how many times distribution is correct ", robot.b)
-                # save png graphs of robot's thresholds
-                robot.print_threshold_history(supervisor.csv_folder_directory)
-                #  save png files of robot's stimuli history 
-                robot.print_stimuli_history(supervisor.csv_folder_directory)
+        print("Video and audio generation skipped.")
+        
 
 if __name__ == "__main__":
-    
     # if you are doing debug or testing you can set the parameters here.
     if len(sys.argv) == 1:  # if there are no command line arguments
-        sys.argv.extend(["1", "false","40", "8"])  # set up the default values
+        sys.argv.extend(["1", "true","25", "8"])  # set up the default values
     
     parser = argparse.ArgumentParser()
     parser.add_argument("int_param", type=int, help="Numero di simulazioni")
