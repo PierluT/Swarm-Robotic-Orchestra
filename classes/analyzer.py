@@ -2,16 +2,11 @@ import os
 import pandas as pd
 import numpy as np
 import re
-import csv
 import matplotlib.pyplot as plt
 import seaborn as sns
 import glob
 from scipy.special import rel_entr
-import re
-import warnings
-from scipy.stats import entropy
-from sklearn.metrics import mean_squared_error
-from dictionaries import colours, major_scales, major_pentatonic_scales, whole_tone_scales, orchestra_to_midi_range, instrument_ensembles, instrument_target_distributions_full, ensemble_names 
+from dictionaries import colours,major_scales, major_pentatonic_scales, whole_tone_scales, SCALE_FAMILIES, orchestra_to_midi_range, instrument_ensembles, instrument_target_distributions_full, ensemble_names 
 
 class DataAnalyzer:
     
@@ -22,8 +17,9 @@ class DataAnalyzer:
         self.distribution_dictionary = instrument_target_distributions_full
 
     def get_csv_files(self):
-        """Trova tutti i file video.csv nelle sottocartelle di 'csv/'"""
-        return glob.glob("csv/S_N*_R_N*_BPM*_timbres_number*/video.csv", recursive=True)
+        """Trova tutti i file video.csv nelle sottocartelle di 'csv/' con naming S_N_..."""
+        return glob.glob("csv/S_N_*_R_N_*_BPM_*_min_*_delta_*_beats_*/video.csv", recursive=True)
+
 
     def extract_parameter_from_folder(self, folder_path, parameter_name):
         """
@@ -111,7 +107,7 @@ class DataAnalyzer:
         # Legenda unica e orizzontale
         handles, labels = ax.get_legend_handles_labels()
         fig.legend(
-            handles, labels, title="Timbre", loc="lower center",
+            handles, labels, loc="lower center",
             ncol=len(self.timbre_list),  # Legenda su una sola riga
             bbox_to_anchor=(0.5, -0.01), fontsize=12, title_fontsize=13
         )
@@ -121,422 +117,696 @@ class DataAnalyzer:
         plt.tight_layout(rect=[0, 0.05, 1, 1])  # lascia spazio per la legenda
         plt.show()
 
-    def timbre_variance_and_entropy(self, base_dir="csv", step_size=4000):
-        results = []
+    def phase_synchrony_boxplot_by_bpm(
+        self,
+        base_dir="csv",
+        step_size=5000,
+        fixed_params=None,  # es. {"delta": 100, "beats": 4, "num_robots": 32}
+        title="Phase synchrony evolution",
+        hue_var="bpm",      # "bpm" oppure "num_robots"
+        show=True,
+    ):
+        if fixed_params is None:
+            fixed_params = {}
 
-        for folder in os.listdir(base_dir):
-            folder_path = os.path.join(base_dir, folder)
-            video_csv = os.path.join(folder_path, "video.csv")
+        def parse_folder_params(folder_name: str):
+            parts = folder_name.split("_")
 
-            if not os.path.exists(video_csv):
-                continue
+            def get_int_after(token):
+                return int(parts[parts.index(token) + 1])
 
-            try:
-                df = pd.read_csv(video_csv, delimiter=";")
-            except Exception as e:
-                print(f"❌ Errore nel file {video_csv}: {e}")
-                continue
+            params = {}
 
-            try:
-                parts = folder.split("_")
-                delta = int(parts[parts.index("delta") + 1])
-                num_robots = int(parts[parts.index("R") + 2])
-                beats = int(parts[parts.index("beats") + 1])
-            except Exception as e:
-                print(f"⚠️ Parametri non trovati in {folder}: {e}")
-                continue
+            # BPM / delta / beats
+            params["bpm"] = get_int_after("BPM") if "BPM" in parts else None
+            params["delta"] = get_int_after("delta") if "delta" in parts else None
+            params["beats"] = get_int_after("beats") if "beats" in parts else None
 
-            # Target distribution in base al rapporto robot/beats
-            try:
-                ratio = num_robots // beats
-                target_dist = instrument_target_distributions_full[ratio]
-                target_timbres = list(target_dist.keys())
-                target_probs = np.array([target_dist[t] for t in target_timbres])
-                print(f"Target timbres: {target_timbres}")
-                ideal_entropy = entropy(target_probs, base=2)
-                ideal_variance = np.var(target_probs)
-            except KeyError:
-                print(f"⚠️ Nessuna distribuzione target per il rapporto {num_robots}/{beats} (={ratio})")
-                continue
+            # num_robots: formato ... R_N_32 ...
+            params["num_robots"] = None
+            if "R" in parts:
+                try:
+                    i = parts.index("R")
+                    # atteso: parts[i+1] == "N" e parts[i+2] == "<int>"
+                    if i + 2 < len(parts):
+                        params["num_robots"] = int(parts[i + 2])
+                except Exception:
+                    pass
 
-            df['time_bin'] = ((df['ms'] // step_size) * step_size) / 1000
+            return params
 
-            latest = df.sort_values(by='ms').groupby(['simulation number', 'robot number', 'time_bin']).last().reset_index()
-            grouped = latest.groupby(['simulation number', 'time_bin', 'timbre']).size().reset_index(name='count')
-            grouped['percentage'] = grouped['count'] / num_robots
-            ensemble_number = num_robots // beats
-            ensemble_label = ensemble_names.get(ensemble_number, f"{ensemble_number}-group")
+        def to_sync_df(out):
+            # out può essere lista di tuple (ms, delta_theta) oppure DataFrame
+            if isinstance(out, pd.DataFrame):
+                out = out.copy()
+                out.columns = [c.strip() for c in out.columns]
 
-            for (sim, time_bin), group in grouped.groupby(['simulation number', 'time_bin']):
-                observed = group.set_index('timbre')['percentage'].reindex(target_timbres, fill_value=0.0)
-                var = observed.var()
-                kl = entropy(observed.values, target_probs, base=2)
+                if "delta_theta" not in out.columns and "DeltaTheta" in out.columns:
+                    out = out.rename(columns={"DeltaTheta": "delta_theta"})
 
+                if "ms" in out.columns and "delta_theta" in out.columns:
+                    return out[["ms", "delta_theta"]].copy()
 
-                results.append({
-                    "simulation": sim,
-                    "time_bin": time_bin,
-                    "delta": delta,
-                    "robots": num_robots,
-                    "variance": var,
-                    "kl_divergence": kl,
-                    "ideal_entropy": ideal_entropy,
-                    "ideal_variance": ideal_variance,
-                    "config": f"{ensemble_label}_delta = {delta}_beats = {beats}"
-                })
+                # fallback: prime due colonne
+                if out.shape[1] >= 2:
+                    tmp = out.iloc[:, :2].copy()
+                    tmp.columns = ["ms", "delta_theta"]
+                    return tmp
 
-        if not results:
-            print("❌ Nessun dato valido.")
-            return
+                return pd.DataFrame(columns=["ms", "delta_theta"])
 
-        df_results = pd.DataFrame(results)
+            # lista di tuple (ms, delta_theta)
+            return pd.DataFrame(out, columns=["ms", "delta_theta"])
 
-        # 🎨 Plot
-        fig, axes = plt.subplots(2, 1, figsize=(16, 10), sharex=True)
-
-        # VARIANZA
-        sns.lineplot(data=df_results, x="time_bin", y="variance", hue="config", ax=axes[0])
-        for config, group in df_results.groupby("config"):
-            axes[0].axhline(y=group["ideal_variance"].iloc[0], linestyle="--", color="gray", alpha=0.5)
-        axes[0].set_title("Variance (Filtered on Target Timbres) Over Time")
-        axes[0].set_ylabel("Variance")
-
-        # KL DIVERGENCE
-        sns.lineplot(data=df_results, x="time_bin", y="kl_divergence", hue="config", ax=axes[1])
-
-        # ⚠️ RIMUOVI questa linea: l'ideale di KL divergence è sempre 0 (nessuna differenza con la distribuzione target)
-        # quindi aggiungerla come linea orizzontale non ha senso informativo.
-        # for config, group in df_results.groupby("config"):
-        #     axes[1].axhline(y=group["ideal_entropy"].iloc[0], linestyle="--", color="gray", alpha=0.5)
-
-        axes[1].set_title("Kullback-Leibler Divergence vs Target Timbre Distribution Over Time")
-        axes[1].set_ylabel("KL Divergence (base 2)")
-        axes[1].set_xlabel("Time (s)")
-
-        plt.tight_layout()
-        plt.show()
-
-    def timbre_mse_over_time(self, base_dir="csv", step_size=1000):
-        results = []
-
-        for folder in os.listdir(base_dir):
-            folder_path = os.path.join(base_dir, folder)
-            video_csv = os.path.join(folder_path, "video.csv")
-
-            if not os.path.exists(video_csv):
-                continue
-
-            try:
-                df = pd.read_csv(video_csv, delimiter=";")
-            except Exception as e:
-                print(f"❌ Errore nel file {video_csv}: {e}")
-                continue
-
-            # 📦 Estrai parametri dal nome della cartella
-            try:
-                parts = folder.split("_")
-                delta = int(parts[parts.index("delta") + 1])
-                num_robots = int(parts[parts.index("R") + 2])
-                beats = int(parts[parts.index("beats") + 1])
-                
-                if "deltatype" in parts:
-                    delta_type = parts[parts.index("deltatype") + 1]
-                else:
-                    delta_type = "standard"
-            
-            except Exception as e:
-                print(f"⚠️ Parametri non trovati in {folder}: {e}")
-                continue
-
-            df['time_bin'] = ((df['ms'] // step_size) * step_size) / 1000
-
-            latest = df.sort_values(by='ms').groupby(['simulation number', 'robot number', 'time_bin']).last().reset_index()
-            grouped = latest.groupby(['simulation number', 'time_bin', 'timbre']).size().reset_index(name='count')
-            grouped['percentage'] = grouped['count'] / num_robots
-
-            # 🎯 Calcola la chiave per target finale: robot / beats
-            try:
-                ratio = num_robots // beats
-                target_dist = instrument_target_distributions_full[ratio]
-            except KeyError:
-                print(f"⚠️ Nessuna distribuzione target per il rapporto {num_robots}/{beats} (={ratio})")
-                continue
-
-            # 🧪 MSE per ogni time_bin
-            for (sim, time_bin), group in grouped.groupby(['simulation number', 'time_bin']):
-                observed = group.set_index('timbre')['percentage'].reindex(self.timbre_list, fill_value=0.0)
-                target = [target_dist.get(t, 0.0) for t in self.timbre_list]
-
-                mse = mean_squared_error(target, observed.values)
-                rmse_percent = (np.sqrt(mse) * 100)
-                ensemble_number = num_robots // beats
-                ensemble_label = ensemble_names.get(ensemble_number, f"{ensemble_number}-group")
-
-                results.append({
-                    "simulation": sim,
-                    "time_bin": time_bin,
-                    "delta": delta,
-                    "robots": num_robots,
-                    "beats": beats,
-                    "mse": mse,
-                    "rmse_percent": rmse_percent,
-                    "config": f"{ensemble_label}, delta={delta}, {delta_type}"
-                })
-
-        if not results:
-            print("❌ Nessun dato valido.")
-            return
-
-        df_results = pd.DataFrame(results)
-
-        # 📊 Plot con annotazione del minimo MSE per configurazione
-        plt.figure(figsize=(16, 6))
-        ax = sns.lineplot(data=df_results, x="time_bin", y="mse", hue="config", ci=None)
-
-        # Annotazioni min MSE per config
-        grouped = df_results.groupby("config")["mse"]
-        for config, values in grouped:
-            min_val = values.min()
-            ax.annotate(f"{min_val:.3f}",
-                        xy=(df_results["time_bin"].max(), min_val),
-                        xytext=(5, 0),
-                        textcoords='offset points',
-                        va='center',
-                        fontsize=9,
-                        color='black')
-        # Uso del nome nel titolo
-        plt.title("Mean Squared Error (MSE) vs Final Target Distribution Over Time")
-        plt.xlabel("Time (s)")
-        plt.ylabel("MSE (annotated min per config)")
-        plt.tight_layout()
-        plt.show()
-
-        # 📉 Stampa terminale ultimi valori
-        print("\n📊 Ultimi valori di MSE e RMSE% per configurazione:\n")
-        last_values = (
-            df_results.sort_values("time_bin")
-                    .groupby("config")
-                    .tail(1)[["config", "time_bin", "mse", "rmse_percent"]]
-                    .sort_values(by="mse")
-        )
-
-    def beat_sync_normalized_boxplot(self, base_dir="csv", time_limit_ms=180000, step_size=1000):
-    
-        warnings.filterwarnings("ignore", category=FutureWarning)
         all_data = []
 
         for folder in os.listdir(base_dir):
             folder_path = os.path.join(base_dir, folder)
             video_csv = os.path.join(folder_path, "video.csv")
-
             if not os.path.exists(video_csv):
+                continue
+
+            params = parse_folder_params(folder)
+
+            # filtra parametri fissi
+            skip = False
+            for k, v in fixed_params.items():
+                if params.get(k) != v:
+                    skip = True
+                    break
+            if skip:
                 continue
 
             try:
                 df = pd.read_csv(video_csv, delimiter=";")
+                df.columns = [c.strip() for c in df.columns]
             except Exception as e:
                 print(f"❌ Errore nel file {video_csv}: {e}")
                 continue
 
-            try:
-                parts = folder.split("_")
-                delta = int(parts[parts.index("delta") + 1])
-                num_robots = int(parts[parts.index("R") + 2])
-                beats = int(parts[parts.index("beats") + 1])
-                label = f"R={num_robots}, δ={delta}, beats={beats}"
-            except Exception as e:
-                print(f"⚠️ Parametri non trovati in {folder}: {e}")
-                continue
+            # per-replica se esiste
+            if "simulation number" in df.columns:
+                sim_groups = df.groupby("simulation number")
+            else:
+                sim_groups = [(0, df)]
 
-            df = df[df["ms"] <= time_limit_ms]
-            df["time_bin"] = (df["ms"] // step_size) * step_size / 1000
+            for sim_id, sim_df in sim_groups:
+                try:
+                    analyzer = DataAnalyzer()
+                    analyzer.df = sim_df
+                    out = analyzer.phase_synchrony()  # nessun argomento
+                except Exception as e:
+                    print(f"❌ phase_synchrony failed for {folder} sim {sim_id}: {e}")
+                    continue
 
-            grouped = df.groupby(["simulation number", "time_bin"])
-            metric_df = grouped["beat counter"].agg(
-                lambda x: (max(x) - min(x)) / (beats - 1)
-            ).reset_index(name="normalized_divergence")
+                sync_df = to_sync_df(out)
+                if sync_df.empty:
+                    continue
 
-            metric_df["config"] = label
-            all_data.append(metric_df)
+                # Aggiungi metadati PRIMA del groupby (e poi riaggiungili dopo)
+                sync_df["time_bin"] = ((sync_df["ms"] // step_size) * step_size) / 1000.0
+                sync_df["bpm"] = params["bpm"]
+                sync_df["num_robots"] = params["num_robots"]
+                sync_df["delta"] = params["delta"]
+                sync_df["beats"] = params["beats"]
+                sync_df["simulation number"] = sim_id
+
+                # media per bin
+                sync_binned = sync_df.groupby(
+                    ["simulation number", "time_bin", "bpm", "num_robots", "delta", "beats"],
+                    as_index=False
+                )["delta_theta"].mean()
+
+                all_data.append(sync_binned)
 
         if not all_data:
             print("❌ Nessun dato valido.")
-            return
+            return None
 
-        final_df = pd.concat(all_data)
+        final_df = pd.concat(all_data, ignore_index=True)
 
-        # Plot boxplot
-        g = sns.catplot(
+        # rimuovi righe senza hue_var (es. parsing fallito)
+        if hue_var not in final_df.columns:
+            raise ValueError(f"hue_var='{hue_var}' not found in final_df columns: {list(final_df.columns)}")
+        final_df = final_df.dropna(subset=[hue_var])
+
+        # ----- PLOT stile come la tua immagine -----
+        fig, ax = plt.subplots(figsize=(16, 6))
+
+        sns.boxplot(
             data=final_df,
-            x="time_bin", y="normalized_divergence",
-            kind="box",
-            col="config", col_wrap=2,
-            height=5, aspect=1.5,
-            showfliers=False
+            x="time_bin",
+            y="delta_theta",
+            hue=hue_var,   # <-- "bpm" o "num_robots"
+            dodge=True,
+            ax=ax
         )
-        g.set_titles("{col_name}")
-        g.set_axis_labels("Tempo (s)", "Divergenza normalizzata dei beat")
-        g.fig.suptitle("Evoluzione della sincronizzazione dei beat (normalizzata)", fontsize=16)
-        g.tight_layout()
-        plt.show()
 
-    
-    def phase_synchrony_over_time(self, base_dir="csv", step_size=1000):
-        results = []
+        ax.set_title(title, fontsize=18)
+        ax.set_xlabel("Time Interval (s)", fontsize=14)
+        ax.set_ylabel(r"Value ($\Delta\Theta$)", fontsize=14)
+        ax.set_ylim(0, 1)
 
-        def compute_delta_theta(phases):
+        legend_title = "BPM" if hue_var == "bpm" else "Number of robots"
+        ax.legend(title=legend_title, loc="upper right")
+
+        plt.tight_layout()
+        if show:
+            plt.show()
+        else:
+            plt.close()
+
+        return final_df
+
+    def harmony_consensus(sim_data):
+        """
+        Compute harmony consensus H(t) for a dataset.
+        H(t) is the proportion of robots whose pitches belong to at least a single common scale.
+        """
+        ms_values = sim_data['ms'].unique()
+        harmony_values = []
+
+        for ms in ms_values:
+            current_data = sim_data[sim_data['ms'] == ms]
+            M = len(current_data)
+
+            if M == 0:
+                continue
+
+            # Conta quanti robot hanno harmony = True
+            harmony_count = current_data['harmony'].sum()  # Conta i True (che sono considerati come 1)
+            
+            # Normalizzazione tra 1/M e 1
+            H_t = max(1/M, harmony_count / M)
+            
+            harmony_values.append((ms, H_t))
+
+        return harmony_values
+
+    def phase_synchrony(self):
+        """
+        Compute phase synchronization ΔΘ(t) using self.df.
+        Returns: list of (ms, delta_theta)
+        """
+
+        if not hasattr(self, "df") or self.df is None:
+            raise ValueError("DataAnalyzer.df is not set. Assign a DataFrame to self.df before calling phase_synchrony().")
+
+        sim_data = self.df
+
+        required_cols = {"ms", "beat phase"}
+        if not required_cols.issubset(sim_data.columns):
+            missing = required_cols - set(sim_data.columns)
+            raise ValueError(f"Missing required columns in df: {missing}")
+
+        ms_values = sim_data["ms"].unique()
+        synchrony_values = []
+
+        for ms in ms_values:
+            current_data = sim_data[sim_data["ms"] == ms]
+            phases = current_data["beat phase"].dropna().to_numpy()
             M = len(phases)
+
             if M < 2:
-                return np.nan
+                synchrony_values.append((ms, 0.0))
+                continue
+
             total_diff = 0.0
+            num_pairs = 0
+
             for i in range(M):
                 for j in range(i + 1, M):
                     diff = abs(phases[i] - phases[j])
-                    total_diff += diff % np.pi
-            return (2 / (M * (M - 1))) * total_diff
+                    cyclic_diff = min(diff, 2 * np.pi - diff)  # in [0, π]
+                    total_diff += cyclic_diff
+                    num_pairs += 1
+
+            max_diff = num_pairs * np.pi
+            delta_theta = total_diff / max_diff if max_diff > 0 else 0.0
+            synchrony_values.append((ms, delta_theta))
+
+        return synchrony_values
+    
+    def beat_synchrony_boxplot_by_bpm(
+        self,
+        base_dir="csv",
+        step_size=5000,
+        fixed_params=None,      # es. {"delta": 100, "beats": 4, "num_robots": 32}
+        title="Beat synchrony evolution",
+        hue_var="bpm",          # "bpm" oppure "num_robots"
+        show=True,
+    ):
+        if fixed_params is None:
+            fixed_params = {}
+
+        def parse_folder_params(folder_name: str):
+            parts = folder_name.split("_")
+
+            def get_int_after(token):
+                return int(parts[parts.index(token) + 1])
+
+            params = {}
+            params["bpm"] = get_int_after("BPM") if "BPM" in parts else None
+            params["delta"] = get_int_after("delta") if "delta" in parts else None
+            params["beats"] = get_int_after("beats") if "beats" in parts else None
+
+            params["num_robots"] = None
+            if "R" in parts:
+                try:
+                    i = parts.index("R")
+                    if i + 2 < len(parts):
+                        params["num_robots"] = int(parts[i + 2])
+                except Exception:
+                    pass
+
+            return params
+
+        # -------- Beat synchrony computation (swarm-level) --------
+        def compute_beat_synchrony(df, B_max):
+            results = []
+
+            for ms, group in df.groupby("ms"):
+                beats = group["beat counter"].dropna().to_numpy()
+                M = len(beats)
+
+                if M < 2:
+                    results.append((ms, 0.0))
+                    continue
+
+                total_diff = 0.0
+                num_pairs = 0
+
+                for i in range(M):
+                    for j in range(i + 1, M):
+                        total_diff += abs(beats[i] - beats[j])
+                        num_pairs += 1
+
+                delta_B = (total_diff / num_pairs) / (B_max - 1)
+                results.append((ms, delta_B))
+
+            return pd.DataFrame(results, columns=["ms", "delta_B"])
+
+        all_data = []
 
         for folder in os.listdir(base_dir):
             folder_path = os.path.join(base_dir, folder)
             video_csv = os.path.join(folder_path, "video.csv")
-
             if not os.path.exists(video_csv):
+                continue
+
+            params = parse_folder_params(folder)
+
+            # filtra parametri fissi
+            skip = False
+            for k, v in fixed_params.items():
+                if params.get(k) != v:
+                    skip = True
+                    break
+            if skip:
                 continue
 
             try:
                 df = pd.read_csv(video_csv, delimiter=";")
+                df.columns = [c.strip() for c in df.columns]
             except Exception as e:
                 print(f"❌ Errore nel file {video_csv}: {e}")
                 continue
 
-            # Estrai parametri della simulazione dalla cartella
-            try:
-                parts = folder.split("_")
-                delta = int(parts[parts.index("delta") + 1])
-                num_robots = int(parts[parts.index("R") + 2])
-                beats = int(parts[parts.index("beats") + 1])
-
-                if "deltatype" in parts:
-                    delta_type = parts[parts.index("deltatype") + 1]
-                else:
-                    delta_type = "standard"
-
-                ensemble_number = num_robots // beats
-                ensemble_label = ensemble_names.get(ensemble_number, f"{ensemble_number}-group")
-                config = f"{ensemble_label}, delta={delta}, {delta_type}"
-
-            except Exception as e:
-                print(f"⚠️ Parametri non trovati in {folder}: {e}")
+            if "beat counter" not in df.columns:
+                print(f"⚠️ Colonna 'beat counter' non trovata in {video_csv}")
                 continue
 
-            # Raggruppa per step temporale
-            df['time_bin'] = ((df['ms'] // step_size) * step_size) / 1000
+            # per-replica se esiste
+            if "simulation number" in df.columns:
+                sim_groups = df.groupby("simulation number")
+            else:
+                sim_groups = [(0, df)]
 
-            for (sim, time_bin), group in df.groupby(['simulation number', 'time_bin']):
-                phases = group['beat phase'].to_numpy()
-                delta_theta = compute_delta_theta(phases)
+            for sim_id, sim_df in sim_groups:
+                try:
+                    sync_df = compute_beat_synchrony(sim_df, params["beats"])
+                except Exception as e:
+                    print(f"❌ beat_synchrony failed for {folder} sim {sim_id}: {e}")
+                    continue
 
-                results.append({
-                    "simulation": sim,
-                    "time_bin": time_bin,
-                    "delta_theta": delta_theta,
-                    "config": config
-                })
+                if sync_df.empty:
+                    continue
 
-        if not results:
+                # metadati
+                sync_df["time_bin"] = ((sync_df["ms"] // step_size) * step_size) / 1000.0
+                sync_df["bpm"] = params["bpm"]
+                sync_df["num_robots"] = params["num_robots"]
+                sync_df["delta"] = params["delta"]
+                sync_df["beats"] = params["beats"]
+                sync_df["simulation number"] = sim_id
+
+                sync_binned = sync_df.groupby(
+                    ["simulation number", "time_bin", "bpm", "num_robots", "delta", "beats"],
+                    as_index=False
+                )["delta_B"].mean()
+
+                all_data.append(sync_binned)
+
+        if not all_data:
             print("❌ Nessun dato valido.")
-            return
+            return None
 
-        df_results = pd.DataFrame(results)
+        final_df = pd.concat(all_data, ignore_index=True)
 
-        # 📊 Plot dell’andamento della ∆Θ(t)
-        plt.figure(figsize=(16, 6))
-        ax = sns.lineplot(data=df_results, x="time_bin", y="delta_theta", hue="config", ci=None)
-        plt.title("Phase Synchrony ΔΘ(t) Over Time")
-        plt.xlabel("Time (s)")
-        plt.ylabel("ΔΘ(t) [0: perfect sync, 1: max async]")
-        plt.ylim(0, 1)
+        if hue_var not in final_df.columns:
+            raise ValueError(f"hue_var='{hue_var}' not found in final_df columns")
+
+        final_df = final_df.dropna(subset=[hue_var])
+
+        # -------- PLOT --------
+        fig, ax = plt.subplots(figsize=(16, 6))
+
+        sns.boxplot(
+            data=final_df,
+            x="time_bin",
+            y="delta_B",
+            hue=hue_var,
+            dodge=True,
+            ax=ax
+        )
+
+        ax.set_title(title, fontsize=18)
+        ax.set_xlabel("Time Interval (s)", fontsize=14)
+        ax.set_ylabel(r"Value ($\Delta B$)", fontsize=14)
+        ax.set_ylim(0, 1)
+
+        legend_title = "BPM" if hue_var == "bpm" else "Number of robots"
+        ax.legend(title=legend_title, loc="upper right")
+
         plt.tight_layout()
-        plt.show()
+        if show:
+            plt.show()
+        else:
+            plt.close()
 
-def harmony_consensus(sim_data):
-    """
-    Compute harmony consensus H(t) for a dataset.
-    H(t) is the proportion of robots whose pitches belong to at least a single common scale.
-    """
-    ms_values = sim_data['ms'].unique()
-    harmony_values = []
+        return final_df
+    
 
-    for ms in ms_values:
-        current_data = sim_data[sim_data['ms'] == ms]
-        M = len(current_data)
+    def harmonic_agreement_boxplot(
+        self,
+        base_dir="csv",
+        step_size=5000,             # ms
+        fixed_params=None,          # es. {"delta": 100, "beats": 4, "num_robots": 32, "scale": "major"}
+        title="Harmonic agreement evolution",
+        hue_var="bpm",              # "bpm" / "num_robots" / "scale"
+        show=True,
+        scale_fallback="major",
+    ):
+        if fixed_params is None:
+            fixed_params = {}
 
-        if M == 0:
-            continue
+        # ----------------------------
+        # Folder params parsing (stile tuo)
+        # ----------------------------
+        def parse_folder_params(folder_name: str):
+            parts = folder_name.split("_")
 
-        # Conta quanti robot hanno harmony = True
-        harmony_count = current_data['harmony'].sum()  # Conta i True (che sono considerati come 1)
-        
-        # Normalizzazione tra 1/M e 1
-        H_t = max(1/M, harmony_count / M)
-        
-        harmony_values.append((ms, H_t))
+            def get_int_after(token):
+                return int(parts[parts.index(token) + 1])
 
-    return harmony_values
+            def get_str_after(token):
+                return str(parts[parts.index(token) + 1])
 
-def phase_synchrony(sim_data):
-    """
-    Compute phase synchronization ∆Θ(t) for a dataset.
-    """
-    ms_values = sim_data['ms'].unique()
-    synchrony_values = []
+            params = {}
+            params["bpm"] = get_int_after("BPM") if "BPM" in parts else None
+            params["delta"] = get_int_after("delta") if "delta" in parts else None
+            params["beats"] = get_int_after("beats") if "beats" in parts else None
 
-    for ms in ms_values:
-        current_data = sim_data[sim_data['ms'] == ms]
-        phases = current_data['phase'].values
-        M = len(phases)
+            # num_robots: formato ... R_N_32 ...
+            params["num_robots"] = None
+            if "R" in parts:
+                try:
+                    i = parts.index("R")
+                    if i + 2 < len(parts) and parts[i + 1] == "N":
+                        params["num_robots"] = int(parts[i + 2])
+                except Exception:
+                    pass
 
-        # compute ∆Θ(t)
-        total_diff = 0
-        num_pairs = 0
+            # scale: formato ... scale_major ... oppure scale_pentatonic ...
+            params["scale"] = None
+            if "scale" in parts:
+                try:
+                    params["scale"] = get_str_after("scale").strip().lower()
+                except Exception:
+                    pass
 
-        for i in range(M):
-            for j in range(i + 1, M):
-                diff = abs(phases[i] - phases[j])
-                cyclic_diff = min(diff, 2 * np.pi - diff)  # Normalizza in [0, π]
-                total_diff += cyclic_diff
-                num_pairs += 1
+            return params
 
-        # Value normalization
-        max_diff = num_pairs * np.pi  # Massima differenza possibile
-        delta_theta = (total_diff / max_diff) if num_pairs > 0 else 0
-        synchrony_values.append((ms, delta_theta))
+        # ----------------------------
+        # Note -> pitch class (0..11)
+        # ----------------------------
+        NOTE_RE = re.compile(r"^\s*([A-Ga-g])([#b]?)(-?\d+)?\s*$")
+        NOTE_BASE_PC = {"C": 0, "D": 2, "E": 4, "F": 5, "G": 7, "A": 9, "B": 11}
 
-    return synchrony_values
+        def note_to_pitch_class(x):
+            if pd.isna(x):
+                return None
 
-"""
-analyzer = DataAnalyzer(analysis_function = None)
-a = analyzer.get_csv_files()
-folder_path = os.path.dirname(a[0])
-print("File CSV trovati:", folder_path)
-print(analyzer.extract_parameter_from_folder(folder_path, "timbres_number"))
-# Analisi per il numero di timbri
-#analyzer.timbre_trend_boxplot()
-#csv_files = analyzer.get_csv_files()
-#print("File CSV trovati:", csv_files)
-analyzer.timbre_analysis_across_robots()
-#analyzer.analyze_timbre_distribution_over_time()
-#analyzer.analyze()    
-#print(analyzer.get_csv_files())
-#print(analyzer.extract_robot_number(analyzer.get_csv_files())) #
+            # numeric MIDI
+            if isinstance(x, (int, float)) and float(x).is_integer():
+                return int(x) % 12
 
-"""
+            s = str(x).strip()
+
+            # MIDI numeric as string
+            try:
+                v = float(s)
+                if v.is_integer():
+                    return int(v) % 12
+            except Exception:
+                pass
+
+            m = NOTE_RE.match(s)
+            if not m:
+                return None
+
+            letter = m.group(1).upper()
+            accidental = m.group(2) or ""
+            pc = NOTE_BASE_PC[letter]
+            if accidental == "#":
+                pc = (pc + 1) % 12
+            elif accidental == "b":
+                pc = (pc - 1) % 12
+            return pc
+
+        # ----------------------------
+        # H(t) per bin
+        # ----------------------------
+        def compute_H_for_bin(bin_df: pd.DataFrame, scale_dict: dict):
+            """
+            scale_dict: {root: [pc,...]}  (es. SCALE_FAMILIES['major'])
+            Strategia: per ogni robot, ultima nota nel bin. Poi:
+              H = max_root ( count_in_scale(root) / M )
+            """
+            if bin_df.empty:
+                return None
+
+            bin_df = bin_df.sort_values(["musician", "ms"])
+            last_notes = bin_df.groupby("musician", as_index=False).tail(1)
+
+            pcs = last_notes["pc"].dropna().astype(int).tolist()
+            M = len(pcs)
+            if M == 0:
+                return None
+
+            best = 0
+            for _, scale_pcs in scale_dict.items():
+                sset = set(scale_pcs)
+                cnt = sum(1 for pc in pcs if pc in sset)
+                if cnt > best:
+                    best = cnt
+
+            return best / M
+
+        # ----------------------------
+        # Main loop
+        # ----------------------------
+        all_data = []
+
+        for folder in os.listdir(base_dir):
+            folder_path = os.path.join(base_dir, folder)
+            music_csv = os.path.join(folder_path, "music.csv")
+            if not os.path.exists(music_csv):
+                continue
+
+            params = parse_folder_params(folder)
+
+            # scala (famiglia) scelta dalla cartella
+            scale_name = (params.get("scale") or "").strip().lower()
+            if scale_name not in SCALE_FAMILIES:
+                scale_name = scale_fallback
+            scale_dict = SCALE_FAMILIES[scale_name]
+
+            # filtra parametri fissi
+            skip = False
+            for k, v in fixed_params.items():
+                if k == "scale":
+                    if (params.get("scale") or "").strip().lower() != str(v).strip().lower():
+                        skip = True
+                        break
+                else:
+                    if params.get(k) != v:
+                        skip = True
+                        break
+            if skip:
+                continue
+
+            try:
+                df = pd.read_csv(music_csv, delimiter=";")
+                df.columns = [c.strip() for c in df.columns]
+            except Exception as e:
+                print(f"❌ Errore nel file {music_csv}: {e}")
+                continue
+
+            required_cols = {"ms", "musician", "note"}
+            if not required_cols.issubset(df.columns):
+                print(f"❌ Colonne mancanti in {music_csv}: richieste {required_cols}, trovate {set(df.columns)}")
+                continue
+
+            if "simulation number" in df.columns:
+                sim_groups = df.groupby("simulation number")
+            else:
+                sim_groups = [(0, df)]
+
+            for sim_id, sim_df in sim_groups:
+                sim_df = sim_df.copy()
+                sim_df["pc"] = sim_df["note"].apply(note_to_pitch_class)
+                sim_df = sim_df.dropna(subset=["pc"])
+                if sim_df.empty:
+                    continue
+
+                # bin temporale (time_bin in secondi)
+                sim_df["time_bin"] = ((sim_df["ms"] // step_size) * step_size) / 1000.0
+
+                rows = []
+                for tbin, bin_df in sim_df.groupby("time_bin"):
+                    H = compute_H_for_bin(bin_df, scale_dict)
+                    if H is None:
+                        continue
+                    rows.append({"time_bin": tbin, "H": H})
+
+                if not rows:
+                    continue
+
+                h_df = pd.DataFrame(rows)
+                h_df["bpm"] = params["bpm"]
+                h_df["num_robots"] = params["num_robots"]
+                h_df["delta"] = params["delta"]
+                h_df["beats"] = params["beats"]
+                h_df["scale"] = scale_name
+                h_df["simulation number"] = sim_id
+
+                all_data.append(h_df)
+
+        if not all_data:
+            print("❌ Nessun dato valido.")
+            return None
+
+        final_df = pd.concat(all_data, ignore_index=True)
+
+        # rimuovi righe senza hue_var
+        if hue_var not in final_df.columns:
+            raise ValueError(f"hue_var='{hue_var}' not found in final_df columns: {list(final_df.columns)}")
+        final_df = final_df.dropna(subset=[hue_var])
+
+        # ----------------------------
+        # Plot
+        # ----------------------------
+        fig, ax = plt.subplots(figsize=(16, 6))
+
+        sns.boxplot(
+            data=final_df,
+            x="time_bin",
+            y="H",
+            hue=hue_var,
+            dodge=True,
+            ax=ax
+        )
+
+        ax.set_title(title, fontsize=18)
+        ax.set_xlabel("Time Interval (s)", fontsize=14)
+        ax.set_ylabel("H(t) harmonic agreement", fontsize=14)
+        ax.set_ylim(0, 1)
+
+        legend_title = {
+            "bpm": "BPM",
+            "num_robots": "Number of robots",
+            "scale": "Scale family",
+        }.get(hue_var, hue_var)
+
+        ax.legend(title=legend_title, loc="upper right")
+        plt.tight_layout()
+
+        if show:
+            plt.show()
+        else:
+            plt.close()
+
+        return final_df
+     
+
 analyzer = DataAnalyzer()
-analyzer.timbre_trend_across_configs(base_dir="csv", step_size=30000)
-#analyzer.beat_sync_normalized_boxplot(base_dir="csv", time_limit_ms=180000, step_size=10000)
-#analyzer.timbre_variance_and_entropy(base_dir="csv", step_size=40)
-#analyzer.timbre_mse_over_time(base_dir="csv", step_size=4000)
-#analyzer.count_perfect_distributions(base_dir="csv", mse_threshold=1e-6, kl_threshold=1e-6)
-#analyzer.phase_synchrony_over_time(base_dir="csv", step_size=1000)
+#analyzer.timbre_trend_across_configs(base_dir="csv", step_size=30000)
+"""
+analyzer.beat_synchrony_boxplot_by_bpm(
+    fixed_params={"delta": 100, "beats": 4, "bpm": 60},
+    hue_var="num_robots",
+    title="Beat synchrony evolution (BPM=60, δ=100)"
+)
+
+
+
+analyzer.harmonic_agreement_boxplot(
+    base_dir="csv",
+    hue_var="num_robots",
+    fixed_params={
+        "delta": 100,
+        "beats": 4,
+        "bpm": 30,
+        "scale": "major",
+    },
+    title="Harmonic agreement vs number of robots"
+)
+
+
+analyzer.harmonic_agreement_boxplot(
+    base_dir="csv",
+    hue_var="scale",
+    fixed_params={
+        "bpm": 60,
+        "beats": 4,
+        "delta": 100,
+        "num_robots": 16,
+    },
+    title="Harmonic agreement vs scale family",
+)
+"""
+
+analyzer.harmonic_agreement_boxplot(
+    base_dir="csv",
+    hue_var="beats",   # confronto 4 vs 5 vs 7
+    fixed_params={"bpm": 60, "delta": 100, "num_robots": 16, "scale": "major"},
+    step_size=5000,
+    title="H(t) vs time (seconds) for different beats"
+)
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

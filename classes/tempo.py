@@ -23,7 +23,7 @@ class TimeSignature:
 
     def __init__(self):
         # how many beats in a bar
-        self.numerator_time_signature = [4]
+        self.numerator_time_signature = [6]
         # duration of the bar. This value is related to the phase denominator.
         self.denominator_time_signature = [4]
         self.time_signature_combiantion = random.choice(self.get_time_signature_combinations())

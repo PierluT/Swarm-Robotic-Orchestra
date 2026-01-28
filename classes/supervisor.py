@@ -5,7 +5,7 @@ import os
 import shutil
 from classes.robot import Robot
 from classes.tempo import TimeSignature
-from classes.dictionaries import orchestra_to_midi_range
+from classes.dictionaries import orchestra_to_midi_range, SCALE_FAMILIES
 from collections import defaultdict
 from configparser import ConfigParser
 
@@ -27,6 +27,7 @@ class Supervisor:
         self.number_of_robots = number_of_robots
         # dictionary of created robots
         self.dictionary_of_robots = []
+        self.scale_type = ""
         # value for collision
         self.collision_margin = int(config['PARAMETERS']['radar'])
         # dictionary of distance bewteen a robot and each others.
@@ -36,8 +37,6 @@ class Supervisor:
         # to found the minimum a maximum mid value.
         self.min_midinote = 0
         self.max_midinote = 0
-        # to estimate phases convergence
-        self.target_precision = 0.01
         # this value is the ability of a robot to see thing around it.
         self.sensor = int(config['PARAMETERS']['sensor'])
         self.initial_bpm = int(config['PARAMETERS']['bpm'])
@@ -73,7 +72,7 @@ class Supervisor:
         #distribution_type = "_target_distribution" if self.stimuli_update_mode == "delta" else "_standard_distribution"
         minutes = int(self.time / 60000)
         csv_directory = "csv"
-        
+        self.scale_type, scales_to_use = random.choice(list(SCALE_FAMILIES.items()))
         csv_folder = (
             # number of simulations
             f"S_N_{s_n}"
@@ -86,7 +85,9 @@ class Supervisor:
             # delta value to study
             f"_delta_{delta_val}"
             # number of beats in the measure
-            f"_beats_{ts.denominator_time_signature[0]}"
+            f"_beats_{ts.numerator_time_signature[0]}"
+            # type of scale used for the simulations
+            f"_scale_{self.scale_type}"
         )
         # to set up the general directory of the csv files.
         self.csv_folder_directory = os.path.join(csv_directory, csv_folder)
@@ -147,7 +148,7 @@ class Supervisor:
             robot = Robot(number = n, phase_period = phase_bar_value, delay_values = beats_array,
                            sb = seconds_in_a_beat, time_signature = t_s,
                            delta_val = delta_val, total_robots = number_of_robots,
-                            status = status)
+                           status = status, scales_to_use = SCALE_FAMILIES[self.scale_type])
             robot.compute_beat_threshold()
             robot.choose_timbre()
             # I set the initial random note as one the notes that the initial timbre can play.
@@ -159,12 +160,12 @@ class Supervisor:
             # the supervisor has a complete dictionary of all the robots.
             self.dictionary_of_robots.append(robot)
 
-    def check_robots_status(self, millisecond):
-        """Check the status of each robot and update their status if necessary."""
-        for robot in self.dictionary_of_robots:
+    def check_robot_status(self,millisecond, robot):
+            """Check the status of each robot and update their status if necessary."""
+            #for robot in self.dictionary_of_robots:
             if robot.status == "off":
                 # Check if the off duration has passed
-                if millisecond >= robot.off_start_time + robot.off_duration:
+                if robot.off_start_time is not None and millisecond >= robot.off_start_time + robot.off_duration:
                     # Set the robot to "on" after the off duration
                     robot.status = "on"
                     robot.off_start_time = None
@@ -172,7 +173,7 @@ class Supervisor:
                     robot.on_duration = 60000
             elif robot.status == "on":
                 # Check if the on duration has passed
-                if millisecond >= robot.on_start_time + robot.on_duration:
+                if robot.on_start_time is not None and millisecond >= robot.on_start_time + robot.on_duration:
                     # Set the robot to "off" after the on duration
                     robot.status = "off"
                     robot.on_start_time = None
@@ -333,6 +334,3 @@ class Supervisor:
         # orders the conductor spartito by ms value.
         self.conductor_spartito.sort(key=lambda x: x["ms"])
         return self.conductor_spartito
-
-"""
-"""
