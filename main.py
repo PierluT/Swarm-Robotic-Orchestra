@@ -6,15 +6,15 @@ from classes.arena import Arena
 from classes.MIDIMessage import MIDIMessage
 from classes.tempo import TimeSignature
 
-def run_simulation(int_param, bool_video_audio, delta_val, number_of_robots):
+def run_simulation(int_param, bool_video_audio, number_of_robots):
     
-    print(f"\n--- Simulazione con robot={number_of_robots}, delta={delta_val} ---")
+    print(f"\n--- Simulazione con robot={number_of_robots}")
     # initialization
     supervisor = Supervisor(number_of_robots)
     midi_class = MIDIMessage()
     arena = Arena()
     ts = TimeSignature()
-    csv_path = supervisor.set_up_csv_directory(int_param, delta_val, ts)
+    csv_path = supervisor.set_up_csv_directory(int_param, ts)
     
     with open(csv_path , mode="w", newline="") as file:
         writer = csv.writer(file, delimiter=';')
@@ -25,7 +25,7 @@ def run_simulation(int_param, bool_video_audio, delta_val, number_of_robots):
             # CLEAN EVERYTHING BEFORE EXECUTION 
             arena.clean_png_folder()
             # method to set robot positions and initial random notes.
-            supervisor.setup_robots(delta_val, number_of_robots, ts)
+            supervisor.setup_robots(number_of_robots, ts)
             # IMPLEMENTATION OF THE SIMULATION
             for millisecond in range(0,supervisor.time):          
                 # ROBOTS WRITE A note IN THE GLOBAL SPARTITO
@@ -88,13 +88,13 @@ def run_simulation(int_param, bool_video_audio, delta_val, number_of_robots):
 if __name__ == "__main__":
     # if you are doing debug or testing you can set the parameters here.
     if len(sys.argv) == 1:  # if there are no command line arguments
-        sys.argv.extend(["1", "true","25", "8"])  # set up the default values
+        sys.argv.extend(["1", "true", "8"])  # set up the default values
     
     parser = argparse.ArgumentParser()
     parser.add_argument("int_param", type=int, help="Numero di simulazioni")
     parser.add_argument("bool_video_audio", type=lambda x: x.lower() in ("true", "1", "yes"))
-    parser.add_argument("delta_val", type=int, help="Valore di delta")
+    #parser.add_argument("delta_val", type=int, help="Valore di delta")
     parser.add_argument("number_of_robots", type=int, help="Numero di robot")
     args = parser.parse_args()
 
-    run_simulation(args.int_param, args.bool_video_audio,args.delta_val, args.number_of_robots)
+    run_simulation(args.int_param, args.bool_video_audio, args.number_of_robots)

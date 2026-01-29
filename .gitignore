@@ -4,9 +4,14 @@ plot
 csv
 samples
 
+# Python artifacts
+__pycache__/
+*.pyc
+
 # Ignora la cartella della libreria Python
 *robotic-orchestra-venv/
-
+venv/
+.env/
 # Escludi tutti i file video AVI
 *.mp4
 
