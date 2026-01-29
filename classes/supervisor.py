@@ -47,6 +47,7 @@ class Supervisor:
         self.stimuli_update_mode = config['PARAMETERS']['stimuli_update']
         self.timbre_dictionary = orchestra_to_midi_range
         self.num_timbres = sum(len(instruments) for instruments in self.timbre_dictionary.values())
+        self.delta_val = int(config['PARAMETERS']['delta_value'])
     
     # method to compute iteratively the min and max midinote value that robot can play.
     def compute_midi_range_values(self):
@@ -61,13 +62,13 @@ class Supervisor:
         
         return self.min_midinote, self.max_midinote
     
-    def setup_robots(self, delta_val, number_of_robots, ts):
+    def setup_robots(self, number_of_robots, ts):
         # I associate a note and a timbre for each robot.
-        self.create_dictionary_of_robots(delta_val, number_of_robots, ts)
+        self.create_dictionary_of_robots(number_of_robots, ts)
         # I set the initial positions of the robots.
         self.compute_initial_positions()
     
-    def set_up_csv_directory(self,simulation_number,delta_val, ts):
+    def set_up_csv_directory(self,simulation_number, ts):
         s_n = simulation_number
         #distribution_type = "_target_distribution" if self.stimuli_update_mode == "delta" else "_standard_distribution"
         minutes = int(self.time / 60000)
@@ -83,7 +84,7 @@ class Supervisor:
             # minutes of the simulation
             f"_min_{minutes}"
             # delta value to study
-            f"_delta_{delta_val}"
+            f"_delta_{self.delta_val}"
             # number of beats in the measure
             f"_beats_{ts.numerator_time_signature[0]}"
             # type of scale used for the simulations
@@ -135,11 +136,12 @@ class Supervisor:
         return number_of_beats, phase_bar_value, seconds_in_a_beat, ts.time_signature_combiantion
 
     # method to return the list of robots and assign a phase to each of them.
-    def create_dictionary_of_robots(self,delta_val, number_of_robots, ts): 
+    def create_dictionary_of_robots(self, number_of_robots, ts): 
          
         # TIME SIGNATURE SETUP.
         number_of_beats, phase_bar_value, seconds_in_a_beat, t_s = self.compute_phase_bar_value(ts)
         beats_array = list(range(1, number_of_beats +1))
+        #delta_assigned = self.delta_read
         for n in range(self.number_of_robots):
             # to set the initial status of the robots.
             #status = random.choice(["on", "off"])
@@ -147,7 +149,7 @@ class Supervisor:
             # I create a new robot with the initial parameters.
             robot = Robot(number = n, phase_period = phase_bar_value, delay_values = beats_array,
                            sb = seconds_in_a_beat, time_signature = t_s,
-                           delta_val = delta_val, total_robots = number_of_robots,
+                           delta_val = self.delta_val, total_robots = number_of_robots,
                            status = status, scales_to_use = SCALE_FAMILIES[self.scale_type])
             robot.compute_beat_threshold()
             robot.choose_timbre()
