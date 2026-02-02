@@ -77,7 +77,19 @@ Robots can choose among 13 different instruments thanks to a dataset of wav samp
 This framework requires Python and a dedicated virtual environment to manage dependencies.  
 Before running the simulation, make sure to create and activate a Python virtual environment and install the required packages, listed in requirement.txt.
 
-After completing the installation, user can customize the Emergent Orchestra by modifying the parameters defined in the 'configuration.ini' file. These parameters include, among others, the dimensions of the simulation area, the size of the robots, the total duration of the simulation, and the tempo of the generated music (e.g., 30, 60, or 120 BPM). Additionally, users may choose whether to generate a final MP4 video synchronized with a WAV audio file containing the notes played by the swarm.
+After completing the installation, the user can customize the simulation by modifying the following parameters in the configuration file:
+- the width and height of the simulation arena;
+- the movement velocity of the robots;
+- the physical size (radius) of each robot;
+- the total duration of the simulation;
+- the sensor update interval;
+- the tempo (BPM) of the generated music (30, 60 or 120);
+- the update strategy for the stimuli values (delta corresponds to reach the target distribution);
+- the delta value governing adaptation dynamics;
+- the set of active modules controlling the robots’ musical behavior (ex. if the user wants to implemnet all the modules, he/she has to write phase, beat, harmony, timbre).
+
+
+Additionally, users may choose whether to generate a final MP4 video synchronized with a WAV audio file containing the notes played by the swarm.
 
 To execute the framework, the user must specify via the command line:
 - the number of simulations to run;
