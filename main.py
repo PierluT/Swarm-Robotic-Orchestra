@@ -15,7 +15,7 @@ def run_simulation(int_param, bool_video_audio, number_of_robots):
     arena = Arena()
     ts = TimeSignature()
     csv_path = supervisor.set_up_csv_directory(int_param, ts)
-    
+    #print(supervisor.modules_to_activate)
     with open(csv_path , mode="w", newline="") as file:
         writer = csv.writer(file, delimiter=';')
         writer.writerow(["simulation number","ms","robot number","status","x", "y","compass","beat phase","beat counter","dynamic", "colour","midinote", "pitch", "timbre", "delay"," playing flag"])
@@ -31,11 +31,10 @@ def run_simulation(int_param, bool_video_audio, number_of_robots):
                 # ROBOTS WRITE A note IN THE GLOBAL SPARTITO
                 for robot in supervisor.dictionary_of_robots:
                         #supervisor.check_robot_status(millisecond, robot)
-                        # check if the robot is on or off.
+                        # check if the robot is on or off and .
                         if robot.status == "on":
-                            # update robot beat phase
+                            # PHASE MODULE
                             robot.update_beat_phase(millisecond)
-                        
                         # if the robot play then I update the gobal spartito.
                         if robot.playing_flag:
                             # supervisor adds the new robot note line to its global spartito. 

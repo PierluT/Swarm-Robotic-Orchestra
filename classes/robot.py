@@ -142,9 +142,9 @@ class Robot:
         self.last_timbre = None  # Ultimo timbro suonato
         self.distribution_matches = True
         #self.reached_target_distribution = False
+        self.modules_to_activate = [module.strip() for module in config['PARAMETERS']['modules'].split(',')]
         # AVAILABLE ENSEMBLES
         self.ensembles = instrument_ensembles
-        self.a = 0
         self.b = 0
 
     def __repr__(self):
@@ -614,30 +614,24 @@ class Robot:
             self.update_target_and_instrument_distribution()
         
         if self.orchestra_spartito:
-            # HARMONY MODULE
-            self.update_note()
-            # KURAMOTO MODULE
-            self.update_phase_kuramoto_model()
-            # FIREFLY MODULE
-            self.update_beat_firefly()
-            # BIO-INSPIRED MODULE.
-            self.update_stimuli()
+            if "harmony" in self.modules_to_activate:
+                # HARMONY MODULE
+                self.update_note()
+            if "phase" in self.modules_to_activate:
+                # KURAMOTO MODULE
+                self.update_phase_kuramoto_model()
+            if "beat" in self.modules_to_activate:
+                # FIREFLY MODULE
+                self.update_beat_firefly()  
+            if "timbre" in self.modules_to_activate:
+                # TIMBRE MODULE.
+                self.update_stimuli()
 
-        if self.distribution_matches:
-            self.b+=1
         unique_musicians = {robot for robot, _ in self.robots_that_played}
         current_count = len(unique_musicians)
+        
     
-    """            
-        # I check if every robot has played.  
-        unique_musicians = {robot for robot, _ in self.robots_that_played}    
-        if len(unique_musicians) == self.total_robots and self.distribution_matches == False:
-            # TIBRE MODULE
-            self.choose_timbre()
-            self.robots_that_played.clear()   
-    """         
-    
-    # method to update beat with firefly algorithm.
+    # BEAT MODULE - FIREFLY MODEL
     def update_beat_firefly(self):
         # Trova tutti gli eventi con dynamic == 'ff'
         ff_entries = []
@@ -774,6 +768,7 @@ class Robot:
 
         return task_performed
     
+    # TIMBRE MODULE
     def update_stimuli(self):
         # I compute the timbres perfromed by the robots to compute what is needed to be played.
         task_performed = self.compute_task_performed()
