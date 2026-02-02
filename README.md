@@ -21,11 +21,11 @@ Robots have to organize themselves among 4 different music layers that are rhyth
 
 ## Phase Module
 
-Each robot has a phase with initial random value (like a clock), and the complete round of the phase corresponds to the length of the musical measure; robots increase phase value each millisecond of the simulation based on the BPM choosed by the user. When a robot hears a note played by another musician, stores player's current phase and aligns the proper one using **Kuramoto model**.
+Each robot has a phase with initial random value (like a clock), and the complete round of the phase corresponds to the length of the musical measure; robots increase phase value each millisecond of the simulation based on the BPM choosed by the user. When a robot hears a note played by another musician, stores player's current phase and aligns the proper one using **Kuramoto model**. 
 
 ## Beat Module
 
-Measure is divided equally in beats, and a random value *delay* is assigned to each robot: when its phase will cross that portion of measure, it will be able to play. To coordinate the moment on which every robot crosses the 0, **Firefly model** is implemneted: each agent assignes the start of the measure when its heard a *fortissimo* note, and the robot moves its beat pointer 1 step forward or above basing on how much far is from the first beat. Firefly effect is due to the natural behavior of the insect, taht coordinates when it fires observing the behavior of the other ones. 
+Measure is divided equally in beats, and a random value *delay* is assigned to each robot: when its phase will cross that portion of measure, it will be able to play. For the time that they play, robots change color in red. To coordinate the moment on which every robot crosses the 0, **Firefly model** is implemneted: each agent assignes the start of the measure when its heard a *fortissimo* note, and the robot moves its beat pointer 1 step forward or above basing on how much far is from the first beat. Firefly effect is due to the natural behavior of the insect, taht coordinates when it fires observing the behavior of the other ones. When a robot begins a new round, the color turns in black for a beat to verify if they cross at the same time. 
 
 ![Example of phase subdivision with time signature of 4/4](phase_module.png)
 
@@ -93,6 +93,7 @@ python main.py 10 false 16
 
 An example of frame of the resulting video that appears once finished the simulation is:
 ![Example of phase subdivision with time signature of 4/4](frame7499.png)
+
 
 
 
